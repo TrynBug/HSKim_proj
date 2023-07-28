@@ -1,0 +1,128 @@
+
+select * from account;
+select * from player;
+select * from quest;
+select count(*) from quest;
+truncate table quest;
+
+start transaction;
+commit;
+
+
+INSERT INTO  `1028_mysqlconnector`.`quest` (`account_no`, `quest_id`, `state`) VALUES(5, 664, 1);INSERT INTO  `1028_mysqlconnector`.`quest` (`account_no`, `quest_id`, `state`) VALUES(5, 664, 1);INSERT INTO  `1028_mysqlconnector`.`quest` (`account_no`, `quest_id`, `state`) VALUES(5, 664, 1);
+
+
+
+INSERT INTO  `1028_mysqlconnector`.`quest` (`account_no`, `quest_id`, `state`) VALUES(7, 686, 1);INSERT INTO  `1028_mysqlconnector`.`quest` (`account_no`, `quest_id`, `state`) VALUES(7, 686, 1);INSERT INTO  `1028_mysqlconnector`.`quest` (`account_no`, `quest_id`, `state`) VALUES(7, 686, 1);
+
+select `status`, count(*) 
+from `accountdb`.`status` 
+WHERE `accountno` >= 10000 and `accountno` < 20000
+group by `status`
+order by `status`;
+
+UPDATE `accountdb`.`status` SET `status` = 0 WHERE `accountno` = 10000;
+
+
+
+
+
+
+
+
+
+select count(*) from account;
+select count(*) from sessionkey;
+select count(*) from status;
+select count(*) from whiteip;
+
+select * From account;
+select * from sessionkey;
+select * from status;
+select * from whiteip;
+
+
+
+
+
+
+select * From account order by accountno desc;
+
+
+
+
+
+
+
+drop table  `logdb`.`monitorlog`;
+
+CREATE TABLE `logdb`.`monitorlog` 
+(
+  `no` BIGINT NOT NULL AUTO_INCREMENT,
+  `logtime`		DATETIME,
+  `serverno`	INT NOT NULL,  -- 서버마다의 고유번호 각자 지정
+  `type`		INT NOT NULL,
+  `avg1m`       INT,
+  `avg5m`       INT,
+  `min1m`       INT,
+  `min5m`       INT,
+  `max1m`       INT,
+  `max5m`       INT,
+PRIMARY KEY (`no`) );
+
+
+
+drop table  `logdb`.`monitorlog_202212`;
+CREATE TABLE `logdb`.`monitorlog_202212` LIKE `logdb`.`monitorlog`;
+
+BEGIN
+DECLARE CONTINUE HANDLER FOR 1146
+	CREATE TABLE `logdb`.`monitorlog_202213` LIKE `logdb`.`monitorlog`;
+INSERT INTO `logdb`.`monitorlog_202212` (`serverno`, `type`, `value`) VALUES (1,1,1);
+END;
+
+select * from  `logdb`.`monitorlog_202212`;
+
+truncate monitorlog_202212;
+
+
+
+select count(*) from  `logdb`.`monitorlog_202212`;
+
+
+
+
+
+
+
+select * from `account` order by accountno desc;
+
+
+insert into `account` values (1000000, "USER00", "1111111111222222222233333333334444444444555555555566666666667777", "NICK00");
+insert into `account` values (1000001, "USER01", "1111111111222222222233333333334444444444555555555566666666667777", "NICK01");
+insert into `account` values (1000002, "USER02", "1111111111222222222233333333334444444444555555555566666666667777", "NICK02");
+
+
+select * from `status` order by accountno desc;
+insert into `status` values (1000000, 0);
+insert into `status` values (1000001, 0);
+insert into `status` values (1000002, 0);
+
+
+SELECT `charactertype`, `posx`, `posy`, `tilex`, `tiley`, `rotation`, `crystal`, `hp`, `exp`, `level`, `die` FROM `gamedb`.`character` WHERE `accountno` = 123;
+
+SELECT * FROM `gamedb`.`character`;
+SELECT * FROM `gamedb`.`character` WHERE `accountno` = 123;
+
+truncate table `gamedb`.`character`;
+
+
+update `gamedb`.`character` set `crystal`=100 where `accountno`=1000000;
+
+
+
+
+select * from `logdb`.`gamelog`;
+select count(*) from `logdb`.`gamelog`;
+desc `logdb`.`gamelog`;
+truncate table `logdb`.`gamelog`;

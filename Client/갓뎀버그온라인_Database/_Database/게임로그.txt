@@ -1,0 +1,21 @@
+		type	code	AccountNo	ServerName	param1		param2		param3		param4		message
+
+로그인		1	11	AccountNo			TileX		TileY		cristal		hp		ip:port
+
+로그아웃	1	12	AccountNo			TileX		TileY		cristal		hp		
+
+플레이어 죽음	3	31	AccountNo			TileX		TileY		cristal
+
+캐릭터 생성	3	32	AccountNo			CharacterType
+
+플레이어 재시작	3	33	AccountNo			TileX		TileY		
+
+크리스탈 획득	4	41	AccountNo			GetCristal	TotalCristal
+
+HP 회복
+(회복 갱신시)	5	51	AccountNo			Old HP		New HP		SitTimeSec
+
+
+로그인
+(로그인서버)	100	101	AccountNo	"Login"		status								ip:port
+
