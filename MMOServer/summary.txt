@@ -1,0 +1,204 @@
+# start 채팅서버
+main
+	new CharServer()   // new 안쓰게하려면?
+	chatServer.StartUp()
+		config 파일 읽기
+		sector 배열 메모리 할당 // sector가 이중포인터인데 클래스로 바꿀순없나
+		_hEventMsg 채팅서버 메시지큐 이벤트 생성
+		ThreadChatServer 채팅서버 스레드 start
+		ThreadMsgGenerator 메시지 생성 스레드 start
+		_pDBConn->ConnectAndRunThread DB Connect 및 DB Writer 스레드 start
+			ThreadAsyncDBWriter DB 요청처리 스레드 시작
+		_pLANClientMonitoring->SendPacket(pPacket); 모니터링 서버에 접속
+		모니터링 데이터 수집 스레드 start
+		CNetServer::StartUp 네트워크 start
+			세션배열 생성; _arrSession = (CSession*)_aligned_malloc(sizeof(CSession) * _config.numMaxSession, 64); 
+			세션index push
+			IOCP 생성
+			리슨소켓 생성, nagle 설정
+			bind
+			listen 시작
+			worker스레드 생성; ThreadWorker
+			트래픽 혼잡제어 스레드 생성; ThreadTrafficCongestionControl
+			지연된 소켓닫기 이벤트 생성
+			지연된 소켓닫기 스레드 생성; ThreadDeferredCloseSocket
+			accept 스레드 생성; ThreadAccept
+		redis start
+		
+# accept 스레드
+ThreadAccept
+	while (true)
+		accept
+		OnConnectionRequest 콜백함수 호출
+		세션생성; CSession* pNewSession = AllocSession(clntSock, clntAddr);
+			index stack에서 하나 pop; _stackSessionIdx.Pop(sessionIdx)
+			세션배열에서 세션get; CSession* pSession = &_arrSession[sessionIdx];
+			IncreaseIoCount
+			세션초기화
+		소켓과 IOCP 연결; CreateIoCompletionPort((HANDLE)clntSock, _hIOCP, (ULONG_PTR)pNewSession, 0)
+		OnClientJoin 콜백함수 호출
+		recv 시작; RecvPost
+			IncreaseIoCount
+			세션의 recv용 OVERLAPPED_EX 초기화
+			WSABuf를 2개 생성하여 세션 링버퍼의 앞,뒤 버퍼를 수신버퍼로 지정한다.
+			WSARecv 시작
+		DecreaseIoCount
+		
+		
+# OnClientJoin
+	이 함수는 worker 스레드에서 실행됨
+	메시지 할당; MsgChatServer* pMsg = _poolMsg.Alloc();
+	EServerMsgType::MSG_JOIN_PLAYER 메시지 생성
+	채팅서버 메시지큐에 enqueue; _msgQ.Enqueue(pMsg);
+	메시지이벤트 set; SetEvent(_hEventMsg);
+	
+# worker 스레드
+ThreadWorker
+	while(true)
+		IOCP 완료통지 큐에서 완료통지 꺼냄; GetQueuedCompletionStatus(_hIOCP, &numByteTrans, &compKey, (OVERLAPPED**)&pOverlapped, INFINITE);
+		completion key에서 세션얻기; pSession = (CSession*)compKey;
+		if PostInnerRequest 함수에 의해 내부적으로 삽입된 완료통지를 받은 경우
+			CPacket* pInnerPacket = (CPacket*)compKey;
+			OnInnerRequest(*pInnerPacket);
+		if SendPacketAsync 함수에 의해서 SnedPost 요청을 받음
+			SendPostAsync(pSession);
+				WSASend를 worker 스레드 내부에서 한다.
+				현재는 sendIoFlag가 true이기 때문에 스레드에 안전하다.
+		if recv완료통지
+			세션의 recvQ 내의 모든메시지 처리
+			pSession->_recvQ.MoveRear(numByteTrans);
+			while(true)
+				헤더를 읽음
+				헤더 패킷코드 검사
+				데이터 크기 검사
+				데이터가 모두 도착했는지 검사
+				직렬화버퍼 준비; CPacket& recvPacket = CPacket::AllocPacket();
+				세션의 링버퍼에서 직렬화버퍼로 데이터를 한번에 밀어넣는다; pSession->_recvQ.Dequeue(recvPacket.GetDataPtr(), header.len);
+				직렬화버퍼를 복호화함; DecipherPacket(recvPacket)
+				사용자 패킷처리 함수 호출; OnRecv(pSession->_sessionId, recvPacket);
+				직렬화버퍼 사용카운트 감소; recvPacket.SubUseCount();
+			if recv를 성공적으로 끝냄	
+				RecvPost(pSession);
+			if recv도중 오류가 발생했었음
+				CloseSocket(pSession);
+			DecreaseIoCount
+		if send완료통지
+			send에 사용한 직렬화버퍼의 사용카운트를 감소시킨다
+			for (int i = 0; i < pSession->_numSendPacket; i++)
+				long useCount = pSession->_arrPtrPacket[i]->SubUseCount();
+			세션에 보내고끊기 함수가 호출되었을 경우, 세션의 lastPacket이 보내졌으면 연결을 끊는다.
+			SendIoFlag 해제; pSession->_sendIoFlag = false;
+			if send 정상완료시
+				SendPost(pSession);
+					WSASend를 시도한다;
+					보낼 패킷이 없으면 종료; if (pSession->_sendQ->Size() == 0) return;
+					내가 sendIoFlag를 false에서 true로 바꾸었을 때만 send함; InterlockedExchange8((char*)&pSession->_sendIoFlag, true) == true
+					IncreaseIoCount
+					sendQ에서 직렬화버퍼 주소를 빼내어 WSABUF 구조체에 넣는다
+					세션의 numSendPacket 설정
+					세션의 send용 OVERLAPPED_EX 구조체 초기화
+					WSASend(pSession->_sock, arrWSABuf, numPacket, NULL, 0, (OVERLAPPED*)&pSession->_sendOverlapped, NULL)
+			DecreaseIoCount
+				
+				
+# 트래픽 혼잡제어 스레드
+ThreadTrafficCongestionControl
+	Sleep(500);
+	TCP 상태 얻기; GetTcpStatistics(&currTCPStats);
+	이전 값과의 차이 계산
+	보낸 segment 수가 10000 이상이고, 재전송된 segment 수가 보낸 segment 수의 10% 보다 크다면 accept와 send를 잠시 막음
+		100ms 마다 검사하여   10번의 추가 점검동안 트래픽이 정상이었다면 추가 점검 종료
+	
+	
+# 지연된 소켓닫기 스레드
+ThreadDeferredCloseSocket
+	메시지큐 이벤트를 기다린다; WaitForSingleObject(_thDeferredCloseSocket.hEvent, INFINITE)
+	메시지큐 내의 모든 소켓을 닫음
+	while (_thDeferredCloseSocket.msgQ.Dequeue(socket))
+		소켓의 송신버퍼내의 데이터가 모두 보내질때까지 기다린다음 소켓을 닫는다.; closesocket(socket);
+		
+		
+# OnClientLeave
+OnClientLeave
+	이 함수는 worker스레드 내에서 실행된다
+	메시지 생성; MsgChatServer* pMsg = _poolMsg.Alloc();
+	Delete player 메시지 생성; pMsg->eServerMsgType = EServerMsgType::MSG_LEAVE_PLAYER;
+	채팅서버 메시지큐에 enqueue; _msgQ.Enqueue(pMsg);
+	채팅서버 메시지이벤트 set; SetEvent(_hEventMsg);
+
+# OnRecv
+OnRecv(__int64 sessionId, netlib::CPacket& packet)
+	패킷 사용카운트 증가; packet.AddUseCount();
+	메시지 할당; MsgChatServer* pMsg = _poolMsg.Alloc();
+	클라이언트 메시지로 초기화; pMsg->msgFrom = MSG_FROM_CLIENT;
+	채팅서버 메시지큐에 enqueue; _msgQ.Enqueue(pMsg);
+	채팅서버 메시지이벤트 set; SetEvent(_hEventMsg);
+	
+# 채팅서버 shutdown
+Shutdown()
+	_bShutdown = true;  
+	메시지 할당; MsgChatServer* pMsg = _poolMsg.Alloc();
+	shutdown 메시지 생성; pMsg->eServerMsgType = EServerMsgType::MSG_SHUTDOWN;
+	채팅서버 스레드에게 shutdown 메시지 삽입; _msgQ.Enqueue(pMsg);
+	accept 중지 ; CNetServer::StopAccept();
+		리슨소켓 닫음; closesocket(_listenSock);
+	네트워크 shutdown; CNetServer::Shutdown();
+		_bShutdown = true;
+		모든 세션의 소켓IO를 취소한다. 
+			for (int i=0; i< _config.numMaxSession; i++)
+				CancelIoEx((HANDLE)pSession->_sock, NULL);
+		모든 소켓의 IO가 취소되어 worker스레드에서 recv IO실패. send IO실패 완료통지가 들어간다.
+			worekr 스레드에서 recv IO실패, send IO실패 에 대한 처리가 수행되고, 세션의 IoCOunt가 감소되고, 세션이 닫힌다.
+		worker 스레드 종료 메시지 worker 스레드의 수만큼 IOCP에 집어넣는다.
+			for (int i = 0; i < _config.numWorkerThread; i++)
+				PostQueuedCompletionStatus(_hIOCP, 0, NULL, NULL)
+		모든 객체 삭제
+	채팅서버 스레드 종료대기
+	메시지생성스레드 종료대기
+	DB연결끊기
+	
+	
+# 채팅서버 스레드
+unsigned WINAPI CChatServer::ThreadChatServer(PVOID pParam)
+	while(true)
+		메시지큐 이벤트를 기다림; WaitForSingleObjectEx(chatServer._hEventMsg, INFINITE, TRUE);
+		while(true)
+			메시지큐에서 메시지를 꺼냄; chatServer._msgQ.Dequeue(pMsg)
+			if 채팅서버 내부 메시지인 경우; if (pMsg->msgFrom == MSG_FROM_SERVER)
+				서버메시지타입에 따른 메시지처리;
+				switch (pMsg->eServerMsgType)
+					case 플레이어 생성 메시지; case EServerMsgType::MSG_JOIN_PLAYER:
+						채팅서버 플레이어풀에서 플레이어 할당받음; pPlayer = chatServer._poolPlayer.Alloc();
+						채팅서버 플레이어맵에 삽입; chatServer._mapPlayer.insert(std::make_pair(pMsg->sessionId, pPlayer));
+					case 플레이어 삭제 메시지; case EServerMsgType::MSG_LEAVE_PLAYER:
+						채팅서버 플레이어맵에서 플레이어제거; chatServer.DeletePlayer(iter);
+							섹터에서 플레이어 제거; _sector[pPlayer->_sectorY][pPlayer->_sectorX].RemovePlayer(pPlayer);
+							플레이어AccountNo맵에서 플레이어제거; _mapPlayerAccountNo.erase(iterAccountNo);
+							플레이어맵에서 플레이어제거; _mapPlayer.erase(iterPlayer);
+							플레이어풀에 플레이어객체 반환; _poolPlayer.Free(pPlayer);
+					case 로그인타임아웃 체크; case EServerMsgType::MSG_CHECK_LOGIN_TIMEOUT:
+						플레이어맵에서 로그인안했는데 마지막하트비트시간이 _timeoutLogin 이전인 플레이어의 연결을끊음
+			if 클라이언트에게 받은 메시지일 경우; if (pMsg->msgFrom == MSG_FROM_CLIENT)
+				패킷타입에 따른 메시지 처리;
+				switch (packetType)
+					case 채팅서버 로그인 요청; case en_PACKET_CS_CHAT_REQ_LOGIN:
+						_mapPlayer에 플레이어객체가 없으면 오류. 세션연결을 끊음
+						로그인처리; pPlayer->SetLogin();
+						redis에 accountNo로 세션key를 비동기 get 한다.
+							StAPCData* pAPCData = chatServer._poolAPCData.Alloc();
+							recvPacket.AddUseCount();
+							chatServer._pRedisClient->get(redisKey, [pChatServer, pAPCData](cpp_redis::reply& reply)
+								비동기get 성공시 호출되는 람다함수 내에서는, APC큐에 성공시 호출될 함수를 삽입한다.
+								QueueUserAPC(pChatServer->CompleteUnfinishedLogin, pChatServer->_thChatServer.handle, (ULONG_PTR)pAPCData);
+
+
+# 비동기 redis get 성공시 APC큐에서 꺼내 호출하는 함수 : 로그인 나머지처리 APC 함수
+void CChatServer::CompleteUnfinishedLogin(ULONG_PTR pStAPCData)
+	redis에서 세션key 못얻었으면 로그인실패
+	클라에서보낸 세션key가 redis에서 얻은것과 다르면 실패
+	플레이어객체가 없으면 실패
+	중복로그인인경우 기존플레이어를 연결끊음
+	플레이어객체에 데이터세팅
+	클라에게 성공패킷 전송
+	
+
