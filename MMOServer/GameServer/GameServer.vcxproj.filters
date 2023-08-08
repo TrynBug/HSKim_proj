@@ -22,9 +22,6 @@
     <Filter Include="소스 파일\01. GameServer\Object">
       <UniqueIdentifier>{34e9a49a-91f9-42ed-bf1d-6660d9b61778}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\02. Network">
-      <UniqueIdentifier>{3cbc43e4-f30d-40b6-9e7d-8aea005fb1c3}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\03. LAN">
       <UniqueIdentifier>{e0f25443-77ad-4fee-ac61-bd990da9ea43}</UniqueIdentifier>
     </Filter>
@@ -50,12 +47,6 @@
     </ClCompile>
     <ClCompile Include="CGameServer.cpp">
       <Filter>소스 파일\01. GameServer</Filter>
-    </ClCompile>
-    <ClCompile Include="CPacket.cpp">
-      <Filter>소스 파일\03. LAN</Filter>
-    </ClCompile>
-    <ClCompile Include="CLANClient.cpp">
-      <Filter>소스 파일\03. LAN</Filter>
     </ClCompile>
     <ClCompile Include="CLANClientMonitoring.cpp">
       <Filter>소스 파일\03. LAN</Filter>
@@ -125,20 +116,11 @@
     <ClInclude Include="CommonProtocol.h">
       <Filter>소스 파일\01. GameServer</Filter>
     </ClInclude>
-    <ClInclude Include="CPacket.h">
-      <Filter>소스 파일\03. LAN</Filter>
-    </ClInclude>
-    <ClInclude Include="CLANClient.h">
-      <Filter>소스 파일\03. LAN</Filter>
-    </ClInclude>
     <ClInclude Include="CLANClientMonitoring.h">
       <Filter>소스 파일\03. LAN</Filter>
     </ClInclude>
     <ClInclude Include="defineGameServer.h">
       <Filter>소스 파일\01. GameServer</Filter>
-    </ClInclude>
-    <ClInclude Include="defineLANClient.h">
-      <Filter>소스 파일\03. LAN</Filter>
     </ClInclude>
     <ClInclude Include="CTile.h">
       <Filter>소스 파일\01. GameServer</Filter>

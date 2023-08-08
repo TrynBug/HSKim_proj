@@ -1,11 +1,11 @@
 #include "CommonProtocol.h"
 #include "CChatServer.h"
-#include "CSector.h"
 #include "CPlayer.h"
 #include "../utils/CDBAsyncWriter.h"
 
 #include "../utils/cpp_redis/cpp_redis.h"
 #pragma comment (lib, "NetLib.lib")
+#pragma comment (lib, "LANClient.lib")
 #pragma comment (lib, "cpp_redis.lib")
 #pragma comment (lib, "tacopie.lib")
 #pragma comment (lib, "ws2_32.lib")
@@ -19,7 +19,7 @@
 CChatServer::CChatServer()
 	: _pRedisClient(nullptr)
 	, _pDBConn(nullptr)
-	, _sector(nullptr)
+	, _sector(dfSECTOR_MAX_X, dfSECTOR_MAX_Y, 1)
 	, _hEventMsg(0)
 	, _bEventSetFlag(false)
 	, _bShutdown(false)
@@ -150,44 +150,6 @@ bool CChatServer::StartUp()
 		, _config.maxPacketSize
 		, _config.monitoringServerPacketCode
 		, _config.monitoringServerPacketKey);
-
-
-	// sector 배열 메모리 할당
-	_sector = new CSector * [dfSECTOR_MAX_Y];
-	_sector[0] = (CSector*)malloc(sizeof(CSector) * dfSECTOR_MAX_Y * dfSECTOR_MAX_X);
-	for (int y = 0; y < dfSECTOR_MAX_Y; y++)
-		_sector[y] = _sector[0] + (y * dfSECTOR_MAX_X);
-
-	// sector 생성자 호출
-	for (int y = 0; y < dfSECTOR_MAX_Y; y++)
-	{
-		for (int x = 0; x < dfSECTOR_MAX_X; x++)
-		{
-			new (&_sector[y][x]) CSector(x, y);
-		}
-	}
-
-	// sector의 주변 sector 등록
-	for (int y = 0; y < dfSECTOR_MAX_Y; y++)
-	{
-		for (int x = 0; x < dfSECTOR_MAX_X; x++)
-		{
-			for (int aroundY = y - 1; aroundY < y + 2; aroundY++)
-			{
-				for (int aroundX = x - 1; aroundX < x + 2; aroundX++)
-				{
-					if (aroundY < 0 || aroundY >= dfSECTOR_MAX_Y || aroundX < 0 || aroundX >= dfSECTOR_MAX_X)
-					{
-						_sector[y][x].AddAroundSector(aroundX, aroundY, CSector::GetDummySector());
-					}
-					else
-					{
-						_sector[y][x].AddAroundSector(aroundX, aroundY, &_sector[aroundY][aroundX]);
-					}
-				}
-			}
-		}
-	}
 	
 	// event 객체 생성
 	_hEventMsg = CreateEvent(NULL, FALSE, FALSE, NULL);
@@ -237,10 +199,10 @@ bool CChatServer::StartUp()
 	}
 
 	// 모니터링 서버에 접속
-	CPacket* pPacket = _pLANClientMonitoring->AllocPacket();
-	*pPacket << (WORD)en_PACKET_SS_MONITOR_LOGIN << _serverNo;
-	_pLANClientMonitoring->SendPacket(pPacket);
-	pPacket->SubUseCount();
+	lanlib::CPacket& packet = _pLANClientMonitoring->AllocPacket();
+	packet << (WORD)en_PACKET_SS_MONITOR_LOGIN << _serverNo;
+	_pLANClientMonitoring->SendPacket(packet);
+	packet.SubUseCount();
 
 	// 모니터링 데이터 수집 스레드 start
 	_pCPUUsage = std::make_unique<CCpuUsage>();
@@ -359,19 +321,19 @@ void CChatServer::ReplacePlayerByAccountNo(__int64 accountNo, CPlayer* replacePl
 
 
 /* 네트워크 전송 */
-int CChatServer::SendUnicast(__int64 sessionId, netlib::CPacket& packet)
+int CChatServer::SendUnicast(__int64 sessionId, CPacket& packet)
 {
 	//return SendPacket(sessionId, packet);
 	return SendPacketAsync(sessionId, packet);
 }
 
-int CChatServer::SendUnicast(CPlayer* pPlayer, netlib::CPacket& packet)
+int CChatServer::SendUnicast(CPlayer* pPlayer, CPacket& packet)
 {
 	//return SendPacket(pPlayer->_sessionId, packet);
 	return SendPacketAsync(pPlayer->_sessionId, packet);
 }
 
-int CChatServer::SendBroadcast(netlib::CPacket& packet)
+int CChatServer::SendBroadcast(CPacket& packet)
 {
 	int sendCount = 0;
 	for (const auto& iter : _mapPlayer)
@@ -383,34 +345,37 @@ int CChatServer::SendBroadcast(netlib::CPacket& packet)
 	return sendCount;
 }
 
-int CChatServer::SendOneSector(CPlayer* pPlayer, netlib::CPacket& packet, CPlayer* except)
+int CChatServer::SendOneSector(CPlayer* pPlayer, CPacket& packet, const CPlayer* except)
 {
 	int sendCount = 0;
-	CSector* pSector = &_sector[pPlayer->_sectorY][pPlayer->_sectorX];
-	for (const auto& player : pSector->GetPlayerVector())
+	auto& vecPlayer = _sector.GetObjectVector(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER);
+
+	for (int i=0; i<vecPlayer.size(); i++)
 	{
-		if (player == except)
+		CPlayer* pPlayer = static_cast<CPlayer*>(vecPlayer[i]);
+		if (pPlayer == except)
 			continue;
-		//sendCount += SendPacket(player->_sessionId, packet);
-		sendCount += SendPacketAsync(player->_sessionId, packet);
+		//sendCount += SendPacket(pPlayer->_sessionId, packet);
+		sendCount += SendPacketAsync(pPlayer->_sessionId, packet);
 	}
 
 	return sendCount;
 }
 
-int CChatServer::SendAroundSector(CPlayer* pPlayer, netlib::CPacket& packet, CPlayer* except)
+int CChatServer::SendAroundSector(CPlayer* pPlayer, CPacket& packet, const CPlayer* except)
 {
 	int sendCount = 0;
-	CSector** pArrSector = _sector[pPlayer->_sectorY][pPlayer->_sectorX].GetAllAroundSector();
-	int numAroundSector = _sector[pPlayer->_sectorY][pPlayer->_sectorX].GetNumOfAroundSector();
-	for (int i = 0; i < numAroundSector; i++)
+	auto& vecSector = _sector.GetAroundSector(pPlayer->_sectorX, pPlayer->_sectorX);
+	for (int i = 0; i < vecSector.size(); i++)
 	{
-		for (const auto& player : pArrSector[i]->GetPlayerVector())
+		auto& vecPlayer = _sector.GetObjectVector(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER);
+		for (int i = 0; i < vecPlayer.size(); i++)
 		{
-			if (player == except)
+			CPlayer* pPlayer = static_cast<CPlayer*>(vecPlayer[i]);
+			if (pPlayer == except)
 				continue;
-			//sendCount += SendPacket(player->_sessionId, packet);
-			sendCount += SendPacketAsync(player->_sessionId, packet);
+			//sendCount += SendPacket(pPlayer->_sessionId, packet);
+			sendCount += SendPacketAsync(pPlayer->_sessionId, packet);
 		}
 	}
 
@@ -427,12 +392,12 @@ void CChatServer::MoveSector(CPlayer* pPlayer, WORD x, WORD y)
 	if (pPlayer->_sectorX >= 0 && pPlayer->_sectorX < dfSECTOR_MAX_X
 		&& pPlayer->_sectorY >= 0 && pPlayer->_sectorY < dfSECTOR_MAX_Y)
 	{
-		_sector[pPlayer->_sectorY][pPlayer->_sectorX].RemovePlayer(pPlayer);
+		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, *pPlayer);
 	}
 	
 	pPlayer->_sectorX = min(max(x, 0), dfSECTOR_MAX_X - 1);
 	pPlayer->_sectorY = min(max(y, 0), dfSECTOR_MAX_Y - 1);
-	_sector[pPlayer->_sectorY][pPlayer->_sectorX].AddPlayer(pPlayer);
+	_sector.AddObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, *pPlayer);
 }
 
 void CChatServer::DisconnectPlayer(CPlayer* pPlayer)
@@ -489,7 +454,7 @@ std::unordered_map<__int64, CPlayer*>::iterator CChatServer::DeletePlayer(std::u
 void CChatServer::CompleteUnfinishedLogin(ULONG_PTR pStAPCData)
 {
 	CChatServer& chatServer = *((StAPCData*)pStAPCData)->pChatServer;
-	netlib::CPacket* pRecvPacket = ((StAPCData*)pStAPCData)->pPacket;
+	CPacket* pRecvPacket = ((StAPCData*)pStAPCData)->pPacket;
 	__int64 sessionId = ((StAPCData*)pStAPCData)->sessionId;
 	__int64 accountNo = ((StAPCData*)pStAPCData)->accountNo;
 	bool isNull = ((StAPCData*)pStAPCData)->isNull;
@@ -497,7 +462,7 @@ void CChatServer::CompleteUnfinishedLogin(ULONG_PTR pStAPCData)
 
 	LOGGING(LOGGING_LEVEL_DEBUG, L"CompleteUnfinishedLogin start. session:%lld, accountNo:%lld\n", sessionId, accountNo);
 
-	netlib::CPacket& sendPacket = chatServer.AllocPacket();
+	CPacket& sendPacket = chatServer.AllocPacket();
 	do  // do..while(0)
 	{
 		if (isNull == true)
@@ -612,10 +577,10 @@ unsigned WINAPI CChatServer::ThreadChatServer(PVOID pParam)
 			// 클라이언트에게 받은 메시지일 경우
 			if (pMsg->msgFrom == MSG_FROM_CLIENT)
 			{
-				netlib::CPacket& recvPacket = *pMsg->pPacket;
+				CPacket& recvPacket = *pMsg->pPacket;
 				recvPacket >> packetType;
 
-				netlib::CPacket& sendPacket = chatServer.AllocPacket();  // send용 패킷 alloc (switch문 끝난 뒤 free함)
+				CPacket& sendPacket = chatServer.AllocPacket();  // send용 패킷 alloc (switch문 끝난 뒤 free함)
 
 				// 패킷 타입에 따른 메시지 처리
 				switch (packetType)
@@ -1057,7 +1022,6 @@ unsigned WINAPI CChatServer::ThreadMonitoringCollector(PVOID pParam)
 	wprintf(L"begin monitoring collector thread\n");
 	CChatServer& chatServer = *(CChatServer*)pParam;
 
-	CPacket* pPacket;
 	PDHCount pdhCount;
 	LARGE_INTEGER liFrequency;
 	LARGE_INTEGER liStartTime;
@@ -1092,27 +1056,27 @@ unsigned WINAPI CChatServer::ThreadMonitoringCollector(PVOID pParam)
 		currMsgHandleCount = chatServer._monitor.GetMsgHandleCount();
 
 		// 모니터링 서버에 send
-		pPacket = chatServer._pLANClientMonitoring->AllocPacket();
-		*pPacket << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_RUN << (int)1 << (int)collectTime; // 에이전트 ChatServer 실행 여부 ON / OFF
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_CPU << (int)chatServer._pCPUUsage->ProcessTotal() << (int)collectTime; // 에이전트 ChatServer CPU 사용률
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_MEM << (int)((double)pdhCount.processPrivateBytes / 1048576.0) << (int)collectTime; // 에이전트 ChatServer 메모리 사용 MByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SESSION << chatServer.GetNumSession() << (int)collectTime; // 채팅서버 세션 수 (컨넥션 수)
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_PLAYER << chatServer.GetNumAccount() << (int)collectTime; // 채팅서버 인증성공 사용자 수 (실제 접속자)
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATE_TPS << (int)(currMsgHandleCount - prevMsgHandleCount) << (int)collectTime; // 채팅서버 UPDATE 스레드 초당 처리 횟수
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_PACKET_POOL << chatServer.GetPacketAllocCount() << (int)collectTime;    // 채팅서버 패킷풀 사용량
-		//*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL << chatServer.GetMsgAllocCount() << (int)collectTime; // 채팅서버 UPDATE MSG 풀 사용량
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL << chatServer.GetUnhandeledMsgCount() << (int)collectTime; // 채팅서버 UPDATE MSG 풀 사용량
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_CPU_TOTAL << (int)chatServer._pCPUUsage->ProcessorTotal() << (int)collectTime; // 서버컴퓨터 CPU 전체 사용률
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NONPAGED_MEMORY << (int)((double)pdhCount.systemNonpagedPoolBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 논페이지 메모리 MByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_RECV << (int)(pdhCount.networkRecvBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 수신량 KByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_SEND << (int)(pdhCount.networkSendBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 송신량 KByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_AVAILABLE_MEMORY << (int)((double)pdhCount.systemAvailableBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 사용가능 메모리 MByte
+		lanlib::CPacket& packet = chatServer._pLANClientMonitoring->AllocPacket();
+		packet << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_RUN << (int)1 << (int)collectTime; // 에이전트 ChatServer 실행 여부 ON / OFF
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_CPU << (int)chatServer._pCPUUsage->ProcessTotal() << (int)collectTime; // 에이전트 ChatServer CPU 사용률
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_MEM << (int)((double)pdhCount.processPrivateBytes / 1048576.0) << (int)collectTime; // 에이전트 ChatServer 메모리 사용 MByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SESSION << chatServer.GetNumSession() << (int)collectTime; // 채팅서버 세션 수 (컨넥션 수)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_PLAYER << chatServer.GetNumAccount() << (int)collectTime; // 채팅서버 인증성공 사용자 수 (실제 접속자)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATE_TPS << (int)(currMsgHandleCount - prevMsgHandleCount) << (int)collectTime; // 채팅서버 UPDATE 스레드 초당 처리 횟수
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_PACKET_POOL << chatServer.GetPacketAllocCount() << (int)collectTime;    // 채팅서버 패킷풀 사용량
+		//packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL << chatServer.GetMsgAllocCount() << (int)collectTime; // 채팅서버 UPDATE MSG 풀 사용량
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL << chatServer.GetUnhandeledMsgCount() << (int)collectTime; // 채팅서버 UPDATE MSG 풀 사용량
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_CPU_TOTAL << (int)chatServer._pCPUUsage->ProcessorTotal() << (int)collectTime; // 서버컴퓨터 CPU 전체 사용률
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NONPAGED_MEMORY << (int)((double)pdhCount.systemNonpagedPoolBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 논페이지 메모리 MByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_RECV << (int)(pdhCount.networkRecvBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 수신량 KByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_SEND << (int)(pdhCount.networkSendBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 송신량 KByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_AVAILABLE_MEMORY << (int)((double)pdhCount.systemAvailableBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 사용가능 메모리 MByte
 
 		prevMsgHandleCount = currMsgHandleCount;
 
-		chatServer._pLANClientMonitoring->SendPacket(pPacket);
-		pPacket->SubUseCount();
+		chatServer._pLANClientMonitoring->SendPacket(packet);
+		packet.SubUseCount();
 
 
 		// 앞으로 sleep할 시간을 계산한다.
@@ -1152,7 +1116,7 @@ void CChatServer::Crash()
 
 
 /* 네트워크 라이브러리 callback 함수 구현 */
-bool CChatServer::OnRecv(__int64 sessionId, netlib::CPacket& packet)
+bool CChatServer::OnRecv(__int64 sessionId, CPacket& packet)
 {
 	PROFILE_BEGIN("CChatServer::OnRecv");
 

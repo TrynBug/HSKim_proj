@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{4d91dde1-b1ab-4def-8017-a4313a7dff17}</ProjectGuid>
-    <RootNamespace>GameServer</RootNamespace>
+    <ProjectGuid>{691f92a1-8676-4c35-b46b-8b2006bf2696}</ProjectGuid>
+    <RootNamespace>LANClient</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,12 +71,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)utils\cpp_redis\tacopie;$(SolutionDir)utils\cpp_redis;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)utils\;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)utils\cpp_redis\tacopie;$(SolutionDir)utils\cpp_redis;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <IncludePath>$(SolutionDir)utils\;$(IncludePath)</IncludePath>
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -139,54 +139,13 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\utils\CCpuUsage.cpp" />
-    <ClCompile Include="..\utils\CCrashDump.cpp" />
-    <ClCompile Include="..\utils\CDBAsyncWriter.cpp" />
-    <ClCompile Include="..\utils\CDBConnector.cpp" />
-    <ClCompile Include="..\utils\CJsonParser.cpp" />
-    <ClCompile Include="..\utils\CPDH.cpp" />
-    <ClCompile Include="..\utils\CRingbuffer.cpp" />
-    <ClCompile Include="..\utils\logger.cpp" />
-    <ClCompile Include="..\utils\profiler.cpp" />
-    <ClCompile Include="CCrystal.cpp" />
-    <ClCompile Include="CGameContents.cpp" />
-    <ClCompile Include="CGameContentsAuth.cpp" />
-    <ClCompile Include="CGameContentsField.cpp" />
-    <ClCompile Include="CGameServer.cpp" />
-    <ClCompile Include="CLANClientMonitoring.cpp" />
-    <ClCompile Include="CMonster.cpp" />
-    <ClCompile Include="CObject.cpp" />
-    <ClCompile Include="CPlayer.cpp" />
-    <ClCompile Include="CSector.cpp" />
-    <ClCompile Include="CTile.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="CLANClient.cpp" />
+    <ClCompile Include="CPacket.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\utils\CCpuUsage.h" />
-    <ClInclude Include="..\utils\CCrashDump.h" />
-    <ClInclude Include="..\utils\CDBAsyncWriter.h" />
-    <ClInclude Include="..\utils\CDBConnector.h" />
-    <ClInclude Include="..\utils\CJsonParser.h" />
-    <ClInclude Include="..\utils\CLockfreeQueue.h" />
-    <ClInclude Include="..\utils\CMemoryPool.h" />
-    <ClInclude Include="..\utils\CMemoryPoolTLS.h" />
-    <ClInclude Include="..\utils\CPDH.h" />
-    <ClInclude Include="..\utils\CRingbuffer.h" />
-    <ClInclude Include="..\utils\logger.h" />
-    <ClInclude Include="..\utils\profiler.h" />
-    <ClInclude Include="CCrystal.h" />
-    <ClInclude Include="CGameContents.h" />
-    <ClInclude Include="CGameContentsAuth.h" />
-    <ClInclude Include="CGameContentsField.h" />
-    <ClInclude Include="CGameServer.h" />
-    <ClInclude Include="CLANClientMonitoring.h" />
-    <ClInclude Include="CMonster.h" />
-    <ClInclude Include="CObject.h" />
-    <ClInclude Include="CommonProtocol.h" />
-    <ClInclude Include="CPlayer.h" />
-    <ClInclude Include="CSector.h" />
-    <ClInclude Include="CTile.h" />
-    <ClInclude Include="defineGameServer.h" />
+    <ClInclude Include="CLANClient.h" />
+    <ClInclude Include="CPacket.h" />
+    <ClInclude Include="defineLANClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

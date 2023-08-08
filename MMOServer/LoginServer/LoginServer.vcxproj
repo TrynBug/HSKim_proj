@@ -135,6 +135,43 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\utils\CCpuUsage.cpp" />
+    <ClCompile Include="..\utils\CCrashDump.cpp" />
+    <ClCompile Include="..\utils\CDBConnector.cpp" />
+    <ClCompile Include="..\utils\CDBConnectorTLSManager.cpp" />
+    <ClCompile Include="..\utils\CJsonParser.cpp" />
+    <ClCompile Include="..\utils\CPDH.cpp" />
+    <ClCompile Include="..\utils\CRingbuffer.cpp" />
+    <ClCompile Include="..\utils\logger.cpp" />
+    <ClCompile Include="..\utils\profiler.cpp" />
+    <ClCompile Include="CClient.cpp" />
+    <ClCompile Include="CLANClient.cpp" />
+    <ClCompile Include="CLANClientMonitoring.cpp" />
+    <ClCompile Include="CLoginServer.cpp" />
+    <ClCompile Include="CPacket.cpp" />
+    <ClCompile Include="main.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\utils\CCpuUsage.h" />
+    <ClInclude Include="..\utils\CCrashDump.h" />
+    <ClInclude Include="..\utils\CDBConnector.h" />
+    <ClInclude Include="..\utils\CDBConnectorTLSManager.h" />
+    <ClInclude Include="..\utils\CJsonParser.h" />
+    <ClInclude Include="..\utils\CLockfreeQueue.h" />
+    <ClInclude Include="..\utils\CMemoryPool.h" />
+    <ClInclude Include="..\utils\CMemoryPoolTLS.h" />
+    <ClInclude Include="..\utils\CPDH.h" />
+    <ClInclude Include="..\utils\CRingbuffer.h" />
+    <ClInclude Include="..\utils\logger.h" />
+    <ClInclude Include="..\utils\profiler.h" />
+    <ClInclude Include="CClient.h" />
+    <ClInclude Include="CLANClient.h" />
+    <ClInclude Include="CLANClientMonitoring.h" />
+    <ClInclude Include="CLoginServer.h" />
+    <ClInclude Include="CommonProtocol.h" />
+    <ClInclude Include="CPacket.h" />
+    <ClInclude Include="defineLANClient.h" />
+    <ClInclude Include="defineLoginServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

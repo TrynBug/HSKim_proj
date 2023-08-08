@@ -170,10 +170,10 @@ bool CGameServer::StartUp()
 	}
 
 	// 모니터링 서버에 접속
-	CPacket* pPacket = _pLANClientMonitoring->AllocPacket();
-	*pPacket << (WORD)en_PACKET_SS_MONITOR_LOGIN << _serverNo;
-	_pLANClientMonitoring->SendPacket(pPacket);
-	pPacket->SubUseCount();
+	lanlib::CPacket& packet = _pLANClientMonitoring->AllocPacket();
+	packet << (WORD)en_PACKET_SS_MONITOR_LOGIN << _serverNo;
+	_pLANClientMonitoring->SendPacket(packet);
+	packet.SubUseCount();
 
 	// 모니터링 데이터 수집 스레드 start
 	_pCPUUsage = std::make_unique<CCpuUsage>();
@@ -278,7 +278,6 @@ unsigned WINAPI CGameServer::ThreadMonitoringCollector(PVOID pParam)
 	wprintf(L"begin monitoring collector thread\n");
 	CGameServer& server = *(CGameServer*)pParam;
 
-	CPacket* pPacket;
 	PDHCount pdhCount;
 	LARGE_INTEGER liFrequency;
 	LARGE_INTEGER liStartTime;
@@ -325,36 +324,36 @@ unsigned WINAPI CGameServer::ThreadMonitoringCollector(PVOID pParam)
 		currDBQueryCount = pContentsField->GetQueryRunCount();
 
 		// 모니터링 서버에 send
-		pPacket = server._pLANClientMonitoring->AllocPacket();
-		*pPacket << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_SERVER_RUN << (int)1 << (int)collectTime; // GameServer 실행 여부 ON / OFF
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_SERVER_CPU << (int)server._pCPUUsage->ProcessTotal() << (int)collectTime; // GameServer CPU 사용률
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_SERVER_MEM << (int)((double)pdhCount.processPrivateBytes / 1048576.0) << (int)collectTime; // GameServer 메모리 사용 MByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_SESSION << (int)server.GetNumSession() << (int)collectTime; // 게임서버 세션 수 (컨넥션 수)
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_AUTH_PLAYER << (int)pContentsAuth->GetNumPlayer() << (int)collectTime; // 게임서버 AUTH MODE 플레이어 수
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_GAME_PLAYER << (int)pContentsField->GetNumPlayer() << (int)collectTime; // 게임서버 GAME MODE 플레이어 수
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_ACCEPT_TPS << (int)(currAcceptCount - prevAcceptCount) << (int)collectTime; // 게임서버 Accept 처리 초당 횟수
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_PACKET_RECV_TPS << (int)(currRecvCount - prevRecvCount) << (int)collectTime; // 게임서버 패킷처리 초당 횟수
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_PACKET_SEND_TPS << (int)(currSendCount - prevSendCount) << (int)collectTime; // 게임서버 패킷 보내기 초당 완료 횟수
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_DB_WRITE_TPS << (int)(currDBQueryCount - prevDBQueryCount) << (int)collectTime; // 게임서버 DB 저장 메시지 초당 처리 횟수
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_DB_WRITE_MSG << (int)pContentsField->GetRemainQueryCount() << (int)collectTime; // 게임서버 DB 저장 메시지 큐 개수 (남은 수)
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_AUTH_THREAD_FPS << (int)pContentsAuth->GetFPS() << (int)collectTime; // 게임서버 AUTH 스레드 초당 프레임 수 (루프 수)
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_GAME_THREAD_FPS << (int)pContentsField->GetFPS() << (int)collectTime; // 게임서버 GAME 스레드 초당 프레임 수 (루프 수)
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_GAME_PACKET_POOL << (int)server.GetPacketActualAllocCount() << (int)collectTime; // 게임서버 패킷풀 사용량
+		lanlib::CPacket packet = server._pLANClientMonitoring->AllocPacket();
+		packet << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_SERVER_RUN << (int)1 << (int)collectTime; // GameServer 실행 여부 ON / OFF
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_SERVER_CPU << (int)server._pCPUUsage->ProcessTotal() << (int)collectTime; // GameServer CPU 사용률
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_SERVER_MEM << (int)((double)pdhCount.processPrivateBytes / 1048576.0) << (int)collectTime; // GameServer 메모리 사용 MByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_SESSION << (int)server.GetNumSession() << (int)collectTime; // 게임서버 세션 수 (컨넥션 수)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_AUTH_PLAYER << (int)pContentsAuth->GetNumPlayer() << (int)collectTime; // 게임서버 AUTH MODE 플레이어 수
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_GAME_PLAYER << (int)pContentsField->GetNumPlayer() << (int)collectTime; // 게임서버 GAME MODE 플레이어 수
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_ACCEPT_TPS << (int)(currAcceptCount - prevAcceptCount) << (int)collectTime; // 게임서버 Accept 처리 초당 횟수
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_PACKET_RECV_TPS << (int)(currRecvCount - prevRecvCount) << (int)collectTime; // 게임서버 패킷처리 초당 횟수
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_PACKET_SEND_TPS << (int)(currSendCount - prevSendCount) << (int)collectTime; // 게임서버 패킷 보내기 초당 완료 횟수
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_DB_WRITE_TPS << (int)(currDBQueryCount - prevDBQueryCount) << (int)collectTime; // 게임서버 DB 저장 메시지 초당 처리 횟수
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_DB_WRITE_MSG << (int)pContentsField->GetRemainQueryCount() << (int)collectTime; // 게임서버 DB 저장 메시지 큐 개수 (남은 수)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_AUTH_THREAD_FPS << (int)pContentsAuth->GetFPS() << (int)collectTime; // 게임서버 AUTH 스레드 초당 프레임 수 (루프 수)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_GAME_THREAD_FPS << (int)pContentsField->GetFPS() << (int)collectTime; // 게임서버 GAME 스레드 초당 프레임 수 (루프 수)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_PACKET_POOL << (int)server.GetPacketActualAllocCount() << (int)collectTime; // 게임서버 패킷풀 사용량
 
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_CPU_TOTAL << (int)server._pCPUUsage->ProcessorTotal() << (int)collectTime; // 서버컴퓨터 CPU 전체 사용률
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NONPAGED_MEMORY << (int)((double)pdhCount.systemNonpagedPoolBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 논페이지 메모리 MByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_RECV << (int)(pdhCount.networkRecvBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 수신량 KByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_SEND << (int)(pdhCount.networkSendBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 송신량 KByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_AVAILABLE_MEMORY << (int)((double)pdhCount.systemAvailableBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 사용가능 메모리 MByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_CPU_TOTAL << (int)server._pCPUUsage->ProcessorTotal() << (int)collectTime; // 서버컴퓨터 CPU 전체 사용률
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NONPAGED_MEMORY << (int)((double)pdhCount.systemNonpagedPoolBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 논페이지 메모리 MByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_RECV << (int)(pdhCount.networkRecvBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 수신량 KByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_SEND << (int)(pdhCount.networkSendBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 송신량 KByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_AVAILABLE_MEMORY << (int)((double)pdhCount.systemAvailableBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 사용가능 메모리 MByte
 
 		prevAcceptCount = currAcceptCount;
 		prevRecvCount = currRecvCount;
 		prevSendCount = currSendCount;
 		prevDBQueryCount = currDBQueryCount;
 
-		server._pLANClientMonitoring->SendPacket(pPacket);
-		pPacket->SubUseCount();
+		server._pLANClientMonitoring->SendPacket(packet);
+		packet.SubUseCount();
 
 
 		// 앞으로 sleep할 시간을 계산한다.

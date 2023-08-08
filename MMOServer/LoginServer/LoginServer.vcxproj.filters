@@ -13,5 +13,126 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
+    <Filter Include="소스 파일\01. LoginServer">
+      <UniqueIdentifier>{36a41dac-45d9-4a54-959b-688fe49c9297}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\02. LAN">
+      <UniqueIdentifier>{4a39eb37-9f79-4852-9dd7-9ff2f2f01d09}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\03. DB">
+      <UniqueIdentifier>{cd638388-84ce-42cb-8a2b-78f61cbeb67d}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\04. Utils">
+      <UniqueIdentifier>{1f066b42-9af2-4c96-a723-9dd398172d7e}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CClient.cpp">
+      <Filter>소스 파일\01. LoginServer</Filter>
+    </ClCompile>
+    <ClCompile Include="CLoginServer.cpp">
+      <Filter>소스 파일\01. LoginServer</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="CLANClient.cpp">
+      <Filter>소스 파일\02. LAN</Filter>
+    </ClCompile>
+    <ClCompile Include="CLANClientMonitoring.cpp">
+      <Filter>소스 파일\02. LAN</Filter>
+    </ClCompile>
+    <ClCompile Include="CPacket.cpp">
+      <Filter>소스 파일\02. LAN</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CDBConnector.cpp">
+      <Filter>소스 파일\03. DB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CDBConnectorTLSManager.cpp">
+      <Filter>소스 파일\03. DB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CCpuUsage.cpp">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CCrashDump.cpp">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CJsonParser.cpp">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CPDH.cpp">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CRingbuffer.cpp">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\logger.cpp">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\profiler.cpp">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CClient.h">
+      <Filter>소스 파일\01. LoginServer</Filter>
+    </ClInclude>
+    <ClInclude Include="CLoginServer.h">
+      <Filter>소스 파일\01. LoginServer</Filter>
+    </ClInclude>
+    <ClInclude Include="CommonProtocol.h">
+      <Filter>소스 파일\01. LoginServer</Filter>
+    </ClInclude>
+    <ClInclude Include="defineLoginServer.h">
+      <Filter>소스 파일\01. LoginServer</Filter>
+    </ClInclude>
+    <ClInclude Include="CLANClient.h">
+      <Filter>소스 파일\02. LAN</Filter>
+    </ClInclude>
+    <ClInclude Include="CLANClientMonitoring.h">
+      <Filter>소스 파일\02. LAN</Filter>
+    </ClInclude>
+    <ClInclude Include="CPacket.h">
+      <Filter>소스 파일\02. LAN</Filter>
+    </ClInclude>
+    <ClInclude Include="defineLANClient.h">
+      <Filter>소스 파일\02. LAN</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CDBConnector.h">
+      <Filter>소스 파일\03. DB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CDBConnectorTLSManager.h">
+      <Filter>소스 파일\03. DB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CCpuUsage.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CCrashDump.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CJsonParser.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CLockfreeQueue.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CMemoryPool.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CMemoryPoolTLS.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CPDH.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CRingbuffer.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\logger.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\profiler.h">
+      <Filter>소스 파일\04. Utils</Filter>
+    </ClInclude>
   </ItemGroup>
 </Project>

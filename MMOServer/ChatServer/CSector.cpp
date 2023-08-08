@@ -1,16 +1,15 @@
+#include <Windows.h>
 #include <vector>
+#include <string>
+#include <stdexcept>
 
 #include "CSector.h"
 
 
-// static 멤버 초기화
-CSector* CSector::_dummySector = new CSector(-1, -1);
-
-
 CSector::CSector(int x, int y)
-	:_x(x), _y(y), _arrAroundSector{ 0, }
+	: _x(x)
+	, _y(y)
 {
-	_arrAroundSector[(int)eSectorDirection::CENTER] = this;
 }
 
 CSector::~CSector()
@@ -18,67 +17,142 @@ CSector::~CSector()
 }
 
 
-int CSector::GetNumOfAroundPlayer()
+
+void CSector::AddAroundSector(CSector* pSector)
 {
-	int numOfAroundPlayer = 0;
-	for (int i = 0; i < 9; i++)
-	{
-		numOfAroundPlayer += _arrAroundSector[i]->GetNumOfPlayer();
-	}
-	return numOfAroundPlayer;
+	_vecAroundSector.push_back(pSector);
 }
 
 
-void CSector::AddAroundSector(int aroundX, int aroundY, CSector* pSector)
+void CSector::AddObject(ESectorObjectType type, CObject& object)
 {
-	eSectorDirection direction;
-	if (aroundY > _y)
-	{
-		if (aroundX > _x)
-			direction = eSectorDirection::RD;
-		else if (aroundX == _x)
-			direction = eSectorDirection::DD;
-		else
-			direction = eSectorDirection::LD;
-	}
-	else if (aroundY == _y)
-	{
-		if (aroundX > _x)
-			direction = eSectorDirection::RR;
-		else if (aroundX == _x)
-			direction = eSectorDirection::CENTER;
-		else
-			direction = eSectorDirection::LL;
-	}
-	else
-	{
-		if (aroundX > _x)
-			direction = eSectorDirection::RU;
-		else if (aroundX == _x)
-			direction = eSectorDirection::UU;
-		else
-			direction = eSectorDirection::LU;
-	}
-
-	_arrAroundSector[(int)direction] = pSector;
+	_vecObject[(UINT)type].push_back(&object);
 }
 
 
-void CSector::AddPlayer(CPlayer* pPlayer) 
+void CSector::RemoveObject(ESectorObjectType type, CObject& object)
 {
-	_vecPlayer.push_back(pPlayer); 
-}
-
-
-void CSector::RemovePlayer(CPlayer* pPlayer)
-{
-	for (int i = 0; i < _vecPlayer.size(); i++)
+	bool remove = false;
+	std::vector<CObject*>& vec = _vecObject[(UINT)type];
+	for (int i = 0; i < vec.size(); i++)
 	{
-		if (_vecPlayer[i] == pPlayer)
+		if (vec[i] == &object)
 		{
-			_vecPlayer[i] = _vecPlayer.back();
-			_vecPlayer.pop_back();
+			vec[i] = vec.back();
+			vec.pop_back();
+			remove = true;
 			break;
 		}
 	}
+	if (remove == false)
+	{
+		int* p = 0;
+		*p = 0;
+	}
 }
+
+
+
+
+
+
+
+CSectorGrid::CSectorGrid(int maxX, int maxY, int viewRange)
+	: _maxX(maxX)
+	, _maxY(maxY)
+	, _viewRange(viewRange)
+{
+
+	// sector 배열 메모리 할당
+	_sector = new CSector * [_maxY];
+	_sector[0] = (CSector*)malloc(sizeof(CSector) * _maxY * _maxX);
+	for (int y = 0; y < _maxY; y++)
+		_sector[y] = _sector[0] + (y * _maxX);
+
+	// sector 생성자 호출
+	for (int y = 0; y < _maxY; y++)
+	{
+		for (int x = 0; x < _maxX; x++)
+		{
+			new (&_sector[y][x]) CSector(x, y);
+		}
+	}
+
+	// sector의 주변 sector 등록(자신포함)
+	// 반드시 y축 값이 작은 섹터가 우선으로, y축 값이 같다면 x축 값이 작은 섹터가 우선으로 등록되어야 함.
+	for (int y = 0; y < _maxY; y++)
+	{
+		for (int x = 0; x < _maxX; x++)
+		{
+			for (int aroundY = y - _viewRange; aroundY <= y + _viewRange; aroundY++)
+			{
+				for (int aroundX = x - _viewRange; aroundX <= x + _viewRange; aroundX++)
+				{
+					if (aroundY < 0 || aroundY >= _maxY || aroundX < 0 || aroundX >= _maxX)
+						continue;
+
+					_sector[y][x].AddAroundSector(&_sector[aroundY][aroundX]);
+				}
+			}
+		}
+	}
+}
+
+
+CSectorGrid::~CSectorGrid()
+{
+	// sector 소멸자 호출
+	for (int y = 0; y < _maxY; y++)
+	{
+		for (int x = 0; x < _maxX; x++)
+		{
+			(_sector[y][x]).~CSector();
+		}
+	}
+
+	delete _sector[0];
+	delete[] _sector;
+}
+
+int CSectorGrid::GetNumOfObject(int x, int y, ESectorObjectType type) const
+{
+	CheckCoordinate(x, y);
+	return _sector[y][x].GetNumOfObject(type);
+}
+
+const std::vector<CObject*>& CSectorGrid::GetObjectVector(int x, int y, ESectorObjectType type) const
+{
+	CheckCoordinate(x, y);
+	return _sector[y][x].GetObjectVector(type);
+}
+
+const std::vector<CSector*>& CSectorGrid::GetAroundSector(int x, int y) const
+{
+	CheckCoordinate(x, y);
+	return _sector[y][x].GetAroundSector();
+}
+
+void CSectorGrid::AddObject(int x, int y, ESectorObjectType type, CObject& obj)
+{
+	CheckCoordinate(x, y);
+	_sector[y][x].AddObject(type, obj);
+}
+
+
+void CSectorGrid::RemoveObject(int x, int y, ESectorObjectType type, CObject& obj)
+{
+	CheckCoordinate(x, y);
+	_sector[y][x].RemoveObject(type, obj);
+}
+
+
+void CSectorGrid::CheckCoordinate(int x, int y) const
+{
+	if (x < 0 || x >= _maxX || y < 0 || y >= _maxY)
+	{
+		std::string message = "invalid sector coordinate: (";
+		message += std::to_string(x) + ", " + std::to_string(y) + ")\n";
+		throw std::out_of_range(message);
+	}
+}
+

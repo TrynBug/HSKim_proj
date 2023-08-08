@@ -7,6 +7,7 @@
 #include "../utils/CLockfreeQueue.h"
 
 #include "defineChatServer.h"
+#include "CSector.h"
 
 class CSector;
 class CPlayer;
@@ -22,12 +23,16 @@ namespace cpp_redis
 
 class CChatServer : public netlib::CNetServer
 {
+	using CPacket = netlib::CPacket;
 public:
 	class Monitor;
 
 public:
 	CChatServer();
 	virtual ~CChatServer();
+
+	CChatServer(const CChatServer&) = delete;
+	CChatServer(CChatServer&&) = delete;
 
 public:
 	/* StartUp */
@@ -42,11 +47,11 @@ private:
 	CPlayer* GetPlayerByAccountNo(__int64 accountNo);
 
 	/* 네트워크 전송 */
-	int SendUnicast(__int64 sessionId, netlib::CPacket& packet);
-	int SendUnicast(CPlayer* pPlayer, netlib::CPacket& packet);
-	int SendBroadcast(netlib::CPacket& packet);
-	int SendOneSector(CPlayer* pPlayer, netlib::CPacket& packet, CPlayer* except);
-	int SendAroundSector(CPlayer* pPlayer, netlib::CPacket& packet, CPlayer* except);
+	int SendUnicast(__int64 sessionId, CPacket& packet);
+	int SendUnicast(CPlayer* pPlayer, CPacket& packet);
+	int SendBroadcast(CPacket& packet);
+	int SendOneSector(CPlayer* pPlayer, CPacket& packet, CPlayer* except);
+	int SendAroundSector(CPlayer* pPlayer, CPacket& packet, CPlayer* except);
 
 	/* player */
 	void MoveSector(CPlayer* pPlayer, WORD x, WORD y);
@@ -68,7 +73,7 @@ private:
 
 private:
 	// 네트워크 라이브러리 callback 함수 구현
-	virtual bool OnRecv(__int64 sessionId, netlib::CPacket& packet);
+	virtual bool OnRecv(__int64 sessionId, CPacket& packet);
 	virtual bool OnConnectionRequest(unsigned long IP, unsigned short port);
 	virtual bool OnClientJoin(__int64 sessionId);
 	virtual bool OnClientLeave(__int64 sessionId);
@@ -144,7 +149,7 @@ private:
 	std::unique_ptr<CDBAsyncWriter> _pDBConn;
 
 	/* sector */
-	CSector** _sector;
+	CSectorGrid _sector;
 
 	/* 플레이어 */
 	std::unordered_map<__int64, CPlayer*> _mapPlayer;

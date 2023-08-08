@@ -42,6 +42,9 @@ namespace netlib
 		CNetServer();
 		virtual ~CNetServer();
 		
+		CNetServer(const CNetServer&) = delete;
+		CNetServer(CNetServer&&) = delete;
+
 		/* dynamic alloc */
 		// 64byte aligned 객체 생성을 위한 new, delete overriding
 		void* operator new(size_t size);

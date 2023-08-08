@@ -16,9 +16,6 @@
     <Filter Include="소스 파일\01. ChatServer">
       <UniqueIdentifier>{fa944352-7be3-4134-911f-f6498d083c5d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\02. NetLib">
-      <UniqueIdentifier>{2591f944-9ca4-45ff-aaab-310977c7b815}</UniqueIdentifier>
-    </Filter>
     <Filter Include="소스 파일\03. LAN">
       <UniqueIdentifier>{f98f2da8-b8c7-4349-981e-4aaf78e39d17}</UniqueIdentifier>
     </Filter>
@@ -44,9 +41,6 @@
     </ClCompile>
     <ClCompile Include="CPacket.cpp">
       <Filter>소스 파일\01. ChatServer</Filter>
-    </ClCompile>
-    <ClCompile Include="CLANClient.cpp">
-      <Filter>소스 파일\03. LAN</Filter>
     </ClCompile>
     <ClCompile Include="CLANClientMonitoring.cpp">
       <Filter>소스 파일\03. LAN</Filter>
@@ -98,13 +92,7 @@
     <ClInclude Include="CPacket.h">
       <Filter>소스 파일\01. ChatServer</Filter>
     </ClInclude>
-    <ClInclude Include="CLANClient.h">
-      <Filter>소스 파일\03. LAN</Filter>
-    </ClInclude>
     <ClInclude Include="CLANClientMonitoring.h">
-      <Filter>소스 파일\03. LAN</Filter>
-    </ClInclude>
-    <ClInclude Include="defineLANClient.h">
       <Filter>소스 파일\03. LAN</Filter>
     </ClInclude>
     <ClInclude Include="..\utils\CDBAsyncWriter.h">

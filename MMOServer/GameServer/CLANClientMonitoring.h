@@ -1,10 +1,10 @@
 #pragma once
 
-#include "CLANClient.h"
+#include "../LANClient/CLANClient.h"
 
-class CLANClientMonitoring : public CLANClient
+class CLANClientMonitoring : public lanlib::CLANClient
 {
-
+	using CPacket = lanlib::CPacket;
 private:
 	/* 라이브러리 callback 함수 */
 	virtual bool OnRecv(CPacket& packet);

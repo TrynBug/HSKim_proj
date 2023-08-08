@@ -149,7 +149,6 @@
     <ClCompile Include="..\utils\logger.cpp" />
     <ClCompile Include="..\utils\profiler.cpp" />
     <ClCompile Include="CChatServer.cpp" />
-    <ClCompile Include="CLANClient.cpp" />
     <ClCompile Include="CLANClientMonitoring.cpp" />
     <ClCompile Include="CPacket.cpp" />
     <ClCompile Include="CPlayer.cpp" />
@@ -170,14 +169,12 @@
     <ClInclude Include="..\utils\logger.h" />
     <ClInclude Include="..\utils\profiler.h" />
     <ClInclude Include="CChatServer.h" />
-    <ClInclude Include="CLANClient.h" />
     <ClInclude Include="CLANClientMonitoring.h" />
     <ClInclude Include="CommonProtocol.h" />
     <ClInclude Include="CPacket.h" />
     <ClInclude Include="CPlayer.h" />
     <ClInclude Include="CSector.h" />
     <ClInclude Include="defineChatServer.h" />
-    <ClInclude Include="defineLANClient.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

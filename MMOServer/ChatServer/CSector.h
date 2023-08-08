@@ -1,51 +1,72 @@
 #pragma once
 
-class CPlayer;
-
-
-enum class eSectorDirection
+enum class ESectorObjectType
 {
-	LU = 0,
-	UU,
-	RU,
-	LL,
-	CENTER,
-	RR,
-	LD,
-	DD,
-	RD
+	PLAYER,
+	END
 };
+
+class CObject;
 
 class CSector
 {
-	int _x;
-	int _y;
-
-	std::vector<CPlayer*> _vecPlayer;
-	CSector* _arrAroundSector[9];
-
-	static CSector* _dummySector;
+	friend class CSectorGrid;
 
 public:
 	CSector(int x, int y);
-	~CSector();
+	virtual ~CSector();
+
+	CSector(const CSector&) = delete;
+	CSector(const CSector&&) = delete;
 
 public:
 	int GetX() { return _x; }
 	int GetY() { return _y; }
-	int GetNumOfPlayer() { return (int)_vecPlayer.size(); }
-	int GetNumOfAroundPlayer();
-	const std::vector<CPlayer*>& GetPlayerVector() { return _vecPlayer; }
-	CSector* GetAroundSector(eSectorDirection direction) { return _arrAroundSector[(int)direction]; }
-	CSector** GetAllAroundSector() { return _arrAroundSector; }
-	int GetNumOfAroundSector() { return 9; }
+	int GetNumOfObject(ESectorObjectType type) { return (int)_vecObject[(UINT)type].size(); }
+	const std::vector<CObject*>& GetObjectVector(ESectorObjectType type) { return _vecObject[(UINT)type]; }
+	const std::vector<CSector*>& GetAroundSector() { return _vecAroundSector; }
 
-	void AddAroundSector(int aroundX, int aroundY, CSector* pSector);
-	void AddPlayer(CPlayer* pPlayer);
-	void RemovePlayer(CPlayer* pPlayer);
+	void AddObject(ESectorObjectType type, CObject& object);
+	void RemoveObject(ESectorObjectType type, CObject& object);
 
-	static CSector* GetDummySector() { return _dummySector; }
+private:
+	void AddAroundSector(CSector* pSector);
+
+private:
+	int _x;
+	int _y;
+
+	std::vector<CObject*> _vecObject[(UINT)ESectorObjectType::END];    // type 별 object 벡터
+	std::vector<CSector*> _vecAroundSector;          // 주변 섹터(자신 포함)
 };
 
 
 
+class CSectorGrid
+{
+public:
+	CSectorGrid(int maxX, int maxY, int viewRange);
+	~CSectorGrid();
+
+	CSectorGrid(const CSectorGrid&) = delete;
+	CSectorGrid(const CSectorGrid&&) = delete;
+
+public:
+	int GetMaxX() const { return _maxX; }
+	int GetMaxY() const { return _maxY; }
+	int GetNumOfObject(int x, int y, ESectorObjectType type) const;
+	const std::vector<CObject*>& GetObjectVector(int x, int y, ESectorObjectType type) const;
+	const std::vector<CSector*>& GetAroundSector(int x, int y) const;
+
+	void AddObject(int x, int y, ESectorObjectType type, CObject& obj);
+	void RemoveObject(int x, int y, ESectorObjectType type, CObject& obj);
+
+private:
+	void CheckCoordinate(int x, int y) const;
+
+private:
+	CSector** _sector;
+	int _maxX;
+	int _maxY;
+	int _viewRange;
+};
