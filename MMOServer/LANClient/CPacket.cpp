@@ -6,8 +6,11 @@
 
 using namespace lanlib;
 
-int CPacket::_sDefaultPacketSize = 10000;
-CMemoryPoolTLS<CPacket>* g_poolPacket = new CMemoryPoolTLS<CPacket>(0, false, 100);
+namespace lanlib
+{
+	int CPacket::_sDefaultPacketSize = 10000;
+	CMemoryPoolTLS<CPacket>* g_poolPacket = new CMemoryPoolTLS<CPacket>(0, false, 100);
+}
 
 
 CPacket::CPacket()

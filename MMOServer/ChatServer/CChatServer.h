@@ -50,8 +50,8 @@ private:
 	int SendUnicast(__int64 sessionId, CPacket& packet);
 	int SendUnicast(CPlayer* pPlayer, CPacket& packet);
 	int SendBroadcast(CPacket& packet);
-	int SendOneSector(CPlayer* pPlayer, CPacket& packet, CPlayer* except);
-	int SendAroundSector(CPlayer* pPlayer, CPacket& packet, CPlayer* except);
+	int SendOneSector(CPlayer* pPlayer, CPacket& packet, const CPlayer* except);
+	int SendAroundSector(CPlayer* pPlayer, CPacket& packet, const CPlayer* except);
 
 	/* player */
 	void MoveSector(CPlayer* pPlayer, WORD x, WORD y);

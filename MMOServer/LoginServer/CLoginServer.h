@@ -79,19 +79,22 @@ private:
 
 public:
 	/* 서버 상태 */
-	int GetNumClient() { return (int)_mapClient.size(); }
-	int GetSizeAccountMap() { return (int)_mapAccountToSession.size(); }
-	int GetClientPoolSize() { return _poolClient.GetPoolSize(); };
-	int GetClientAllocCount() { return _poolClient.GetAllocCount(); }
-	int GetClientActualAllocCount() { return _poolClient.GetActualAllocCount(); }
-	int GetClientFreeCount() { return _poolClient.GetFreeCount(); }
-	int GetNumDBConnection() { return _tlsDBConnector->GetNumConnection(); }
-	__int64 GetQueryRunCount() { return _tlsDBConnector->GetQueryRunCount(); }
-	float GetMaxQueryRunTime() { return _tlsDBConnector->GetMaxQueryRunTime(); }
-	float GetMinQueryRunTime() { return _tlsDBConnector->GetMinQueryRunTime(); }
-	float GetAvgQueryRunTime() { return _tlsDBConnector->GetAvgQueryRunTime(); }
-	bool IsTerminated() { return _bTerminated; }
+	int GetNumClient() const { return (int)_mapClient.size(); }
+	int GetSizeAccountMap() const { return (int)_mapAccountToSession.size(); }
+	int GetClientPoolSize() const { return _poolClient.GetPoolSize(); };
+	int GetClientAllocCount() const { return _poolClient.GetAllocCount(); }
+	int GetClientActualAllocCount() const { return _poolClient.GetActualAllocCount(); }
+	int GetClientFreeCount() const { return _poolClient.GetFreeCount(); }
+	int GetNumDBConnection() const { return _tlsDBConnector->GetNumConnection(); }
+	__int64 GetQueryRunCount() const { return _tlsDBConnector->GetQueryRunCount(); }
+	float GetMaxQueryRunTime() const { return _tlsDBConnector->GetMaxQueryRunTime(); }
+	float GetMinQueryRunTime() const { return _tlsDBConnector->GetMinQueryRunTime(); }
+	float GetAvgQueryRunTime() const { return _tlsDBConnector->GetAvgQueryRunTime(); }
+	bool IsTerminated() const { return _bTerminated; }
 
+	/* Get 모니터링 count */
+	const Monitor& GetMonitor() { return _monitor; }
+	const CNetServer::Monitor& GetNetworkMonitor() { return CNetServer::_monitor; }
 
 private:
 	/* 경로 */
@@ -190,15 +193,15 @@ public:
 		std::atomic<__int64> disconnByHeartBeatTimeout = 0;   // 하트비트 타임아웃으로 끊김
 
 	public:
-		__int64 GetLoginCount() { return loginCount; }
-		__int64 GetDisconnByClientLimit() { return disconnByClientLimit; }
-		__int64 GetDisconnByNoClient() { return disconnByNoClient; }
-		__int64 GetDisconnByDBDataError() { return disconnByDBDataError; }
-		__int64 GetDisconnByNoAccount() { return disconnByNoAccount; }
-		__int64 GetDisconnByDupAccount() { return disconnByDupAccount; }
-		__int64 GetDisconnByInvalidMessageType() { return disconnByInvalidMessageType; }
-		__int64 GetDisconnByLoginTimeout() { return disconnByLoginTimeout; }
-		__int64 GetDisconnByHeartBeatTimeout() { return disconnByHeartBeatTimeout; }
+		__int64 GetLoginCount() const { return loginCount; }
+		__int64 GetDisconnByClientLimit() const { return disconnByClientLimit; }
+		__int64 GetDisconnByNoClient() const { return disconnByNoClient; }
+		__int64 GetDisconnByDBDataError() const { return disconnByDBDataError; }
+		__int64 GetDisconnByNoAccount() const { return disconnByNoAccount; }
+		__int64 GetDisconnByDupAccount() const { return disconnByDupAccount; }
+		__int64 GetDisconnByInvalidMessageType() const { return disconnByInvalidMessageType; }
+		__int64 GetDisconnByLoginTimeout() const { return disconnByLoginTimeout; }
+		__int64 GetDisconnByHeartBeatTimeout() const { return disconnByHeartBeatTimeout; }
 	};
 private:
 	Monitor _monitor;

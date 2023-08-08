@@ -1,5 +1,6 @@
 #include <Windows.h>
 #include "defineChatServer.h"
+#include "CObject.h"
 #include "CPlayer.h"
 
 

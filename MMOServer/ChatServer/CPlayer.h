@@ -1,9 +1,24 @@
 #pragma once
 
-class CPlayer
+#include "CObject.h"
+
+class CPlayer : public CObject
 {
 	friend class CChatServer;
+public:
+	CPlayer();
+	~CPlayer();
 
+public:
+	void Init(__int64 sessionId);
+
+	void SetPlayerInfo(INT64 accountNo, WCHAR id[20], WCHAR nickname[20], char sessionKey[64]);
+	void SetLogin();
+	void SetHeartBeatTime() { _lastHeartBeatTime = GetTickCount64(); }
+
+	virtual void Update() override {}
+
+private:
 	__int64 _sessionId;
 	INT64	_accountNo;
 	WCHAR	_id[20];			// null Æ÷ÇÔ
@@ -16,16 +31,5 @@ class CPlayer
 
 	WORD _sectorX;
 	WORD _sectorY;
-
-public:
-	CPlayer();
-	~CPlayer();
-
-public:
-	void Init(__int64 sessionId);
-
-	void SetPlayerInfo(INT64 accountNo, WCHAR id[20], WCHAR nickname[20], char sessionKey[64]);
-	void SetLogin();
-	void SetHeartBeatTime() { _lastHeartBeatTime = GetTickCount64(); }
 };
 

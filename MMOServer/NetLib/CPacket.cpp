@@ -6,9 +6,11 @@
 
 using namespace netlib;
 
-int CPacket::_sDefaultPacketSize = 10000;
-CMemoryPoolTLS<CPacket>* g_poolPacket = new CMemoryPoolTLS<CPacket>(0, false, 100);
-
+namespace netlib
+{
+	int CPacket::_sDefaultPacketSize = 10000;
+	CMemoryPoolTLS<CPacket>* g_poolPacket = new CMemoryPoolTLS<CPacket>(0, false, 100);
+}
 
 CPacket::CPacket()
 	:_size(_sDefaultPacketSize), _sizeHeader(0), _offsetFront(0), _offsetRear(0), _useCount(1), _isHeaderSet(false), _isEncoded(false)

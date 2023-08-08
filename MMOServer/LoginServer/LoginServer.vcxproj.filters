@@ -36,13 +36,7 @@
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
-    <ClCompile Include="CLANClient.cpp">
-      <Filter>소스 파일\02. LAN</Filter>
-    </ClCompile>
     <ClCompile Include="CLANClientMonitoring.cpp">
-      <Filter>소스 파일\02. LAN</Filter>
-    </ClCompile>
-    <ClCompile Include="CPacket.cpp">
       <Filter>소스 파일\02. LAN</Filter>
     </ClCompile>
     <ClCompile Include="..\utils\CDBConnector.cpp">
@@ -86,16 +80,7 @@
     <ClInclude Include="defineLoginServer.h">
       <Filter>소스 파일\01. LoginServer</Filter>
     </ClInclude>
-    <ClInclude Include="CLANClient.h">
-      <Filter>소스 파일\02. LAN</Filter>
-    </ClInclude>
     <ClInclude Include="CLANClientMonitoring.h">
-      <Filter>소스 파일\02. LAN</Filter>
-    </ClInclude>
-    <ClInclude Include="CPacket.h">
-      <Filter>소스 파일\02. LAN</Filter>
-    </ClInclude>
-    <ClInclude Include="defineLANClient.h">
       <Filter>소스 파일\02. LAN</Filter>
     </ClInclude>
     <ClInclude Include="..\utils\CDBConnector.h">

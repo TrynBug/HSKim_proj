@@ -1,5 +1,3 @@
-#pragma comment (lib, "LANClient.lib")
-
 #include "CLANClientMonitoring.h"
 
 #include "../utils/logger.h"

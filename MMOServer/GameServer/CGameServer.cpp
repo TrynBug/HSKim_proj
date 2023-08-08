@@ -1,4 +1,5 @@
 #pragma comment (lib, "GameNetLib.lib")
+#pragma comment (lib, "LANClient.lib")
 #pragma comment (lib, "cpp_redis.lib")
 #pragma comment (lib, "tacopie.lib")
 #pragma comment (lib, "ws2_32.lib")
@@ -62,6 +63,7 @@ bool CGameServer::StartUp()
 {
 	// 패킷풀 설정
 	netlib_game::CPacket::RegeneratePacketPool(10000, 0, 1000);
+	lanlib::CPacket::RegeneratePacketPool(5000, 0, 1000);
 
 	// config 파일 읽기
 	// 현재 경로와 config 파일 경로를 얻음
@@ -324,7 +326,7 @@ unsigned WINAPI CGameServer::ThreadMonitoringCollector(PVOID pParam)
 		currDBQueryCount = pContentsField->GetQueryRunCount();
 
 		// 모니터링 서버에 send
-		lanlib::CPacket packet = server._pLANClientMonitoring->AllocPacket();
+		lanlib::CPacket& packet = server._pLANClientMonitoring->AllocPacket();
 		packet << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
 		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_SERVER_RUN << (int)1 << (int)collectTime; // GameServer 실행 여부 ON / OFF
 		packet << (BYTE)dfMONITOR_DATA_TYPE_GAME_SERVER_CPU << (int)server._pCPUUsage->ProcessTotal() << (int)collectTime; // GameServer CPU 사용률

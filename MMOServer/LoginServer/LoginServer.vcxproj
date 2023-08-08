@@ -112,6 +112,7 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -126,6 +127,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <Optimization>Disabled</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -145,10 +149,8 @@
     <ClCompile Include="..\utils\logger.cpp" />
     <ClCompile Include="..\utils\profiler.cpp" />
     <ClCompile Include="CClient.cpp" />
-    <ClCompile Include="CLANClient.cpp" />
     <ClCompile Include="CLANClientMonitoring.cpp" />
     <ClCompile Include="CLoginServer.cpp" />
-    <ClCompile Include="CPacket.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -165,12 +167,9 @@
     <ClInclude Include="..\utils\logger.h" />
     <ClInclude Include="..\utils\profiler.h" />
     <ClInclude Include="CClient.h" />
-    <ClInclude Include="CLANClient.h" />
     <ClInclude Include="CLANClientMonitoring.h" />
     <ClInclude Include="CLoginServer.h" />
     <ClInclude Include="CommonProtocol.h" />
-    <ClInclude Include="CPacket.h" />
-    <ClInclude Include="defineLANClient.h" />
     <ClInclude Include="defineLoginServer.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />

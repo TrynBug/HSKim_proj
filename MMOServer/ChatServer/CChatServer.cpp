@@ -304,6 +304,7 @@ CPlayer* CChatServer::GetPlayerBySessionId(__int64 sessionId)
 		return iter->second;
 }
 
+
 CPlayer* CChatServer::GetPlayerByAccountNo(__int64 accountNo)
 {
 	auto iter = _mapPlayerAccountNo.find(accountNo);
@@ -419,7 +420,7 @@ void CChatServer::DeletePlayer(__int64 sessionId)
 	CPlayer* pPlayer = iter->second;
 	if (pPlayer->_sectorX != SECTOR_NOT_SET && pPlayer->_sectorY != SECTOR_NOT_SET)
 	{
-		_sector[pPlayer->_sectorY][pPlayer->_sectorX].RemovePlayer(pPlayer);
+		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, *pPlayer);
 	}
 
 	auto iterAccountNo = _mapPlayerAccountNo.find(pPlayer->_accountNo);
@@ -436,7 +437,7 @@ std::unordered_map<__int64, CPlayer*>::iterator CChatServer::DeletePlayer(std::u
 	CPlayer* pPlayer = iterPlayer->second;
 	if (pPlayer->_sectorX != SECTOR_NOT_SET && pPlayer->_sectorY != SECTOR_NOT_SET)
 	{
-		_sector[pPlayer->_sectorY][pPlayer->_sectorX].RemovePlayer(pPlayer);
+		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, *pPlayer);
 	}
 
 	auto iterAccountNo = _mapPlayerAccountNo.find(pPlayer->_accountNo);

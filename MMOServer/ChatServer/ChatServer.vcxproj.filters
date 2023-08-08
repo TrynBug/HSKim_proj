@@ -25,21 +25,15 @@
     <Filter Include="소스 파일\05. Utils">
       <UniqueIdentifier>{15efcb61-9d47-4762-8423-e4940e0ea893}</UniqueIdentifier>
     </Filter>
+    <Filter Include="소스 파일\01. ChatServer\Object">
+      <UniqueIdentifier>{6b9c5611-77b4-412c-9ae2-6d6c63977966}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="CPlayer.cpp">
-      <Filter>소스 파일\01. ChatServer</Filter>
-    </ClCompile>
     <ClCompile Include="CSector.cpp">
       <Filter>소스 파일\01. ChatServer</Filter>
     </ClCompile>
-    <ClCompile Include="main.cpp">
-      <Filter>소스 파일\01. ChatServer</Filter>
-    </ClCompile>
     <ClCompile Include="CChatServer.cpp">
-      <Filter>소스 파일\01. ChatServer</Filter>
-    </ClCompile>
-    <ClCompile Include="CPacket.cpp">
       <Filter>소스 파일\01. ChatServer</Filter>
     </ClCompile>
     <ClCompile Include="CLANClientMonitoring.cpp">
@@ -72,12 +66,18 @@
     <ClCompile Include="..\utils\profiler.cpp">
       <Filter>소스 파일\05. Utils</Filter>
     </ClCompile>
+    <ClCompile Include="CPlayer.cpp">
+      <Filter>소스 파일\01. ChatServer\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="CObject.cpp">
+      <Filter>소스 파일\01. ChatServer\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CommonProtocol.h">
-      <Filter>소스 파일\01. ChatServer</Filter>
-    </ClInclude>
-    <ClInclude Include="CPlayer.h">
       <Filter>소스 파일\01. ChatServer</Filter>
     </ClInclude>
     <ClInclude Include="CSector.h">
@@ -87,9 +87,6 @@
       <Filter>소스 파일\01. ChatServer</Filter>
     </ClInclude>
     <ClInclude Include="CChatServer.h">
-      <Filter>소스 파일\01. ChatServer</Filter>
-    </ClInclude>
-    <ClInclude Include="CPacket.h">
       <Filter>소스 파일\01. ChatServer</Filter>
     </ClInclude>
     <ClInclude Include="CLANClientMonitoring.h">
@@ -130,6 +127,12 @@
     </ClInclude>
     <ClInclude Include="..\utils\profiler.h">
       <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="CPlayer.h">
+      <Filter>소스 파일\01. ChatServer\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="CObject.h">
+      <Filter>소스 파일\01. ChatServer\Object</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

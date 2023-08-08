@@ -13,11 +13,11 @@ redis를 사용하여 채팅서버와 연동한다.
 
 #include "CLoginServer.h"
 
-#include "profiler.h"
-#include "CCrashDump.h"
-#include "logger.h"
-#include "CCpuUsage.h"
-#include "CPDH.h"
+#include "../utils/profiler.h"
+#include "../utils/CCrashDump.h"
+#include "../utils/logger.h"
+#include "../utils/CCpuUsage.h"
+#include "../utils/CPDH.h"
 
 
 int main()
@@ -47,8 +47,6 @@ int main()
 	__int64 prevSendCompletionCount = 0;
 	__int64 prevLoginCount = 0;
 	__int64 prevQueryRunCount = 0;
-	int* arrPrevGQCSWaitTime = new int[numWorkerThread];
-	int* arrCurrGQCSWaitTime = new int[numWorkerThread];
 
 	while (true)
 	{
@@ -84,16 +82,17 @@ int main()
 		CPUTime.UpdateCpuTime();
 		pdh.Update();
 
-		__int64 currAcceptCount = loginServer.GetAcceptCount();                     // accept 횟수
-		__int64 currConnectCount = loginServer.GetConnectCount();                   // connect 횟수 (accept 후 connect 승인된 횟수)
-		__int64 currDisconnectCount = loginServer.GetDisconnectCount();             // disconnect 횟수 (세션 release 횟수)
-		__int64 currRecvCount = loginServer.GetRecvCount();                         // WSARecv 함수 호출 횟수      
-		__int64 currSendCount = loginServer.GetSendCount();                         // WSASend 함수 호출 횟수
-		__int64 currRecvCompletionCount = loginServer.GetRecvCompletionCount();     // recv 완료통지 처리횟수
-		__int64 currSendCompletionCount = loginServer.GetSendCompletionCount();     // send 완료통지 처리횟수
-		__int64 currLoginCount = loginServer.GetLoginCount();                       // 로그인 성공 횟수
+		const netlib::CNetServer::Monitor& netMonitor = loginServer.GetNetworkMonitor();
+		const CLoginServer::Monitor& monitor = loginServer.GetMonitor();
+		__int64 currAcceptCount = netMonitor.GetAcceptCount();                     // accept 횟수
+		__int64 currConnectCount = netMonitor.GetConnectCount();                   // connect 횟수 (accept 후 connect 승인된 횟수)
+		__int64 currDisconnectCount = netMonitor.GetDisconnectCount();             // disconnect 횟수 (세션 release 횟수)
+		__int64 currRecvCount = netMonitor.GetRecvCount();                         // WSARecv 함수 호출 횟수      
+		__int64 currSendCount = netMonitor.GetSendCount();                         // WSASend 함수 호출 횟수
+		__int64 currRecvCompletionCount = netMonitor.GetRecvCompletionCount();     // recv 완료통지 처리횟수
+		__int64 currSendCompletionCount = netMonitor.GetSendCompletionCount();     // send 완료통지 처리횟수
+		__int64 currLoginCount = monitor.GetLoginCount();                          // 로그인 성공 횟수
 		__int64 currQueryRunCount = loginServer.GetQueryRunCount();                 // 쿼리 실행횟수
-		loginServer.GetArrGQCSWaitTime(arrCurrGQCSWaitTime);                        // worker스레드 GQCS wait time 
 
 
 		// 현재 세션 수, WSASend 호출횟수, WSARecv 호출횟수, recv 완료통지 처리 횟수, send 완료통지 처리횟수 출력
@@ -115,15 +114,15 @@ int main()
 		// 연결끊김 사유
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [disconn]  sess lim:%lld,  client lim:%lld,  recv io err (known:%lld,  121:%lld,  unknown:%lld)"
 			",  packet (code:%lld,  len:%lld,  decode:%lld,  type:%lld)\n"
-			, whileCount, loginServer.GetDisconnBySessionLimit(), loginServer.GetDisconnByClientLimit()
-			, loginServer.GetDisconnByKnownIoError(), loginServer.GetDisconnBy121RecvIoError(), loginServer.GetDisconnByUnknownIoError()
-			, loginServer.GetDisconnByPacketCode(), loginServer.GetDisconnByPacketLength(), loginServer.GetDisconnByPacketDecode(), loginServer.GetDisconnByInvalidMessageType());
+			, whileCount, netMonitor.GetDisconnBySessionLimit(), monitor.GetDisconnByClientLimit()
+			, netMonitor.GetDisconnByKnownIoError(), netMonitor.GetDisconnBy121RecvIoError(), netMonitor.GetDisconnByUnknownIoError()
+			, netMonitor.GetDisconnByPacketCode(), netMonitor.GetDisconnByPacketLength(), netMonitor.GetDisconnByPacketDecode(), monitor.GetDisconnByInvalidMessageType());
 
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [disconn]  no client:%lld,  DB error:%lld,  DB no account:%lld,  dup login:%lld"
 			",  timeout (login:%lld,  heart:%lld)\n"
 			, whileCount
-			, loginServer.GetDisconnByNoClient(), loginServer.GetDisconnByDBDataError(), loginServer.GetDisconnByNoAccount(), loginServer.GetDisconnByDupAccount()
-			, loginServer.GetDisconnByLoginTimeout(), loginServer.GetDisconnByHeartBeatTimeout());
+			, monitor.GetDisconnByNoClient(), monitor.GetDisconnByDBDataError(), monitor.GetDisconnByNoAccount(), monitor.GetDisconnByDupAccount()
+			, monitor.GetDisconnByLoginTimeout(), monitor.GetDisconnByHeartBeatTimeout());
 
 		// 메모리풀. 패킷, 메시지, 플레이어
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [pool   ]  packet:%d (alloc:%d, used:%d, free:%d),  client:%d (alloc:%d, used:%d, free:%d)\n"
@@ -148,18 +147,9 @@ int main()
 		// worker 스레드별 GQCS wait 시간, 트래픽 혼잡제어 횟수
 		std::wostringstream oss;
 		oss.str(L"");
-		oss << whileCount << L" [etc    ]  GQCS wait time(ms): (";
-		for (int i = 0; i < numWorkerThread; i++)
-		{
-			if (arrCurrGQCSWaitTime[i] - arrPrevGQCSWaitTime[i] == 0)
-				oss << L"?, ";
-			else
-				oss << arrCurrGQCSWaitTime[i] - arrPrevGQCSWaitTime[i] << L", ";
-		}
-		oss.seekp(-2, std::ios_base::end); // 마지막 ", " 문자열 제거
-		oss << L"),  traffic control:" << loginServer.GetTrafficCongestionControlCount();
-		oss << L",  deferred closesocket:" << loginServer.GetDeferredDisconnectCount() << L" (msgQ:" << loginServer.GetSizeMsgQDeferredCloseSocket();
-		oss << L",  error:" << loginServer.GetOtherErrorCount() << L")\n\n";
+		oss << whileCount << L" [etc    ]  traffic control:" << netMonitor.GetTrafficCongestionControlCount();
+		oss << L",  deferred closesocket:" << netMonitor.GetDeferredDisconnectCount() << L" (msgQ:" << loginServer.GetSizeMsgQDeferredCloseSocket();
+		oss << L",  error:" << netMonitor.GetOtherErrorCount() << L")\n\n";
 		LOGGING(LOGGING_LEVEL_INFO, oss.str().c_str());
 
 		prevAcceptCount = currAcceptCount;
@@ -171,7 +161,6 @@ int main()
 		prevSendCompletionCount = currSendCompletionCount;
 		prevLoginCount = currLoginCount;
 		prevQueryRunCount = currQueryRunCount;
-		memcpy(arrPrevGQCSWaitTime, arrCurrGQCSWaitTime, sizeof(int)* numWorkerThread);
 
 		whileCount++;
 	}

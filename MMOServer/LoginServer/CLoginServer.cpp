@@ -1,7 +1,8 @@
 #include "CLoginServer.h"
 
 #include "../utils/cpp_redis/cpp_redis.h"
-#pragma comment (lib, "NetServer.lib")
+#pragma comment (lib, "NetLib.lib")
+#pragma comment (lib, "LANClient.lib")
 #pragma comment (lib, "cpp_redis.lib")
 #pragma comment (lib, "tacopie.lib")
 #pragma comment (lib, "ws2_32.lib")
@@ -176,10 +177,10 @@ bool CLoginServer::StartUp()
 	}
 
 	// 모니터링 서버에 접속
-	CPacket* pPacket = _pLANClientMonitoring->AllocPacket();
-	*pPacket << (WORD)en_PACKET_SS_MONITOR_LOGIN << _serverNo;
-	_pLANClientMonitoring->SendPacket(pPacket);
-	pPacket->SubUseCount();
+	lanlib::CPacket& packet = _pLANClientMonitoring->AllocPacket();
+	packet << (WORD)en_PACKET_SS_MONITOR_LOGIN << _serverNo;
+	_pLANClientMonitoring->SendPacket(packet);
+	packet.SubUseCount();
 
 	// 모니터링 데이터 수집 스레드 start
 	_pCPUUsage = std::make_unique<CCpuUsage>();
@@ -372,9 +373,9 @@ void CLoginServer::Crash()
 // 네트워크 라이브러리 callback 함수 구현
 bool CLoginServer::OnConnectionRequest(unsigned long IP, unsigned short port)
 {
-	if (GetNumClient() >= _numMaxClient)
+	if (GetNumClient() >= _config.numMaxClient)
 	{
-		InterlockedIncrement64(&_disconnByClientLimit); // 모니터링
+		_monitor.disconnByClientLimit++;
 		return false;
 	}
 
@@ -409,12 +410,11 @@ bool CLoginServer::OnRecv(__int64 sessionId, CPacket& packet)
 	// OnRecv 함수 자체는 같은 세션, 클라이언트에 대해 동시에 호출될 수 있다.
 
 	WORD packetType;
-	CPacket* pSendPacket;
 	CClient* pClient;
 
 	// 패킷 타입에 따른 메시지 처리
 	packet >> packetType;
-	pSendPacket = AllocPacket();  // 클라이언트 send용 패킷 할당. switch문이 끝나고 free된다.
+	CPacket& sendPacket = AllocPacket();  // 클라이언트 send용 패킷 할당. switch문이 끝나고 free된다.
 	switch (packetType)
 	{
 	// 로그인서버 로그인 요청
@@ -434,12 +434,12 @@ bool CLoginServer::OnRecv(__int64 sessionId, CPacket& packet)
 		if (pClient == nullptr)
 		{
 			// 로그인실패 응답 발송
-			*pSendPacket << (WORD)en_PACKET_CS_LOGIN_RES_LOGIN << accountNo << (BYTE)en_PACKET_CS_LOGIN_RES_LOGIN::dfLOGIN_STATUS_FAIL;
-			SendUnicast(sessionId, pSendPacket);
+			sendPacket << (WORD)en_PACKET_CS_LOGIN_RES_LOGIN << accountNo << (BYTE)en_PACKET_CS_LOGIN_RES_LOGIN::dfLOGIN_STATUS_FAIL;
+			SendUnicast(sessionId, sendPacket);
 
 			// 세션ID-플레이어 map에 플레이어객체가 없으므로 세션만 끊는다.
-			netlib::Disconnect(sessionId);
-			InterlockedIncrement64(&_disconnByNoClient); // 모니터링
+			CNetServer::Disconnect(sessionId);
+			_monitor.disconnByNoClient++;
 
 			LOGGING(LOGGING_LEVEL_DEBUG, L"OnRecv send login failed. session:%lld, accountNo:%lld\n", sessionId, accountNo);
 			break;
@@ -457,11 +457,11 @@ bool CLoginServer::OnRecv(__int64 sessionId, CPacket& packet)
 		if (bInserted == false)
 		{
 			// 동일 account번호의 계정이 현재 다른 스레드에서 로그인을 진행하고 있다면 로그인 실패패킷을 보냄
-			*pSendPacket << (WORD)en_PACKET_CS_LOGIN_RES_LOGIN << accountNo << (BYTE)en_PACKET_CS_LOGIN_RES_LOGIN::dfLOGIN_STATUS_FAIL;
+			sendPacket << (WORD)en_PACKET_CS_LOGIN_RES_LOGIN << accountNo << (BYTE)en_PACKET_CS_LOGIN_RES_LOGIN::dfLOGIN_STATUS_FAIL;
 
-			SendUnicast(sessionId, pSendPacket);
+			SendUnicast(sessionId, sendPacket);
 			DisconnectSession(sessionId);
-			InterlockedIncrement64(&_disconnByDupAccount); // 모니터링
+			_monitor.disconnByDupAccount++;
 
 			LOGGING(LOGGING_LEVEL_DEBUG, L"OnRecv another session is handling same account number. session:%lld, accountNo:%lld\n", sessionId, accountNo);
 			break;
@@ -483,12 +483,12 @@ bool CLoginServer::OnRecv(__int64 sessionId, CPacket& packet)
 		{
 			// account 번호에 대한 데이터가 검색되지 않을 경우 로그인 실패
 			LOGGING(LOGGING_LEVEL_DEBUG, L"Can't find account data from account table. accountNo:%lld\n", accountNo);
-			*pSendPacket << (WORD)en_PACKET_CS_LOGIN_RES_LOGIN << accountNo << (BYTE)en_PACKET_CS_LOGIN_RES_LOGIN::dfLOGIN_STATUS_ACCOUNT_MISS;
-			SendUnicast(sessionId, pSendPacket);
+			sendPacket << (WORD)en_PACKET_CS_LOGIN_RES_LOGIN << accountNo << (BYTE)en_PACKET_CS_LOGIN_RES_LOGIN::dfLOGIN_STATUS_ACCOUNT_MISS;
+			SendUnicast(sessionId, sendPacket);
 			DisconnectSession(sessionId);
 			DeleteAccountFromMap(accountNo);
 			pDBConn->FreeResult(myRes);
-			InterlockedIncrement64(&_disconnByNoAccount); // 모니터링
+			_monitor.disconnByNoAccount++;
 			break;
 		}
 
@@ -528,37 +528,37 @@ bool CLoginServer::OnRecv(__int64 sessionId, CPacket& packet)
 
 
 		// 클라이언트에게 로그인성공 응답 발송
-		*pSendPacket << (WORD)en_PACKET_CS_LOGIN_RES_LOGIN << accountNo << (BYTE)en_PACKET_CS_LOGIN_RES_LOGIN::dfLOGIN_STATUS_OK;
-		pSendPacket->PutData((char*)userId, sizeof(userId));
-		pSendPacket->PutData((char*)userNick, sizeof(userNick));
+		sendPacket << (WORD)en_PACKET_CS_LOGIN_RES_LOGIN << accountNo << (BYTE)en_PACKET_CS_LOGIN_RES_LOGIN::dfLOGIN_STATUS_OK;
+		sendPacket.PutData((char*)userId, sizeof(userId));
+		sendPacket.PutData((char*)userNick, sizeof(userNick));
 		if (accountNo < 50000)
 		{
-			pSendPacket->PutData((char*)_szGameServerDummy1IP, 32);
-			*pSendPacket << _gameServerPort;
-			pSendPacket->PutData((char*)_szChatServerDummy1IP, 32);
-			*pSendPacket << _chatServerPort;
+			sendPacket.PutData((char*)_config.szGameServerDummy1IP, 32);
+			sendPacket << _config.gameServerPort;
+			sendPacket.PutData((char*)_config.szChatServerDummy1IP, 32);
+			sendPacket << _config.chatServerPort;
 		}
 		else if (accountNo < 100000)
 		{
-			pSendPacket->PutData((char*)_szGameServerDummy2IP, 32);
-			*pSendPacket << _gameServerPort;
-			pSendPacket->PutData((char*)_szChatServerDummy2IP, 32);
-			*pSendPacket << _chatServerPort;
+			sendPacket.PutData((char*)_config.szGameServerDummy2IP, 32);
+			sendPacket << _config.gameServerPort;
+			sendPacket.PutData((char*)_config.szChatServerDummy2IP, 32);
+			sendPacket << _config.chatServerPort;
 		}
 		else
 		{
-			pSendPacket->PutData((char*)_szGameServerIP, 32);
-			*pSendPacket << _gameServerPort;
-			pSendPacket->PutData((char*)_szChatServerIP, 32);
-			*pSendPacket << _chatServerPort;
+			sendPacket.PutData((char*)_config.szGameServerIP, 32);
+			sendPacket << _config.gameServerPort;
+			sendPacket.PutData((char*)_config.szChatServerIP, 32);
+			sendPacket << _config.chatServerPort;
 		}
-		SendUnicast(sessionId, pSendPacket);
-		//SendUnicastAndDisconnect(sessionId, pSendPacket);  // 보내고 연결끊음
+		SendUnicast(sessionId, sendPacket);
+		//SendUnicastAndDisconnect(sessionId, sendPacket);  // 보내고 연결끊음
 
 		// account 번호를 map에서 제거
 		DeleteAccountFromMap(accountNo);
 
-		InterlockedIncrement64(&_loginCount); // 모니터링
+		_monitor.loginCount++;
 
 		LOGGING(LOGGING_LEVEL_DEBUG, L"OnRecv send login succeed. session:%lld, accountNo:%lld\n", sessionId, accountNo);
 		break;
@@ -572,12 +572,12 @@ bool CLoginServer::OnRecv(__int64 sessionId, CPacket& packet)
 		DisconnectSession(sessionId);
 		LOGGING(LOGGING_LEVEL_DEBUG, L"OnRecv received invalid packet type. session:%lld, packet type:%d\n", sessionId, packetType);
 
-		InterlockedIncrement64(&_disconnByInvalidMessageType); // 모니터링
+		_monitor.disconnByInvalidMessageType++;
 		break;
 	}
 	}
 
-	pSendPacket->SubUseCount();
+	sendPacket.SubUseCount();
 
 	return true;
 }
@@ -725,7 +725,7 @@ unsigned WINAPI CLoginServer::ThreadPeriodicWorker(PVOID pParam)
 			}
 			ReleaseSRWLockExclusive(&server._srwlMapClient);
 
-			InterlockedAdd64(&server._disconnByLoginTimeout, vecTimeoutSessionId.size()); // 모니터링
+			server._monitor.disconnByLoginTimeout += vecTimeoutSessionId.size();
 			// 로그인 타임아웃 대상 세션의 연결을 끊는다.
 			for (int i = 0; i < vecTimeoutSessionId.size(); i++)
 			{
@@ -759,7 +759,6 @@ unsigned WINAPI CLoginServer::ThreadMonitoringCollector(PVOID pParam)
 	wprintf(L"begin monitoring collector thread\n");
 	CLoginServer& server = *(CLoginServer*)pParam;
 
-	CPacket& packet;
 	PDHCount pdhCount;
 	LARGE_INTEGER liFrequency;
 	LARGE_INTEGER liStartTime;
@@ -791,22 +790,22 @@ unsigned WINAPI CLoginServer::ThreadMonitoringCollector(PVOID pParam)
 		server._pCPUUsage->UpdateCpuTime();
 		server._pPDH->Update();
 		pdhCount = server._pPDH->GetPDHCount();
-		currLoginCount = server.GetLoginCount();
+		currLoginCount = server._monitor.GetLoginCount();
 
 		// 모니터링 서버에 send
-		pPacket = server._pLANClientMonitoring->AllocPacket();
-		*pPacket << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SERVER_RUN << (int)1 << (int)collectTime; // 로그인서버 실행여부 ON / OFF
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SERVER_CPU << (int)server._pCPUUsage->ProcessTotal() << (int)collectTime; // 로그인서버 CPU 사용률
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SERVER_MEM << (int)((double)pdhCount.processPrivateBytes / 1048576.0) << (int)collectTime; // 로그인서버 메모리 사용 MByte
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SESSION << server.GetNumSession() << (int)collectTime; // 로그인서버 세션 수 (컨넥션 수)
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_AUTH_TPS << (int)(currLoginCount - prevLoginCount) << (int)collectTime; // 로그인서버 인증 처리 초당 횟수
-		*pPacket << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_PACKET_POOL << server.GetPacketAllocCount() << (int)collectTime; // 로그인서버 패킷풀 사용량
+		lanlib::CPacket& packet = server._pLANClientMonitoring->AllocPacket();
+		packet << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
+		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SERVER_RUN << (int)1 << (int)collectTime; // 로그인서버 실행여부 ON / OFF
+		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SERVER_CPU << (int)server._pCPUUsage->ProcessTotal() << (int)collectTime; // 로그인서버 CPU 사용률
+		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SERVER_MEM << (int)((double)pdhCount.processPrivateBytes / 1048576.0) << (int)collectTime; // 로그인서버 메모리 사용 MByte
+		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SESSION << server.GetNumSession() << (int)collectTime; // 로그인서버 세션 수 (컨넥션 수)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_AUTH_TPS << (int)(currLoginCount - prevLoginCount) << (int)collectTime; // 로그인서버 인증 처리 초당 횟수
+		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_PACKET_POOL << server.GetPacketAllocCount() << (int)collectTime; // 로그인서버 패킷풀 사용량
 
 		prevLoginCount = currLoginCount;
 
-		server._pLANClientMonitoring->SendPacket(pPacket);
-		pPacket->SubUseCount();
+		server._pLANClientMonitoring->SendPacket(packet);
+		packet.SubUseCount();
 
 
 		// 앞으로 sleep할 시간을 계산한다.
