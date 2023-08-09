@@ -21,8 +21,8 @@
   <PropertyGroup Label="Globals">
     <VCProjectVersion>16.0</VCProjectVersion>
     <Keyword>Win32Proj</Keyword>
-    <ProjectGuid>{e8e7d01e-dbee-46a6-81ee-0151ca21b43d}</ProjectGuid>
-    <RootNamespace>LoginServer</RootNamespace>
+    <ProjectGuid>{3d5d0835-13f5-45a1-8d63-a1417396af80}</ProjectGuid>
+    <RootNamespace>NetLibs</RootNamespace>
     <WindowsTargetPlatformVersion>10.0</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
@@ -40,13 +40,13 @@
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <CharacterSet>Unicode</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>StaticLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v143</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -71,12 +71,12 @@
   </ImportGroup>
   <PropertyGroup Label="UserMacros" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
-    <IncludePath>$(SolutionDir)utils\cpp_redis\tacopie;$(SolutionDir)utils\cpp_redis;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+    <IncludePath>$(SolutionDir)utils\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
-    <IncludePath>$(SolutionDir)utils\cpp_redis\tacopie;$(SolutionDir)utils\cpp_redis;$(IncludePath)</IncludePath>
-    <LibraryPath>$(SolutionDir)lib\$(Platform)\$(Configuration);$(LibraryPath)</LibraryPath>
+    <OutDir>$(SolutionDir)lib\$(Platform)\$(Configuration)\</OutDir>
+    <IncludePath>$(SolutionDir)utils\;$(IncludePath)</IncludePath>
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
@@ -127,9 +127,9 @@
       <SDLCheck>true</SDLCheck>
       <PreprocessorDefinitions>NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
-      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -139,37 +139,20 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="..\utils\CCpuUsage.cpp" />
-    <ClCompile Include="..\utils\CCrashDump.cpp" />
-    <ClCompile Include="..\utils\CDBConnector.cpp" />
-    <ClCompile Include="..\utils\CDBConnectorTLSManager.cpp" />
-    <ClCompile Include="..\utils\CJsonParser.cpp" />
-    <ClCompile Include="..\utils\CPDH.cpp" />
     <ClCompile Include="..\utils\CRingbuffer.cpp" />
-    <ClCompile Include="..\utils\logger.cpp" />
-    <ClCompile Include="..\utils\profiler.cpp" />
-    <ClCompile Include="CClient.cpp" />
-    <ClCompile Include="CLANClientMonitoring.cpp" />
-    <ClCompile Include="CLoginServer.cpp" />
-    <ClCompile Include="main.cpp" />
+    <ClCompile Include="CNetServer.cpp" />
+    <ClCompile Include="CPacket.cpp" />
+    <ClCompile Include="CSession.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="..\utils\CCpuUsage.h" />
-    <ClInclude Include="..\utils\CCrashDump.h" />
-    <ClInclude Include="..\utils\CDBConnector.h" />
-    <ClInclude Include="..\utils\CDBConnectorTLSManager.h" />
-    <ClInclude Include="..\utils\CJsonParser.h" />
     <ClInclude Include="..\utils\CLockfreeQueue.h" />
+    <ClInclude Include="..\utils\CLockfreeStack.h" />
     <ClInclude Include="..\utils\CMemoryPool.h" />
-    <ClInclude Include="..\utils\CMemoryPoolTLS.h" />
-    <ClInclude Include="..\utils\CPDH.h" />
     <ClInclude Include="..\utils\CRingbuffer.h" />
-    <ClInclude Include="..\utils\logger.h" />
-    <ClInclude Include="..\utils\profiler.h" />
-    <ClInclude Include="CClient.h" />
-    <ClInclude Include="CLANClientMonitoring.h" />
-    <ClInclude Include="CLoginServer.h" />
-    <ClInclude Include="defineLoginServer.h" />
+    <ClInclude Include="CNetServer.h" />
+    <ClInclude Include="CPacket.h" />
+    <ClInclude Include="CSession.h" />
+    <ClInclude Include="defineNetwork.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

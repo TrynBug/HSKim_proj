@@ -1,8 +1,3 @@
-/*
-로그인서버
-redis를 사용하여 채팅서버와 연동한다.
-채팅서버와 LAN으로 통신하지는 않는다.
-*/
 
 #include <iostream>
 #include <vector>
@@ -20,20 +15,30 @@ redis를 사용하여 채팅서버와 연동한다.
 #include "../utils/CPDH.h"
 
 
+using namespace loginserver;
+void ConsoleOutServerState(std::shared_ptr<CLoginServer> server);
+
+
 int main()
 {
+	std::shared_ptr<CLoginServer> server(new CLoginServer);
+	bool retStart = server->StartUp();
+	ConsoleOutServerState(server);
+
+	return 0;
+}
+
+
+
+void ConsoleOutServerState(std::shared_ptr<CLoginServer> server)
+{
 	CCrashDump::Init();
-	timeBeginPeriod(1);
 	CCpuUsage CPUTime;
 
 	CPDH pdh;
 	pdh.Init();
 
-	CLoginServer& loginServer = *new CLoginServer();
-	bool retStart = loginServer.StartUp();
-
-
-	int numWorkerThread = loginServer.GetNumWorkerThread();
+	int numWorkerThread = server->GetNumWorkerThread();
 	LARGE_INTEGER liFrequency;
 	QueryPerformanceFrequency(&liFrequency);
 	ULONGLONG tick = GetTickCount64();
@@ -57,9 +62,12 @@ int main()
 			if (GetAsyncKeyState('E') || GetAsyncKeyState('e'))
 			{
 				printf("[server] terminate chat server\n");
-				loginServer.Shutdown();
-				while (loginServer.IsTerminated() == false)
+				server->Shutdown();
+				while (server->IsTerminated() == false)
+				{
+					Sleep(100);
 					continue;
+				}
 				break;
 			}
 			else if (GetAsyncKeyState('C') || GetAsyncKeyState('c'))
@@ -82,8 +90,8 @@ int main()
 		CPUTime.UpdateCpuTime();
 		pdh.Update();
 
-		const netlib::CNetServer::Monitor& netMonitor = loginServer.GetNetworkMonitor();
-		const CLoginServer::Monitor& monitor = loginServer.GetMonitor();
+		const netlib::CNetServer::Monitor& netMonitor = server->GetNetworkMonitor();
+		const CLoginServer::Monitor& monitor = server->GetMonitor();
 		__int64 currAcceptCount = netMonitor.GetAcceptCount();                     // accept 횟수
 		__int64 currConnectCount = netMonitor.GetConnectCount();                   // connect 횟수 (accept 후 connect 승인된 횟수)
 		__int64 currDisconnectCount = netMonitor.GetDisconnectCount();             // disconnect 횟수 (세션 release 횟수)
@@ -92,12 +100,12 @@ int main()
 		__int64 currRecvCompletionCount = netMonitor.GetRecvCompletionCount();     // recv 완료통지 처리횟수
 		__int64 currSendCompletionCount = netMonitor.GetSendCompletionCount();     // send 완료통지 처리횟수
 		__int64 currLoginCount = monitor.GetLoginCount();                          // 로그인 성공 횟수
-		__int64 currQueryRunCount = loginServer.GetQueryRunCount();                 // 쿼리 실행횟수
+		__int64 currQueryRunCount = server->GetQueryRunCount();                    // 쿼리 실행횟수
 
 
 		// 현재 세션 수, WSASend 호출횟수, WSARecv 호출횟수, recv 완료통지 처리 횟수, send 완료통지 처리횟수 출력
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [network]  session:%d,  accept:%lld (%lld/s),  conn:%lld (%lld/s),  disconn:%lld (%lld/s),  recv:%lld/s,  send:%lld/s,  recvComp:%lld/s,  sendComp:%lld/s\n"
-			, whileCount, loginServer.GetNumSession()
+			, whileCount, server->GetNumSession()
 			, currAcceptCount, currAcceptCount - prevAcceptCount
 			, currConnectCount, currConnectCount - prevConnectCount
 			, currDisconnectCount, currDisconnectCount - prevDisconnectCount
@@ -108,7 +116,7 @@ int main()
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [server ]  client:%d,  account:%d,  login:%lld/s"
 			",  CPU usage [T:%.1f%%%%, U:%.1f%%%%, K:%.1f%%%%]  [Server:%.1f%%%%, U:%.1f%%%%, K:%.1f%%%%]\n"
 			, whileCount
-			, loginServer.GetNumClient(), loginServer.GetSizeAccountMap(), currLoginCount - prevLoginCount
+			, server->GetNumClient(), server->GetSizeAccountMap(), currLoginCount - prevLoginCount
 			, CPUTime.ProcessorTotal(), CPUTime.ProcessorKernel(), CPUTime.ProcessorUser(), CPUTime.ProcessTotal(), CPUTime.ProcessKernel(), CPUTime.ProcessUser());
 
 		// 연결끊김 사유
@@ -127,14 +135,14 @@ int main()
 		// 메모리풀. 패킷, 메시지, 플레이어
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [pool   ]  packet:%d (alloc:%d, used:%d, free:%d),  client:%d (alloc:%d, used:%d, free:%d)\n"
 			, whileCount
-			, loginServer.GetPacketPoolSize(), loginServer.GetPacketAllocCount(), loginServer.GetPacketActualAllocCount(), loginServer.GetPacketFreeCount()
-			, loginServer.GetClientPoolSize(), loginServer.GetClientAllocCount(), loginServer.GetClientActualAllocCount(), loginServer.GetClientFreeCount());
+			, server->GetPacketPoolSize(), server->GetPacketAllocCount(), server->GetPacketActualAllocCount(), server->GetPacketFreeCount()
+			, server->GetClientPoolSize(), server->GetClientAllocCount(), server->GetClientActualAllocCount(), server->GetClientFreeCount());
 
 		// DB
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [DB     ]  connection:%d,  query count:%d/s,  query run time (avg:%.1fms , max:%.1fms , min:%.1fms)\n"
-			, whileCount, loginServer.GetNumDBConnection(), currQueryRunCount - prevQueryRunCount
-			, loginServer.GetAvgQueryRunTime(), loginServer.GetMaxQueryRunTime()
-			, loginServer.GetMinQueryRunTime() == FLT_MAX ? 0.f : loginServer.GetMinQueryRunTime());
+			, whileCount, server->GetNumDBConnection(), currQueryRunCount - prevQueryRunCount
+			, server->GetAvgQueryRunTime(), server->GetMaxQueryRunTime()
+			, server->GetMinQueryRunTime() == FLT_MAX ? 0.f : server->GetMinQueryRunTime());
 
 		// 시스템
 		const PDHCount& pdhCount = pdh.GetPDHCount();
@@ -148,7 +156,7 @@ int main()
 		std::wostringstream oss;
 		oss.str(L"");
 		oss << whileCount << L" [etc    ]  traffic control:" << netMonitor.GetTrafficCongestionControlCount();
-		oss << L",  deferred closesocket:" << netMonitor.GetDeferredDisconnectCount() << L" (msgQ:" << loginServer.GetSizeMsgQDeferredCloseSocket();
+		oss << L",  deferred closesocket:" << netMonitor.GetDeferredDisconnectCount() << L" (msgQ:" << server->GetSizeMsgQDeferredCloseSocket();
 		oss << L",  error:" << netMonitor.GetOtherErrorCount() << L")\n\n";
 		LOGGING(LOGGING_LEVEL_INFO, oss.str().c_str());
 
@@ -164,10 +172,4 @@ int main()
 
 		whileCount++;
 	}
-
-
-	WSACleanup();
-
-	return 0;
 }
-

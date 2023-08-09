@@ -8,6 +8,7 @@ CLANClient::CLANClient()
 	: _hIOCP(NULL)
 	, _bOutputDebug(false)
 	, _bOutputSystem(true)
+	, _bShutdown(false)
 {
 }
 
@@ -144,6 +145,11 @@ bool CLANClient::StartUp(const wchar_t* serverIP, unsigned short serverPort, boo
 // 네트워크 종료
 void CLANClient::Shutdown()
 {
+	std::lock_guard<std::mutex> lock_guard(_mtxShutdown);
+	if (_bShutdown == true)
+		return;
+	_bShutdown = true;
+
 	// 서버와의 연결을 끊음
 	Disconnect();
 

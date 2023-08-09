@@ -7,6 +7,7 @@
 #include <process.h>
 #include <vector>
 #include <unordered_map>
+#include <mutex>
 
 #include "CPacket.h"
 #include "../utils/CRingbuffer.h"
@@ -89,10 +90,10 @@ namespace lanlib
 		void SetOutputSystem(bool enable) { _bOutputSystem = enable; }  // OnOutputSystem 함수 활성화, 비활성화 (기본값:활성)
 
 		/* Get 서버 상태 */
-		int GetPacketPoolSize() { return CPacket::GetPoolSize(); };
-		int GetPacketAllocCount() { return CPacket::GetAllocCount(); }
-		int GetPacketActualAllocCount() { return CPacket::GetActualAllocCount(); }
-		int GetPacketFreeCount() { return CPacket::GetFreeCount(); }
+		int GetPacketPoolSize() const { return CPacket::GetPoolSize(); };
+		int GetPacketAllocCount() const { return CPacket::GetAllocCount(); }
+		int GetPacketActualAllocCount() const { return CPacket::GetActualAllocCount(); }
+		int GetPacketFreeCount() const { return CPacket::GetFreeCount(); }
 
 
 	private:
@@ -150,7 +151,10 @@ namespace lanlib
 		bool _bOutputDebug;    // OnOutputDebug 함수 활성화여부(default:false)
 		bool _bOutputSystem;   // OnOutputSystem 함수 활성화여부(default:true)
 
-		
+		/* shutdown */
+		bool _bShutdown;
+		std::mutex _mtxShutdown;
+
 	public:
 		/* 모니터링 counter */
 		class alignas(64) Monitor

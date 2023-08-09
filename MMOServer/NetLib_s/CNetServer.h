@@ -7,7 +7,6 @@
 #include <process.h>
 #include <vector>
 #include <unordered_map>
-#include <mutex>
 
 #include "CPacket.h"
 #include "../utils/CRingbuffer.h"
@@ -29,8 +28,15 @@
 		OnOutputSystem(szOutputFormat, ##__VA_ARGS__); \
 } while(0) 
 
-namespace netlib
+namespace netlib_s
 {
+	using CPacket_t = std::shared_ptr<CPacket>;
+	void __CPacketDeleter(CPacket* pw)
+	{
+		CPacket::FreePacket(*pw);
+	}
+
+
 	class CSession;
 
 	/* IOCP Network Server */
@@ -58,7 +64,7 @@ namespace netlib
 		void Shutdown();    // 서버 종료(accept 종료 포함)
 
 		/* packet */
-		CPacket& AllocPacket();
+		CPacket_t AllocPacket();
 		bool SendPacket(__int64 sessionId, CPacket& packet);  // send가 동기로 수행될 수 있을 때는 동기로 수행되고, 그렇지 않을 경우 비동기로 수행된다.
 		bool SendPacketAsync(__int64 sessionId, CPacket& packet);  // send가 반드시 비동기로 수행된다.
 		bool SendPacketAndDisconnect(__int64 sessionId, CPacket& packet);       // send가 완료된 후 연결을 끊는다.
@@ -138,11 +144,10 @@ namespace netlib
 		/* server */
 		HANDLE _hIOCP;
 		SOCKET _listenSock;
+		bool _bShutdown;
 		volatile bool _bTrafficCongestion;  // 트래픽 혼잡여부
 		bool _bOutputDebug;    // OnOutputDebug 함수 활성화여부(default:false)
 		bool _bOutputSystem;   // OnOutputSystem 함수 활성화여부(default:true)
-		bool _bShutdown;
-		std::mutex _mtxShutdown;
 
 		/* network config */
 		struct Config

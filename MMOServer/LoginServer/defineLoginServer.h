@@ -1,6 +1,11 @@
 #pragma once
 
-enum class EServerJobType
+namespace loginserver
 {
-	JOB_CHECK_LOGIN_TIMEOUT,
-};
+
+	enum class EServerJobType
+	{
+		JOB_CHECK_LOGIN_TIMEOUT,
+	};
+
+}

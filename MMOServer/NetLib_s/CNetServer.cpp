@@ -7,7 +7,7 @@
 #include <iphlpapi.h>
 #pragma comment(lib, "iphlpapi.lib")
 
-using namespace netlib;
+using namespace netlib_s;
 
 CNetServer::Config::Config()
 	: szBindIP{}
@@ -223,9 +223,6 @@ void CNetServer::StopAccept()
 // 서버 종료(accept 종료 포함)
 void CNetServer::Shutdown()
 {
-	std::lock_guard<std::mutex> lock_guard(_mtxShutdown);
-	if (_bShutdown == true)
-		return;
 	_bShutdown = true;
 
 	// accept 스레드를 종료시킨다.
@@ -283,11 +280,11 @@ void CNetServer::Shutdown()
 
 
 /* packet */
-CPacket& CNetServer::AllocPacket()
+CPacket_t CNetServer::AllocPacket()
 {
-	CPacket& packet = CPacket::AllocPacket();
-	packet.Init(sizeof(PacketHeader));
-	return packet;
+	std::shared_ptr<CPacket> spPacket(CPacket::AllocPacket(), __CPacketDeleter);
+	spPacket->Init(sizeof(PacketHeader));
+	return spPacket;
 }
 
 

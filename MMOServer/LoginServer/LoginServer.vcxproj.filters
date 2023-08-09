@@ -74,9 +74,6 @@
     <ClInclude Include="CLoginServer.h">
       <Filter>소스 파일\01. LoginServer</Filter>
     </ClInclude>
-    <ClInclude Include="CommonProtocol.h">
-      <Filter>소스 파일\01. LoginServer</Filter>
-    </ClInclude>
     <ClInclude Include="defineLoginServer.h">
       <Filter>소스 파일\01. LoginServer</Filter>
     </ClInclude>

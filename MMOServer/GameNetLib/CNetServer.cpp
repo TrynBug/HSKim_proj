@@ -28,6 +28,7 @@ CNetServer::CNetServer()
 
 CNetServer::~CNetServer()
 {
+	Shutdown();
 }
 
 CNetServer::Config::Config()
@@ -221,7 +222,8 @@ void CNetServer::StopAccept()
 void CNetServer::Shutdown()
 {
 	AcquireSRWLockExclusive(&_srwlListContents);
-
+	if (_bShutdown == true)
+		return;
 	_bShutdown = true;
 
 	// accept 스레드를 종료시킨다.

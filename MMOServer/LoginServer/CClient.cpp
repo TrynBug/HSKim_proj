@@ -2,7 +2,7 @@
 #include "defineLoginServer.h"
 #include "CClient.h"
 
-
+using namespace loginserver;
 
 CClient::CClient()
 	:_sessionId(-1), _accountNo(-1), _id{ 0, }, _nickname{ 0, }, _sessionKey{ 0, }
