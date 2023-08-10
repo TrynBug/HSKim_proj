@@ -1,16 +1,16 @@
-#include <Windows.h>
-#include <vector>
-#include <string>
-#include <stdexcept>
+#include "stdafx.h"
+
 #include "CObject.h"
 #include "CTile.h"
 
+using namespace gameserver;
 
 CTile::CTile(int x, int y)
 	: _x(x)
 	, _y(y)
 {
-
+	for (int i = 0; i < (UINT)ETileObjectType::END; i++)
+		_vecObject[i].clear();
 }
 
 CTile::~CTile()
@@ -20,19 +20,19 @@ CTile::~CTile()
 
 
 
-void CTile::AddObject(ETileObjectType type, CObject& object)
+void CTile::AddObject(ETileObjectType type, CObject_t pObj)
 {
-	_vecObject[(UINT)type].push_back(&object);
+	_vecObject[(UINT)type].push_back(std::move(pObj));
 }
 
 
-void CTile::RemoveObject(ETileObjectType type, CObject& object)
+void CTile::RemoveObject(ETileObjectType type, CObject_t pObj)
 {
 	bool remove = false;
-	std::vector<CObject*>& vec = _vecObject[(UINT)type];
+	std::vector<CObject_t>& vec = _vecObject[(UINT)type];
 	for (int i = 0; i < vec.size(); i++)
 	{
-		if (vec[i] == &object)
+		if (vec[i] == pObj)
 		{
 			vec[i] = vec.back();
 			vec.pop_back();
@@ -42,8 +42,9 @@ void CTile::RemoveObject(ETileObjectType type, CObject& object)
 	}
 	if (remove == false)
 	{
-		int* p = 0;
-		*p = 0;
+		std::ostringstream oss;
+		oss << "Tried to remove the invalid object from the tile. (x,y):(" << _x << "," << "_y" << "), type:" << (UINT)type << ", object ID : " << pObj->GetClientId() << "\n";
+		throw std::runtime_error(oss.str().c_str());
 	}
 }
 
@@ -93,25 +94,23 @@ int CTileGrid::GetNumOfObject(int x, int y, ETileObjectType type) const
 	return _tile[y][x].GetNumOfObject(type);
 }
 
-const std::vector<CObject*>& CTileGrid::GetObjectVector(int x, int y, ETileObjectType type) const
+const std::vector<CObject_t>& CTileGrid::GetObjectVector(int x, int y, ETileObjectType type) const
 {
 	CheckCoordinate(x, y);
 	return _tile[y][x].GetObjectVector(type);
 }
 
-void CTileGrid::AddObject(int x, int y, ETileObjectType type, CObject& obj)
+void CTileGrid::AddObject(int x, int y, ETileObjectType type, CObject_t pObj)
 {
-	obj.VirtualDummy();  // 디버그
 	CheckCoordinate(x, y);
-	_tile[y][x].AddObject(type, obj);
+	_tile[y][x].AddObject(type, std::move(pObj));
 }
 
 
-void CTileGrid::RemoveObject(int x, int y, ETileObjectType type, CObject& obj)
+void CTileGrid::RemoveObject(int x, int y, ETileObjectType type, CObject_t pObj)
 {
-	obj.VirtualDummy();  // 디버그
 	CheckCoordinate(x, y);
-	_tile[y][x].RemoveObject(type, obj);
+	_tile[y][x].RemoveObject(type, std::move(pObj));
 }
 
 

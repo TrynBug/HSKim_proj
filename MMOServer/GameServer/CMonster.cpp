@@ -1,18 +1,21 @@
-#include <Windows.h>
-#include <iostream>
+#include "stdafx.h"
 #include <math.h>
-#include <vector>
-#include "defineGameServer.h"
+
+#include "CObject.h"
 #include "CPlayer.h"
 #include "CMonster.h"
+
+using namespace gameserver;
 
 #define M_PI  3.1415926535f
 #define dfGET_SQUARE_DISTANCE(posX1, posY1, posX2, posY2)     (((posX1) - (posX2)) * ((posX1) - (posX2)) + ((posY1) - (posY2)) * ((posY1) - (posY2)))
 #define dfGET_DISTANCE(posX1, posY1, posX2, posY2)        sqrt(((posX1) - (posX2)) * ((posX1) - (posX2)) + ((posY1) - (posY2)) * ((posY1) - (posY2)))
 
 CMonster::CMonster()
+	: _status()
+	, _action()
+	, _pos()
 {
-
 }
 
 CMonster::~CMonster()
@@ -47,9 +50,10 @@ void CMonster::Hit(int damage)
 }
 
 
-void CMonster::SetTargetPlayer(const CPlayer* pPlayer)
+void CMonster::SetTargetPlayer(CPlayer_t& pPlayer)
 {
-	if (_action.pTargetPlayer != nullptr)
+	// 현재 타겟이 존재한다면 다른플레이어를 타겟으로 지정하지 않음
+	if (_action.bHasTarget == true)
 		return;
 
 	// 플레이어와 몬스터 사이의 거리 계산
@@ -59,11 +63,12 @@ void CMonster::SetTargetPlayer(const CPlayer* pPlayer)
 	// 거리가 시야범위 내라면 플레이어를 타겟으로 지정
 	if (distX * distX + distY * distY < _status.viewRange)
 	{
-		_action.pTargetPlayer = pPlayer;
+		_action.wpTargetPlayer = pPlayer;
 		_action.bHasTarget = true;
 		_action.eActionType = EMonsterActionType::CHASING;
 	}
 }
+
 
 
 // @Override
@@ -107,11 +112,20 @@ void CMonster::Update()
 	// 플레이어를 쫓는 중일 경우
 	case EMonsterActionType::CHASING:
 	{
-		// 플레이어가 죽었다면 타겟을 해제하고 액션 타입을 리턴으로 바꿈
-		if (_action.pTargetPlayer->IsAlive() == false)
+		// 플레이어 객체가 없으면 타겟을 해제한다.
+		CPlayer_t spTarget = _action.wpTargetPlayer.lock();
+		if (spTarget == nullptr)
 		{
 			_action.bHasTarget = false;
-			_action.pTargetPlayer = nullptr;
+			_action.wpTargetPlayer.reset();
+			_action.eActionType = EMonsterActionType::RETURN;
+			_action.lastMoveTime = currentTime + 2000;
+		}
+		// 플레이어가 죽었다면 타겟을 해제하고 액션 타입을 리턴으로 바꿈
+		else if (spTarget->IsAlive() == false)
+		{
+			_action.bHasTarget = false;
+			_action.wpTargetPlayer.reset();
 			_action.eActionType = EMonsterActionType::RETURN;
 			_action.lastMoveTime = currentTime + 2000;
 		}
@@ -128,17 +142,17 @@ void CMonster::Update()
 			if (distX * distX + distY * distY > _status.maxMoveDistance * _status.maxMoveDistance)
 			{
 				_action.bHasTarget = false;
-				_action.pTargetPlayer = nullptr;
+				_action.wpTargetPlayer.reset();
 				_action.eActionType = EMonsterActionType::RETURN;
 				MoveToInitialPosition();
 			}
 			// 그렇지 않다면 플레이어를 쫓음
 			else
 			{
-				MoveChasePlayer();
+				MoveChasePlayer(spTarget);
 
 				// 플레이어와의 거리가 _attackRange 이하라면 액션 타입을 공격으로 변경
-				if (dfGET_SQUARE_DISTANCE(_pos.x, _pos.y, _action.pTargetPlayer->GetPosX(), _action.pTargetPlayer->GetPosY()) < _status.attackRange * _status.attackRange)
+				if (dfGET_SQUARE_DISTANCE(_pos.x, _pos.y, spTarget->GetPosX(), spTarget->GetPosY()) < _status.attackRange * _status.attackRange)
 				{
 					_action.eActionType = EMonsterActionType::ATTACK;
 				}
@@ -171,18 +185,26 @@ void CMonster::Update()
 	// 공격 하려는 경우
 	case EMonsterActionType::ATTACK:
 	{
-		// 플레이어가 죽었다면 타겟을 해제하고 액션 타입을 리턴으로 바꿈
-		if (_action.pTargetPlayer->IsAlive() == false)
+		// 플레이어 객체가 없으면 타겟을 해제한다.
+		CPlayer_t spTarget = _action.wpTargetPlayer.lock();
+		if (spTarget == nullptr)
 		{
 			_action.bHasTarget = false;
-			_action.pTargetPlayer = nullptr;
+			_action.wpTargetPlayer.reset();
+			_action.eActionType = EMonsterActionType::RETURN;
+		}
+		// 플레이어가 죽었다면 타겟을 해제하고 액션 타입을 리턴으로 바꿈
+		else if (spTarget->IsAlive() == false)
+		{
+			_action.bHasTarget = false;
+			_action.wpTargetPlayer.reset();
 			_action.eActionType = EMonsterActionType::RETURN;
 		}
 		// 마지막으로 이동한 시간에서 1000 밀리세컨드가 지났고, 마지막으로 공격한 시간에서 _attackDelay 밀리세컨드가 지났다면 공격을 시도함
 		else if (_action.lastMoveTime + 1000 < currentTime && _action.lastAttackTime + _status.attackDelay < currentTime)
 		{
 			// 플레이어와의 거리가 _attackRange 이상이라면 액션 타입을 쫓기로 변경
-			if (dfGET_SQUARE_DISTANCE(_pos.x, _pos.y, _action.pTargetPlayer->GetPosX(), _action.pTargetPlayer->GetPosY()) > _status.attackRange * _status.attackRange)
+			if (dfGET_SQUARE_DISTANCE(_pos.x, _pos.y, spTarget->GetPosX(), spTarget->GetPosY()) > _status.attackRange * _status.attackRange)
 			{
 				_action.eActionType = EMonsterActionType::CHASING;
 			}
@@ -193,7 +215,7 @@ void CMonster::Update()
 				_action.lastAttackTime = currentTime;
 
 				// 바라보는 방향을 플레이어쪽으로 설정
-				float radian_direction = atan2(_action.pTargetPlayer->GetPosY() - _pos.y, _action.pTargetPlayer->GetPosX() - _pos.x);   // 몬스터 위치를 원점으로 했을 때 플레이어 위치의 각도 계산
+				float radian_direction = atan2(spTarget->GetPosY() - _pos.y, spTarget->GetPosX() - _pos.x);   // 몬스터 위치를 원점으로 했을 때 플레이어 위치의 각도 계산
 				if (radian_direction < 0)
 					radian_direction = 2.f * M_PI + radian_direction;
 				int direction = (int)(radian_direction * 180.f / M_PI);
@@ -251,14 +273,14 @@ void CMonster::MoveToInitialPosition()
 
 
 
-void CMonster::MoveChasePlayer()
+void CMonster::MoveChasePlayer(CPlayer_t& pTarget)
 {
-	if (_action.pTargetPlayer == nullptr)
+	if (pTarget == nullptr)
 		return;
 
 	// 몬스터 위치를 원점으로 했을 때, 몬스터 위치와 플레이어 위치 사이의 라디안 계산
-	float distX = _action.pTargetPlayer->GetPosX() - _pos.x;
-	float distY = _action.pTargetPlayer->GetPosY() - _pos.y;
+	float distX = pTarget->GetPosX() - _pos.x;
+	float distY = pTarget->GetPosY() - _pos.y;
 	float radian_direction = atan2(distY, distX);
 	if (radian_direction < 0)
 		radian_direction = 2.f * M_PI + radian_direction;
@@ -341,7 +363,7 @@ void CMonster::Action::Init()
 	eActionType = EMonsterActionType::ROAMING;
 	nextRoamingWaitTime = 5000;
 	lastMoveTime = GetTickCount64();
-	pTargetPlayer = nullptr;
+	wpTargetPlayer.reset();
 	lastAttackTime = 0;
 }
 

@@ -2,13 +2,11 @@
 게임 서버용 네트워크 라이브러리 사용
 인증스레드1, 필드스레드1
 */
+#include "stdafx.h"
 
 #include "CGameServer.h"
 #include "CGameContents.h"
 #include "CGameContentsField.h"
-
-#include <string>
-#include <sstream>
 
 #include "../utils/profiler.h"
 #include "../utils/CCrashDump.h"
@@ -16,24 +14,32 @@
 #include "../utils/CCpuUsage.h"
 #include "../utils/CPDH.h"
 
+using namespace gameserver;
+void ConsoleOutServerState(std::shared_ptr<CGameServer> server);
+
 int main()
 {
-	CCrashDump::Init();
-	timeBeginPeriod(1);
-	CCpuUsage CPUTime;
-
-	CPDH pdh;
-	pdh.Init();
-
-	CGameServer& gameServer = *new CGameServer();
-	bool retStart = gameServer.StartUp();
+	std::shared_ptr<CGameServer> server(new CGameServer);
+	bool retStart = server->StartUp();
 	if (retStart == false)
 	{
 		wprintf(L"[main] failed to start game server\n");
 		return 0;
 	}
+	ConsoleOutServerState(server);
 
-	int numWorkerThread = gameServer.GetNumWorkerThread();
+	return 0;
+}
+
+void ConsoleOutServerState(std::shared_ptr<CGameServer> server)
+{
+	CCrashDump::Init();
+	CCpuUsage CPUTime;
+
+	CPDH pdh;
+	pdh.Init();
+
+	int numWorkerThread = server->GetNumWorkerThread();
 	LARGE_INTEGER liFrequency;
 	QueryPerformanceFrequency(&liFrequency);
 	ULONGLONG tick = GetTickCount64();
@@ -64,9 +70,12 @@ int main()
 			if (GetAsyncKeyState('E') || GetAsyncKeyState('e'))
 			{
 				printf("[main] terminate game server\n");
-				gameServer.Shutdown();
-				while (gameServer.IsTerminated() == false)
+				server->Shutdown();
+				while (server->IsTerminated() == false)
+				{
+					Sleep(100);
 					continue;
+				}
 				break;
 			}
 			else if (GetAsyncKeyState('C') || GetAsyncKeyState('c'))
@@ -94,8 +103,8 @@ int main()
 		CPUTime.UpdateCpuTime();
 		pdh.Update();
 
-		auto& monitor = gameServer.GetMonitor();
-		auto& netMonitor = gameServer.GetNetworkMonitor();
+		auto& monitor = server->GetMonitor();
+		auto& netMonitor = server->GetNetworkMonitor();
 		__int64 currAcceptCount = netMonitor.GetAcceptCount();                     // accept 횟수
 		__int64 currConnectCount = netMonitor.GetConnectCount();                   // connect 횟수 (accept 후 connect 승인된 횟수)
 		__int64 currDisconnectCount = netMonitor.GetDisconnectCount();             // disconnect 횟수 (세션 release 횟수)
@@ -103,11 +112,11 @@ int main()
 		__int64 currSendCount = netMonitor.GetSendCount();                         // WSASend 함수 호출 횟수
 		__int64 currRecvCompletionCount = netMonitor.GetRecvCompletionCount();     // recv 완료통지 처리횟수
 		__int64 currSendCompletionCount = netMonitor.GetSendCompletionCount();     // send 완료통지 처리횟수
-		__int64 currMsgHandleCount = gameServer.GetContentsSessionMsgCount();      // 컨텐츠 스레드 세션 메시지 처리 횟수
-		//__int64 currQueryRunCount = gameServer.GetQueryRunCount();             // 쿼리 실행횟수
+		__int64 currMsgHandleCount = server->GetContentsSessionMsgCount();         // 컨텐츠 스레드 세션 메시지 처리 횟수
+		//__int64 currQueryRunCount = server->GetQueryRunCount();                  // 쿼리 실행횟수
 
-		const std::shared_ptr<CGameContents> pAuth = gameServer.GetGameContents(EContentsThread::AUTH);
-		const std::shared_ptr<CGameContents> pField = gameServer.GetGameContents(EContentsThread::FIELD);
+		const std::shared_ptr<CGameContents> pAuth = server->GetGameContents(EContentsThread::AUTH);
+		const std::shared_ptr<CGameContents> pField = server->GetGameContents(EContentsThread::FIELD);
 		auto& monitorAuth = pAuth->GetMonitor();
 		auto& monitorField = pField->GetMonitor();
 		auto timeAuth = pAuth->GetTimeMgr();
@@ -121,7 +130,7 @@ int main()
 
 		// 현재 세션 수, WSASend 호출횟수, WSARecv 호출횟수, recv 완료통지 처리 횟수, send 완료통지 처리횟수 출력
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [network]  session:%d,  accept:%lld (%lld/s),  conn:%lld (%lld/s),  disconn:%lld (%lld/s),  recv:%lld/s,  send:%lld/s,  recvComp:%lld/s,  sendComp:%lld/s\n"
-			, whileCount, gameServer.GetNumSession()
+			, whileCount, server->GetNumSession()
 			, currAcceptCount, currAcceptCount - prevAcceptCount
 			, currConnectCount, currConnectCount - prevConnectCount
 			, currDisconnectCount, currDisconnectCount - prevDisconnectCount
@@ -158,23 +167,23 @@ int main()
 
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [disconn]  plyr lim:%lld,  invalid msg (auth:%lld, field:%lld),  heart beat timeout (auth:%lld, field:%lld)\n"
 			, whileCount
-			, 0//gameServer._disconnByPlayerLimit
+			, 0//server->_disconnByPlayerLimit
 			, pAuth->GetDisconnByInvalidMsgType(), pField->GetDisconnByInvalidMsgType()
 			, monitorAuth.GetDisconnByHeartBeat(), monitorField.GetDisconnByHeartBeat());
 
 		// 메모리풀. 패킷, 메시지, 플레이어, field컨텐츠 DB
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [pool   ]  packet:%d (alloc:%d, used:%d, free:%d),  message:%d (alloc:%d, used:%d, free:%d),  player:%d (alloc:%d, used:%d, free:%d),  field DB:%d (alloc:%d, free:%d)\n"
 			, whileCount
-			, gameServer.GetPacketPoolSize(), gameServer.GetPacketAllocCount(), gameServer.GetPacketActualAllocCount(), gameServer.GetPacketFreeCount()
-			, gameServer.GetMsgPoolSize(), gameServer.GetMsgAllocCount(), gameServer.GetMsgActualAllocCount(), gameServer.GetMsgFreeCount()
-			, gameServer.GetPlayerPoolSize(), gameServer.GetPlayerAllocCount(), gameServer.GetPlayerActualAllocCount(), gameServer.GetPlayerFreeCount()
+			, server->GetPacketPoolSize(), server->GetPacketAllocCount(), server->GetPacketActualAllocCount(), server->GetPacketFreeCount()
+			, server->GetMsgPoolSize(), server->GetMsgAllocCount(), server->GetMsgActualAllocCount(), server->GetMsgFreeCount()
+			, server->GetPlayerPoolSize(), server->GetPlayerAllocCount(), server->GetPlayerActualAllocCount(), server->GetPlayerFreeCount()
 			, pField->GetQueryRequestPoolSize(), pField->GetQueryRequestAllocCount(), pField->GetQueryRequestFreeCount());
 
 		// DB
 		//LOGGING(LOGGING_LEVEL_INFO, L"%lld [DB     ]  query count:%d/s,  remain query:%d,  query run time (avg:%.1fms , max:%.1fms , min:%.1fms)\n\n"
 		//	, whileCount, currQueryRunCount - prevQueryRunCount
-		//	, gameServer.GetUnprocessedQueryCount(), gameServer.GetAvgQueryRunTime(), gameServer.GetMaxQueryRunTime()
-		//	, gameServer.GetMinQueryRunTime() == FLT_MAX ? 0.f : gameServer.GetMinQueryRunTime());
+		//	, server->GetUnprocessedQueryCount(), server->GetAvgQueryRunTime(), server->GetMaxQueryRunTime()
+		//	, server->GetMinQueryRunTime() == FLT_MAX ? 0.f : server->GetMinQueryRunTime());
 
 		// 시스템
 		const PDHCount& pdhCount = pdh.GetPDHCount();

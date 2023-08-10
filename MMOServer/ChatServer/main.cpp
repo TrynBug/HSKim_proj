@@ -25,7 +25,6 @@ int main()
 void ConsoleOutServerState(std::shared_ptr<CChatServer> server)
 {
 	CCrashDump::Init();
-	timeBeginPeriod(1);
 	CCpuUsage CPUTime;
 
 	CPDH pdh;

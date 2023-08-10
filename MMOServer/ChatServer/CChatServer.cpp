@@ -216,12 +216,6 @@ bool CChatServer::StartUp()
 	}
 	_pLANClientMonitoring->ConnectToServer();
 
-	// 모니터링 서버에 접속
-	lanlib::CPacket& packet = _pLANClientMonitoring->AllocPacket();
-	packet << (WORD)en_PACKET_SS_MONITOR_LOGIN << _serverNo;
-	_pLANClientMonitoring->SendPacket(packet);
-	packet.SubUseCount();
-
 	// 모니터링 데이터 수집 스레드 start
 	_pCPUUsage = std::make_unique<CCpuUsage>();
 	_pPDH = std::make_unique<CPDH>();

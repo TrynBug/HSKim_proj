@@ -96,6 +96,9 @@
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="CGameContents.h">
@@ -111,9 +114,6 @@
       <Filter>소스 파일\01. GameServer\Object</Filter>
     </ClInclude>
     <ClInclude Include="CGameServer.h">
-      <Filter>소스 파일\01. GameServer</Filter>
-    </ClInclude>
-    <ClInclude Include="CommonProtocol.h">
       <Filter>소스 파일\01. GameServer</Filter>
     </ClInclude>
     <ClInclude Include="CLANClientMonitoring.h">
@@ -172,6 +172,9 @@
     </ClInclude>
     <ClInclude Include="..\utils\profiler.h">
       <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>소스 파일</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>

@@ -1,11 +1,11 @@
-#include <Windows.h>
-#include <vector>
+#include "stdafx.h"
 #include <locale>
 #include <codecvt>
-#include <string>
-#include "defineGameServer.h"
+
+#include "CObject.h"
 #include "CPlayer.h"
 
+using namespace gameserver;
 
 CPlayer::CPlayer() 
 	: _sessionId(0)

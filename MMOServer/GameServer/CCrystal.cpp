@@ -1,13 +1,15 @@
-#include <iostream>
-#include <Windows.h>
-#include "defineGameServer.h"
+#include "stdafx.h"
+
+#include "CObject.h"
 #include "CCrystal.h"
 
-
+using namespace gameserver;
 
 CCrystal::CCrystal()
+	: _pos()
+	, _status()
+	, _bAlive(true)
 {
-
 }
 
 CCrystal::~CCrystal()
