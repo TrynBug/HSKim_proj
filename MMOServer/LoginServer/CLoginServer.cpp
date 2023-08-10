@@ -231,6 +231,40 @@ bool CLoginServer::StartUp()
 /* Shutdown */
 bool CLoginServer::Shutdown()
 {
+	std::lock_guard<std::mutex> lock_guard(_mtxShutdown);
+	if (_bShutdown == true)
+		return true;
+
+	_bShutdown = true;
+
+	// accept 중지
+	CNetServer::StopAccept();
+
+	// 네트워크 shutdown
+	CNetServer::Shutdown();
+
+	// 로그인서버 스레드들이 종료되기를 10초간 기다림
+	ULONGLONG timeout = 10000;
+	ULONGLONG tick = GetTickCount64();
+	DWORD retWait;
+	retWait = WaitForSingleObject(_thPeriodicWorker.handle, (DWORD)timeout);
+	if (retWait != WAIT_OBJECT_0)
+	{
+		LOGGING(LOGGING_LEVEL_ERROR, L"[login server] terminate periodic worker thread due to timeout. error:%u\n", GetLastError());
+		TerminateThread(_thPeriodicWorker.handle, 0);
+	}
+	timeout = timeout - GetTickCount64() - tick;
+	timeout = timeout < 1 ? 1 : timeout;
+	retWait = WaitForSingleObject(_thMonitoringCollector.handle, (DWORD)timeout);
+	if (retWait != WAIT_OBJECT_0)
+	{
+		LOGGING(LOGGING_LEVEL_ERROR, L"[login server] terminate monitoring collector thread due to timeout. error:%u\n", GetLastError());
+		TerminateThread(_thMonitoringCollector.handle, 0);
+	}
+
+	// DB 종료
+	_tlsDBConnector->DisconnectAll();
+
 	_bTerminated = true;
 	return true;
 }
@@ -247,7 +281,7 @@ CClient_t CLoginServer::GetClientBySessionId(__int64 sessionId)
 {
 	CClient_t pClient;
 	_smtxMapClient.lock_shared();
-	auto iter = _mapClient.find(sessionId);
+	const auto& iter = _mapClient.find(sessionId);
 	if (iter == _mapClient.end())
 		pClient = nullptr;
 	else
@@ -271,7 +305,7 @@ void CLoginServer::InsertClientToMap(__int64 sessionId, CClient_t pClient)
 void CLoginServer::DeleteClientFromMap(__int64 sessionId)
 {
 	_smtxMapClient.lock();
-	auto iter = _mapClient.find(sessionId);
+	const auto& iter = _mapClient.find(sessionId);
 	if (iter != _mapClient.end())
 		_mapClient.erase(iter);
 	_smtxMapClient.unlock();

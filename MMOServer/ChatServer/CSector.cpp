@@ -1,10 +1,9 @@
-#include <Windows.h>
-#include <vector>
-#include <string>
-#include <stdexcept>
+#include "stdafx.h"
 
+#include "CObject.h"
 #include "CSector.h"
 
+using namespace chatserver;
 
 CSector::CSector(int x, int y)
 	: _x(x)
@@ -14,6 +13,9 @@ CSector::CSector(int x, int y)
 
 CSector::~CSector()
 {
+	for(int i=0; i<(UINT)ESectorObjectType::END; i++)
+		_vecObject[i].clear();
+	_vecAroundSector.clear();
 }
 
 
@@ -24,21 +26,21 @@ void CSector::AddAroundSector(CSector* pSector)
 }
 
 
-void CSector::AddObject(ESectorObjectType type, CObject& object)
+void CSector::AddObject(ESectorObjectType type, CObject_t pObject)
 {
-	_vecObject[(UINT)type].push_back(&object);
+	_vecObject[(UINT)type].push_back(std::move(pObject));
 }
 
 
-void CSector::RemoveObject(ESectorObjectType type, CObject& object)
+void CSector::RemoveObject(ESectorObjectType type, CObject_t pObject)
 {
 	bool remove = false;
-	std::vector<CObject*>& vec = _vecObject[(UINT)type];
+	std::vector<CObject_t>& vec = _vecObject[(UINT)type];
 	for (int i = 0; i < vec.size(); i++)
 	{
-		if (vec[i] == &object)
+		if (vec[i] == pObject)
 		{
-			vec[i] = vec.back();
+			vec[i] = std::move(vec.back());
 			vec.pop_back();
 			remove = true;
 			break;
@@ -46,8 +48,9 @@ void CSector::RemoveObject(ESectorObjectType type, CObject& object)
 	}
 	if (remove == false)
 	{
-		int* p = 0;
-		*p = 0;
+		std::ostringstream oss;
+		oss << "Tried to remove the invalid object from the sector. type:" << (UINT)type << ", object ID:" << pObject->GetClientId() << "\n";
+		throw std::runtime_error(oss.str().c_str());
 	}
 }
 
@@ -120,7 +123,7 @@ int CSectorGrid::GetNumOfObject(int x, int y, ESectorObjectType type) const
 	return _sector[y][x].GetNumOfObject(type);
 }
 
-const std::vector<CObject*>& CSectorGrid::GetObjectVector(int x, int y, ESectorObjectType type) const
+const std::vector<CObject_t>& CSectorGrid::GetObjectVector(int x, int y, ESectorObjectType type) const
 {
 	CheckCoordinate(x, y);
 	return _sector[y][x].GetObjectVector(type);
@@ -132,17 +135,17 @@ const std::vector<CSector*>& CSectorGrid::GetAroundSector(int x, int y) const
 	return _sector[y][x].GetAroundSector();
 }
 
-void CSectorGrid::AddObject(int x, int y, ESectorObjectType type, CObject& obj)
+void CSectorGrid::AddObject(int x, int y, ESectorObjectType type, CObject_t pObj)
 {
 	CheckCoordinate(x, y);
-	_sector[y][x].AddObject(type, obj);
+	_sector[y][x].AddObject(type, std::move(pObj));
 }
 
 
-void CSectorGrid::RemoveObject(int x, int y, ESectorObjectType type, CObject& obj)
+void CSectorGrid::RemoveObject(int x, int y, ESectorObjectType type, CObject_t pObj)
 {
 	CheckCoordinate(x, y);
-	_sector[y][x].RemoveObject(type, obj);
+	_sector[y][x].RemoveObject(type, std::move(pObj));
 }
 
 

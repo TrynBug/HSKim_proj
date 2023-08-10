@@ -62,6 +62,15 @@ CDBConnector* CDBConnectorTLSManager::GetTlsDBConnector()
 	return pDBConn;
 }
 
+/* control */
+void CDBConnectorTLSManager::DisconnectAll()
+{
+	AcquireSRWLockExclusive(&_srwlVecDBConnector);
+	for (int i = 0; i < _vecDBConnector.size(); i++)
+		_vecDBConnector[i]->Disconnect();
+	ReleaseSRWLockExclusive(&_srwlVecDBConnector);
+}
+
 
 
 /* set */

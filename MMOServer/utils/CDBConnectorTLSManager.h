@@ -28,6 +28,9 @@ public:
 	/* Get DBConnector*/
 	CDBConnector* GetTlsDBConnector();
 
+	/* control */
+	void DisconnectAll();
+	
 	/* set */
 	void SetQueryRunTimeLimit(int queryRunTimeLimit);
 

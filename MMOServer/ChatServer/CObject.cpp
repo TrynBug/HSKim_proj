@@ -1,6 +1,7 @@
-#include <Windows.h>
+#include "stdafx.h"
 #include "CObject.h"
 
+using namespace chatserver;
 
 // static 멤버 초기화
 INT64 CObject::__sNextClientId = 0;

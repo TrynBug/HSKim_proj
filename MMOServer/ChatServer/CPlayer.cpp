@@ -1,9 +1,9 @@
-#include <Windows.h>
-#include "defineChatServer.h"
+#include "stdafx.h"
+
 #include "CObject.h"
 #include "CPlayer.h"
 
-
+using namespace chatserver;
 
 CPlayer::CPlayer()
 	:_sessionId(-1), _accountNo(-1), _id{ 0, }, _nickname{ 0, }, _sessionKey{ 0, }

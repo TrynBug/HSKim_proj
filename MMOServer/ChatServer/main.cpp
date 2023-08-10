@@ -1,17 +1,7 @@
 /*
 싱글스레드 채팅서버
 */
-
-#include <iostream>
-#include <WinSock2.h>
-#include <Windows.h>
-#include <vector>
-#include <list>
-#include <unordered_map>
-#include <string>
-#include <sstream>
-
-
+#include "stdafx.h"
 #include "CChatServer.h"
 
 #include "../utils/CCrashDump.h"
@@ -20,15 +10,19 @@
 #include "../utils/CCpuUsage.h"
 #include "../utils/CPDH.h"
 
-void OutputMemoryLog(void* param)
-{
-	CChatServer* pChatServer = (CChatServer*)param;
-#ifdef NET_ENABLE_MEMORY_LOGGING
-	pChatServer->OutputMemoryLog();
-#endif
-}
+using namespace chatserver;
+void ConsoleOutServerState(std::shared_ptr<CChatServer> server);
 
 int main()
+{
+	std::shared_ptr<CChatServer> server(new CChatServer);
+	bool retStart = server->StartUp();
+	ConsoleOutServerState(server);
+
+	return 0;
+}
+
+void ConsoleOutServerState(std::shared_ptr<CChatServer> server)
 {
 	CCrashDump::Init();
 	timeBeginPeriod(1);
@@ -37,13 +31,7 @@ int main()
 	CPDH pdh;
 	pdh.Init();
 
-	CChatServer& chatServer = *new CChatServer();
-	bool retStart = chatServer.StartUp();
-
-	// CCrashDump에 로그 출력 작업 등록
-	CCrashDump::AddFinalJob(OutputMemoryLog, &chatServer);
-
-	int numWorkerThread = chatServer.GetNumWorkerThread();
+	int numWorkerThread = server->GetNumWorkerThread();
 	LARGE_INTEGER liFrequency;
 	QueryPerformanceFrequency(&liFrequency);
 	ULONGLONG tick = GetTickCount64();
@@ -67,9 +55,12 @@ int main()
 			if (GetAsyncKeyState('E') || GetAsyncKeyState('e'))
 			{
 				printf("[server] terminate chat server\n");
-				chatServer.Shutdown();
-				while (chatServer.IsTerminated() == false)
+				server->Shutdown();
+				while (server->IsTerminated() == false)
+				{
+					Sleep(100);
 					continue;
+				}
 				break;
 			}
 			else if (GetAsyncKeyState('C') || GetAsyncKeyState('c'))
@@ -88,14 +79,6 @@ int main()
 				profiler::OutputProfilingData();
 				printf("output profiler\n");
 			}
-#ifdef NET_ENABLE_MEMORY_LOGGING
-			else if (GetAsyncKeyState('N') || GetAsyncKeyState('n'))
-			{
-				printf("output memory log\n");
-				OutputMemoryLog(&chatServer);
-				
-			}
-#endif
 		}
 
 		// 1초마다 로그 출력
@@ -104,9 +87,9 @@ int main()
 		tick += 1000;
 		CPUTime.UpdateCpuTime();
 		pdh.Update();
-		
-		const netlib::CNetServer::Monitor& netMonitor = chatServer.GetNetworkMonitor();
-		const CChatServer::Monitor& monitor = chatServer.GetMonitor();
+
+		const netlib::CNetServer::Monitor& netMonitor = server->GetNetworkMonitor();
+		const CChatServer::Monitor& monitor = server->GetMonitor();
 		__int64 currAcceptCount = netMonitor.GetAcceptCount();                     // accept 횟수
 		__int64 currConnectCount = netMonitor.GetConnectCount();                   // connect 횟수 (accept 후 connect 승인된 횟수)
 		__int64 currDisconnectCount = netMonitor.GetDisconnectCount();             // disconnect 횟수 (세션 release 횟수)
@@ -116,10 +99,10 @@ int main()
 		__int64 currSendCompletionCount = netMonitor.GetSendCompletionCount();     // send 완료통지 처리횟수
 		__int64 currMsgHandleCount = monitor.GetMsgHandleCount();               // 채팅서버 스레드 메시지 처리 횟수
 		__int64 currEventWaitTime = monitor.GetEventWaitTime();                 // 채팅서버 WaitForSingleObject 함수 호출횟수
-		
+
 		// 현재 세션 수, WSASend 호출횟수, WSARecv 호출횟수, recv 완료통지 처리 횟수, send 완료통지 처리횟수 출력
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [network]  session:%d,  accept:%lld (%lld/s),  conn:%lld (%lld/s),  disconn:%lld (%lld/s),  recv:%lld/s,  send:%lld/s,  recvComp:%lld/s,  sendComp:%lld/s\n"
-			, whileCount, chatServer.GetNumSession()
+			, whileCount, server->GetNumSession()
 			, currAcceptCount, currAcceptCount - prevAcceptCount
 			, currConnectCount, currConnectCount - prevConnectCount
 			, currDisconnectCount, currDisconnectCount - prevDisconnectCount
@@ -130,8 +113,8 @@ int main()
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [server ]  player:%d, account:%d,  msg proc:%lld/s,  msg remain:%d,  event wait:%lldms"
 			",  CPU usage [T:%.1f%%%%, U:%.1f%%%%, K:%.1f%%%%]  [Server:%.1f%%%%, U:%.1f%%%%, K:%.1f%%%%]\n"
 			, whileCount
-			, chatServer.GetNumPlayer(), chatServer.GetNumAccount(), currMsgHandleCount - prevMsgHandleCount
-			, chatServer.GetUnhandeledMsgCount(), (__int64)((double)(currEventWaitTime - prevEventWaitTime) / (double)(liFrequency.QuadPart / 1000))
+			, server->GetNumPlayer(), server->GetNumAccount(), currMsgHandleCount - prevMsgHandleCount
+			, server->GetUnhandeledMsgCount(), (__int64)((double)(currEventWaitTime - prevEventWaitTime) / (double)(liFrequency.QuadPart / 1000))
 			, CPUTime.ProcessorTotal(), CPUTime.ProcessorKernel(), CPUTime.ProcessorUser(), CPUTime.ProcessTotal(), CPUTime.ProcessKernel(), CPUTime.ProcessUser());
 
 		// 연결끊김 사유
@@ -149,10 +132,10 @@ int main()
 		// 메모리풀. 패킷, 메시지, 플레이어
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [pool   ]  packet:%d (alloc:%d, used:%d, free:%d),  message:%d (alloc:%d, used:%d, free:%d),  player:%d (alloc:%d, used:%d, free:%d)\n"
 			, whileCount
-			, chatServer.GetPacketPoolSize(), chatServer.GetPacketAllocCount(), chatServer.GetPacketActualAllocCount(), chatServer.GetPacketFreeCount()
-			, chatServer.GetMsgPoolSize(), chatServer.GetMsgAllocCount(),  chatServer.GetMsgActualAllocCount(), chatServer.GetMsgFreeCount()
-			, chatServer.GetPlayerPoolSize(), chatServer.GetPlayerAllocCount(), chatServer.GetPlayerActualAllocCount(), chatServer.GetPlayerFreeCount());
-		
+			, server->GetPacketPoolSize(), server->GetPacketAllocCount(), server->GetPacketActualAllocCount(), server->GetPacketFreeCount()
+			, server->GetMsgPoolSize(), server->GetMsgAllocCount(), server->GetMsgActualAllocCount(), server->GetMsgFreeCount()
+			, server->GetPlayerPoolSize(), server->GetPlayerAllocCount(), server->GetPlayerActualAllocCount(), server->GetPlayerFreeCount());
+
 		// 시스템
 		const PDHCount& pdhCount = pdh.GetPDHCount();
 		LOGGING(LOGGING_LEVEL_INFO, L"%lld [system ]  TCP (segment:%lld/s, retrans:%lld/s, recv:%.2fMB/s, send:%.2fMB/s),  memory(MB) [System C:%.2f, P:%.2f, NP:%.2f] [Process C:%.2f, P:%.2f, NP:%.2f]\n"
@@ -181,11 +164,5 @@ int main()
 
 
 		whileCount++;
-	}
-
-
-	WSACleanup();
-
-	return 0;
+		}
 }
-

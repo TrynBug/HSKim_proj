@@ -1,25 +1,33 @@
-#include "CommonProtocol.h"
-#include "CChatServer.h"
-#include "CPlayer.h"
-#include "../utils/CDBAsyncWriter.h"
 
-#include "../utils/cpp_redis/cpp_redis.h"
+#include "stdafx.h"
+
 #pragma comment (lib, "NetLib.lib")
 #pragma comment (lib, "LANClient.lib")
 #pragma comment (lib, "cpp_redis.lib")
 #pragma comment (lib, "tacopie.lib")
 #pragma comment (lib, "ws2_32.lib")
 
+
+#include "CChatServer.h"
+#include "CObject.h"
+#include "CPlayer.h"
+#include "../common/CommonProtocol.h"
+
+
+#include "../utils/CDBAsyncWriter.h"
+#include "../utils/cpp_redis/cpp_redis.h"
 #include "../utils/profiler.h"
 #include "../utils/logger.h"
 #include "../utils/CJsonParser.h"
 #include "../utils/CCpuUsage.h"
 #include "../utils/CPDH.h"
 
+using namespace chatserver;
+
 CChatServer::CChatServer()
 	: _pRedisClient(nullptr)
 	, _pDBConn(nullptr)
-	, _sector(dfSECTOR_MAX_X, dfSECTOR_MAX_Y, 1)
+	, _sector(SECTOR_MAX_X, SECTOR_MAX_Y, 1)
 	, _hEventMsg(0)
 	, _bEventSetFlag(false)
 	, _bShutdown(false)
@@ -46,8 +54,7 @@ CChatServer::CChatServer()
 
 CChatServer::~CChatServer() 
 {
-
-
+	Shutdown();
 }
 
 
@@ -68,6 +75,31 @@ CChatServer::Config::Config()
 {
 }
 
+void CChatServer::Config::LoadConfigFile(std::wstring& sFilePath)
+{
+	// config parse
+	CJsonParser jsonParser;
+	jsonParser.ParseJsonFile(sFilePath.c_str());
+
+	const wchar_t* serverBindIP = jsonParser[L"ServerBindIP"].Str().c_str();
+	wcscpy_s(szBindIP, wcslen(serverBindIP) + 1, serverBindIP);
+	portNumber = jsonParser[L"ChatServerPort"].Int();
+
+	numConcurrentThread = jsonParser[L"NetRunningWorkerThread"].Int();
+	numWorkerThread = jsonParser[L"NetWorkerThread"].Int();
+
+	bUseNagle = (bool)jsonParser[L"EnableNagle"].Int();
+	numMaxSession = jsonParser[L"SessionLimit"].Int();
+	numMaxPlayer = jsonParser[L"PlayerLimit"].Int();
+	packetCode = jsonParser[L"PacketHeaderCode"].Int();
+	packetKey = jsonParser[L"PacketEncodeKey"].Int();
+	maxPacketSize = jsonParser[L"MaximumPacketSize"].Int();
+
+	monitoringServerPortNumber = jsonParser[L"MonitoringServerPort"].Int();
+	monitoringServerPacketCode = jsonParser[L"MonitoringServerPacketHeaderCode"].Int();
+	monitoringServerPacketKey = jsonParser[L"MonitoringServerPacketEncodeKey"].Int();
+}
+
 
 bool CChatServer::StartUp()
 {
@@ -78,27 +110,8 @@ bool CChatServer::StartUp()
 	_sCurrentPath = szPath;
 	_sConfigFilePath = _sCurrentPath + L"\\chat_server_config.json";
 
-	// config parse
-	CJsonParser jsonParser;
-	jsonParser.ParseJsonFile(_sConfigFilePath.c_str());
-
-	const wchar_t* serverBindIP = jsonParser[L"ServerBindIP"].Str().c_str();
-	wcscpy_s(_config.szBindIP, wcslen(serverBindIP) + 1, serverBindIP);
-	_config.portNumber = jsonParser[L"ChatServerPort"].Int();
-
-	_config.numConcurrentThread = jsonParser[L"NetRunningWorkerThread"].Int();
-	_config.numWorkerThread = jsonParser[L"NetWorkerThread"].Int();
-
-	_config.bUseNagle = (bool)jsonParser[L"EnableNagle"].Int();
-	_config.numMaxSession = jsonParser[L"SessionLimit"].Int();
-	_config.numMaxPlayer = jsonParser[L"PlayerLimit"].Int();
-	_config.packetCode = jsonParser[L"PacketHeaderCode"].Int();
-	_config.packetKey = jsonParser[L"PacketEncodeKey"].Int();
-	_config.maxPacketSize = jsonParser[L"MaximumPacketSize"].Int();
-
-	_config.monitoringServerPortNumber = jsonParser[L"MonitoringServerPort"].Int();
-	_config.monitoringServerPacketCode = jsonParser[L"MonitoringServerPacketHeaderCode"].Int();
-	_config.monitoringServerPacketKey = jsonParser[L"MonitoringServerPacketEncodeKey"].Int();
+	// config 파일 로드
+	_config.LoadConfigFile(_sConfigFilePath);
 
 
 	// map 초기크기 지정
@@ -170,7 +183,8 @@ bool CChatServer::StartUp()
 	_thChatServer.handle = (HANDLE)_beginthreadex(NULL, 0, ThreadChatServer, (PVOID)this, 0, &_thChatServer.id);
 	if (_thChatServer.handle == 0)
 	{
-		wprintf(L"failed to start chat thread. error:%u\n", GetLastError());
+		LOGGING(LOGGING_LEVEL_FATAL, L"[chat server] failed to start chat thread. error:%u\n", GetLastError());
+		Crash();
 		return false;
 	}
 
@@ -179,24 +193,28 @@ bool CChatServer::StartUp()
 	_thMsgGenerator.handle = (HANDLE)_beginthreadex(NULL, 0, ThreadMsgGenerator, (PVOID)this, 0, &_thMsgGenerator.id);
 	if (_thMsgGenerator.handle == 0)
 	{
-		wprintf(L"failed to start message generator thread. error:%u\n", GetLastError());
+		LOGGING(LOGGING_LEVEL_FATAL, L"[chat server] failed to start message generator thread. error:%u\n", GetLastError());
+		Crash();
 		return false;
 	}
 
 	// DB Connect 및 DB Writer 스레드 start
 	if (_pDBConn->ConnectAndRunThread("127.0.0.1", "root", "vmfhzkepal!", "accountdb", 3306) == false)
 	{
-		wprintf(L"DB Connector start failed!!\n");
+		LOGGING(LOGGING_LEVEL_FATAL, L"[chat server] DB Connector start failed!!\n");
+		Crash();
 		return false;
 	}
 
 	// 모니터링 서버와 연결하는 클라이언트 start
-	_pLANClientMonitoring = std::make_unique<CLANClientMonitoring>();
-	if (_pLANClientMonitoring->StartUp(L"127.0.0.1", _config.monitoringServerPortNumber, true, _config.monitoringServerPacketCode, _config.monitoringServerPacketKey, 10000, true) == false)
+	_pLANClientMonitoring = std::make_unique<CLANClientMonitoring>(_serverNo, L"127.0.0.1", _config.monitoringServerPortNumber, true, _config.monitoringServerPacketCode, _config.monitoringServerPacketKey, 10000, true);
+	if (_pLANClientMonitoring->StartUp() == false)
 	{
-		wprintf(L"LAN client start failed\n");
+		LOGGING(LOGGING_LEVEL_FATAL, L"[Login Server] LAN client start failed. error:%u\n", GetLastError());
+		//Crash();
 		//return false;
 	}
+	_pLANClientMonitoring->ConnectToServer();
 
 	// 모니터링 서버에 접속
 	lanlib::CPacket& packet = _pLANClientMonitoring->AllocPacket();
@@ -211,31 +229,44 @@ bool CChatServer::StartUp()
 	_thMonitoringCollector.handle = (HANDLE)_beginthreadex(NULL, 0, ThreadMonitoringCollector, (PVOID)this, 0, &_thMonitoringCollector.id);
 	if (_thMonitoringCollector.handle == 0)
 	{
-		wprintf(L"failed to start monitoring collector thread. error:%u\n", GetLastError());
-		return false;
-	}
-
-
-	// 네트워크 start
-	bool retNetStart = CNetServer::StartUp(_config.szBindIP, _config.portNumber, _config.numConcurrentThread, _config.numWorkerThread, _config.bUseNagle, _config.numMaxSession, _config.packetCode, _config.packetKey, _config.maxPacketSize, true, true);
-	if (retNetStart == false)
-	{
-		wprintf(L"Network Library Start failed\n");
+		LOGGING(LOGGING_LEVEL_FATAL, L"[chat server] failed to start monitoring collector thread. error:%u\n", GetLastError());
+		Crash();
 		return false;
 	}
 
 	// redis start
 	_pRedisClient = std::make_unique<cpp_redis::client>();
-	_pRedisClient->connect();
+	try
+	{
+		_pRedisClient->connect();
+	}
+	catch (...)
+	{
+		LOGGING(LOGGING_LEVEL_FATAL, L"[chat server] Redis connect failed\n", GetLastError());
+		Crash();
+		return false;
+	}
+
+	// 네트워크 start
+	bool retNetStart = CNetServer::StartUp(_config.szBindIP, _config.portNumber, _config.numConcurrentThread, _config.numWorkerThread, _config.bUseNagle, _config.numMaxSession, _config.packetCode, _config.packetKey, _config.maxPacketSize, true, true);
+	if (retNetStart == false)
+	{
+		LOGGING(LOGGING_LEVEL_FATAL, L"[chat server] Network Library Start failed\n");
+		Crash();
+		return false;
+	}
 
 	return true;
-
 }
 
 
 /* Shutdown */
 bool CChatServer::Shutdown()
 {
+	std::lock_guard<std::mutex> lock_guard(_mtxShutdown);
+	if (_bShutdown == true)
+		return true;
+
 	// ThreadMsgGenerator 는 이 값이 true가 되면 종료됨
 	_bShutdown = true;  
 
@@ -277,6 +308,8 @@ bool CChatServer::Shutdown()
 
 	// DB 종료
 	_pDBConn->Close();
+
+	_bTerminated = true;
 	return true;
 }
 
@@ -295,9 +328,9 @@ int CChatServer::GetQueryRequestFreeCount() { return _pDBConn->GetQueryRequestFr
 
 
 /* Get */
-CPlayer* CChatServer::GetPlayerBySessionId(__int64 sessionId)
+CPlayer_t CChatServer::GetPlayerBySessionId(__int64 sessionId)
 {
-	auto iter = _mapPlayer.find(sessionId);
+	const auto& iter = _mapPlayer.find(sessionId);
 	if (iter == _mapPlayer.end())
 		return nullptr;
 	else
@@ -305,16 +338,16 @@ CPlayer* CChatServer::GetPlayerBySessionId(__int64 sessionId)
 }
 
 
-CPlayer* CChatServer::GetPlayerByAccountNo(__int64 accountNo)
+CPlayer_t CChatServer::GetPlayerByAccountNo(__int64 accountNo)
 {
-	auto iter = _mapPlayerAccountNo.find(accountNo);
+	const auto& iter = _mapPlayerAccountNo.find(accountNo);
 	if (iter == _mapPlayerAccountNo.end())
 		return nullptr;
 	else
 		return iter->second;
 }
 
-void CChatServer::ReplacePlayerByAccountNo(__int64 accountNo, CPlayer* replacePlayer)
+void CChatServer::ReplacePlayerByAccountNo(__int64 accountNo, CPlayer_t& replacePlayer)
 {
 	auto iter = _mapPlayerAccountNo.find(accountNo);
 	iter->second = replacePlayer;
@@ -328,7 +361,7 @@ int CChatServer::SendUnicast(__int64 sessionId, CPacket& packet)
 	return SendPacketAsync(sessionId, packet);
 }
 
-int CChatServer::SendUnicast(CPlayer* pPlayer, CPacket& packet)
+int CChatServer::SendUnicast(const CPlayer_t& pPlayer, CPacket& packet)
 {
 	//return SendPacket(pPlayer->_sessionId, packet);
 	return SendPacketAsync(pPlayer->_sessionId, packet);
@@ -346,37 +379,37 @@ int CChatServer::SendBroadcast(CPacket& packet)
 	return sendCount;
 }
 
-int CChatServer::SendOneSector(CPlayer* pPlayer, CPacket& packet, const CPlayer* except)
+int CChatServer::SendOneSector(const CPlayer_t& pPlayer, CPacket& packet, const CPlayer_t& except)
 {
 	int sendCount = 0;
 	auto& vecPlayer = _sector.GetObjectVector(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER);
 
 	for (int i=0; i<vecPlayer.size(); i++)
 	{
-		CPlayer* pPlayer = static_cast<CPlayer*>(vecPlayer[i]);
-		if (pPlayer == except)
+		const CPlayer_t elmPlayer = std::static_pointer_cast<CPlayer>(vecPlayer[i]);
+		if (elmPlayer == except)
 			continue;
-		//sendCount += SendPacket(pPlayer->_sessionId, packet);
-		sendCount += SendPacketAsync(pPlayer->_sessionId, packet);
+		//sendCount += SendPacket(elmPlayer->_sessionId, packet);
+		sendCount += SendPacketAsync(elmPlayer->_sessionId, packet);
 	}
 
 	return sendCount;
 }
 
-int CChatServer::SendAroundSector(CPlayer* pPlayer, CPacket& packet, const CPlayer* except)
+int CChatServer::SendAroundSector(const CPlayer_t& pPlayer, CPacket& packet, const CPlayer_t& except)
 {
 	int sendCount = 0;
-	auto& vecSector = _sector.GetAroundSector(pPlayer->_sectorX, pPlayer->_sectorX);
+	auto& vecSector = _sector.GetAroundSector(pPlayer->_sectorX, pPlayer->_sectorY);
 	for (int i = 0; i < vecSector.size(); i++)
 	{
-		auto& vecPlayer = _sector.GetObjectVector(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER);
+		auto& vecPlayer = vecSector[i]->GetObjectVector(ESectorObjectType::PLAYER);
 		for (int i = 0; i < vecPlayer.size(); i++)
 		{
-			CPlayer* pPlayer = static_cast<CPlayer*>(vecPlayer[i]);
-			if (pPlayer == except)
+			const CPlayer_t elmPlayer = std::static_pointer_cast<CPlayer>(vecPlayer[i]);
+			if (elmPlayer == except)
 				continue;
-			//sendCount += SendPacket(pPlayer->_sessionId, packet);
-			sendCount += SendPacketAsync(pPlayer->_sessionId, packet);
+			//sendCount += SendPacket(elmPlayer->_sessionId, packet);
+			sendCount += SendPacketAsync(elmPlayer->_sessionId, packet);
 		}
 	}
 
@@ -385,23 +418,35 @@ int CChatServer::SendAroundSector(CPlayer* pPlayer, CPacket& packet, const CPlay
 
 
 /* player */
-void CChatServer::MoveSector(CPlayer* pPlayer, WORD x, WORD y)
+CPlayer_t CChatServer::AllocPlayer(__int64 sessionId)
+{
+	auto Deleter = [this](CPlayer* pPlayer) {
+		this->_poolPlayer.Free(pPlayer);
+	};
+	std::shared_ptr<CPlayer> pPlayer(_poolPlayer.Alloc(), Deleter);
+	pPlayer->Init(sessionId);
+	return pPlayer;
+}
+
+void CChatServer::MoveSector(CPlayer_t& pPlayer, WORD x, WORD y)
 {
 	if (pPlayer->_sectorX == x && pPlayer->_sectorY == y)
 		return;
 
-	if (pPlayer->_sectorX >= 0 && pPlayer->_sectorX < dfSECTOR_MAX_X
-		&& pPlayer->_sectorY >= 0 && pPlayer->_sectorY < dfSECTOR_MAX_Y)
+	if (pPlayer->_sectorX >= 0 && pPlayer->_sectorX < SECTOR_MAX_X
+		&& pPlayer->_sectorY >= 0 && pPlayer->_sectorY < SECTOR_MAX_Y)
 	{
-		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, *pPlayer);
+		CObject_t o = std::static_pointer_cast<CObject>(pPlayer);
+		CObject_t o2 = pPlayer;
+		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, pPlayer);
 	}
 	
-	pPlayer->_sectorX = min(max(x, 0), dfSECTOR_MAX_X - 1);
-	pPlayer->_sectorY = min(max(y, 0), dfSECTOR_MAX_Y - 1);
-	_sector.AddObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, *pPlayer);
+	pPlayer->_sectorX = min(max(x, 0), SECTOR_MAX_X - 1);
+	pPlayer->_sectorY = min(max(y, 0), SECTOR_MAX_Y - 1);
+	_sector.AddObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, pPlayer);
 }
 
-void CChatServer::DisconnectPlayer(CPlayer* pPlayer)
+void CChatServer::DisconnectPlayer(CPlayer_t& pPlayer)
 {
 	if (pPlayer->_bDisconnect == false)
 	{
@@ -413,53 +458,35 @@ void CChatServer::DisconnectPlayer(CPlayer* pPlayer)
 
 void CChatServer::DeletePlayer(__int64 sessionId)
 {
-	auto iter = _mapPlayer.find(sessionId);
+	const auto& iter = _mapPlayer.find(sessionId);
 	if (iter == _mapPlayer.end())
 		return;
 
-	CPlayer* pPlayer = iter->second;
+	CPlayer_t& pPlayer = iter->second;
 	if (pPlayer->_sectorX != SECTOR_NOT_SET && pPlayer->_sectorY != SECTOR_NOT_SET)
 	{
-		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, *pPlayer);
+		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, pPlayer);
 	}
 
-	auto iterAccountNo = _mapPlayerAccountNo.find(pPlayer->_accountNo);
+	const auto& iterAccountNo = _mapPlayerAccountNo.find(pPlayer->_accountNo);
 	if(iterAccountNo != _mapPlayerAccountNo.end() 
 		&& iterAccountNo->second->_sessionId == sessionId)  // 중복로그인이 발생하면 map의 player 객체가 교체되어 세션주소가 다를 수 있음. 이 경우 삭제하면 안됨
 		_mapPlayerAccountNo.erase(iterAccountNo);
 
 	_mapPlayer.erase(iter);
-	_poolPlayer.Free(pPlayer);
-}
-
-std::unordered_map<__int64, CPlayer*>::iterator CChatServer::DeletePlayer(std::unordered_map<__int64, CPlayer*>::iterator& iterPlayer)
-{
-	CPlayer* pPlayer = iterPlayer->second;
-	if (pPlayer->_sectorX != SECTOR_NOT_SET && pPlayer->_sectorY != SECTOR_NOT_SET)
-	{
-		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, *pPlayer);
-	}
-
-	auto iterAccountNo = _mapPlayerAccountNo.find(pPlayer->_accountNo);
-	if (iterAccountNo != _mapPlayerAccountNo.end()
-		&& iterAccountNo->second->_sessionId == iterPlayer->second->_sessionId)  // 중복로그인이 발생하면 map의 player 객체가 교체되어 세션주소가 다를 수 있음. 이 경우 삭제하면 안됨
-		_mapPlayerAccountNo.erase(iterAccountNo);
-
-	auto iterNext = _mapPlayer.erase(iterPlayer);
-	_poolPlayer.Free(pPlayer);
-	return iterNext;
 }
 
 
 /* (static) 로그인 나머지 처리 APC 함수 */
 void CChatServer::CompleteUnfinishedLogin(ULONG_PTR pStAPCData)
 {
-	CChatServer& chatServer = *((StAPCData*)pStAPCData)->pChatServer;
-	CPacket* pRecvPacket = ((StAPCData*)pStAPCData)->pPacket;
-	__int64 sessionId = ((StAPCData*)pStAPCData)->sessionId;
-	__int64 accountNo = ((StAPCData*)pStAPCData)->accountNo;
-	bool isNull = ((StAPCData*)pStAPCData)->isNull;
-	char* redisSessionKey = ((StAPCData*)pStAPCData)->sessionKey;
+	StAPCData& APCData = *((StAPCData*)pStAPCData);
+	CChatServer& chatServer = *APCData.pChatServer;
+	CPacket* pRecvPacket = APCData.pPacket;
+	__int64 sessionId = APCData.sessionId;
+	__int64 accountNo = APCData.accountNo;
+	bool isNull = APCData.isNull;
+	char* redisSessionKey = APCData.sessionKey;
 
 	LOGGING(LOGGING_LEVEL_DEBUG, L"CompleteUnfinishedLogin start. session:%lld, accountNo:%lld\n", sessionId, accountNo);
 
@@ -502,12 +529,12 @@ void CChatServer::CompleteUnfinishedLogin(ULONG_PTR pStAPCData)
 		}
 
 		// 플레이어 얻기
-		CPlayer* pPlayer = chatServer.GetPlayerBySessionId(sessionId);
+		CPlayer_t pPlayer = chatServer.GetPlayerBySessionId(sessionId);
 		if (pPlayer == nullptr)   // 플레이어를 찾지못했다면 APC큐에 요청이 삽입된다음 leave된 플레이어임
 			break;
 
 		// 플레이어 중복로그인 체크
-		CPlayer* pPlayerDup = chatServer.GetPlayerByAccountNo(accountNo);
+		CPlayer_t pPlayerDup = chatServer.GetPlayerByAccountNo(accountNo);
 		if (pPlayerDup != nullptr)
 		{
 			// 중복 로그인인 경우 기존 플레이어를 끊는다.
@@ -554,232 +581,339 @@ void CChatServer::CompleteUnfinishedLogin(ULONG_PTR pStAPCData)
 }
 
 
+
+void CChatServer::PacketProc_LoginRequest(__int64 sessionId, CPacket& packet)
+{
+	PROFILE_BEGIN("CChatServer::ThreadChatServer::en_PACKET_CS_CHAT_REQ_LOGIN");
+
+	INT64 accountNo;
+	packet >> accountNo;
+	LOGGING(LOGGING_LEVEL_DEBUG, L"receive login. session:%lld, accountNo:%lld\n", sessionId, accountNo);
+
+	// 플레이어객체 존재 체크
+	CPlayer_t pPlayer = GetPlayerBySessionId(sessionId);
+	if (pPlayer == nullptr)
+	{
+		// _mapPlayer에 플레이어객체가 없으므로 세션만 끊는다.
+		CNetServer::Disconnect(sessionId);
+		_monitor.disconnByLoginFail++; // 모니터링
+
+		// 로그인실패 응답 발송
+		CPacket& sendPacket = AllocPacket();
+		sendPacket << (WORD)en_PACKET_CS_CHAT_RES_LOGIN << (BYTE)0 << accountNo;
+		SendUnicast(sessionId, sendPacket);
+		sendPacket.SubUseCount();
+		LOGGING(LOGGING_LEVEL_DEBUG, L"send login failed. session:%lld, accountNo:%lld\n", sessionId, accountNo);
+		return;
+	}
+	pPlayer->SetLogin();
+
+	// redis 세션key get 작업을 비동기로 요청한다. (테스트해본결과 동기로 redis get 하는데 평균 234us 걸림, 비동기 redis get은 평균 60us)
+	// 비동기 get이 완료되면 CompleteUnfinishedLogin 함수가 APC queue에 삽입된다.
+	PROFILE_BLOCK_BEGIN("CChatServer::ThreadChatServer::RedisGet");
+	StAPCData* pAPCData = _poolAPCData.Alloc();
+	pAPCData->pChatServer = this;
+	pAPCData->pPacket = &packet;
+	pAPCData->sessionId = sessionId;
+	pAPCData->accountNo = accountNo;
+	packet.AddUseCount();
+	std::string redisKey = std::to_string(accountNo);
+	CChatServer* pChatServer = this;
+	_pRedisClient->get(redisKey, [pChatServer, pAPCData](cpp_redis::reply& reply) {
+		if (reply.is_null() == true)
+		{
+			pAPCData->isNull = true;
+		}
+		else
+		{
+			pAPCData->isNull = false;
+			memcpy(pAPCData->sessionKey, reply.as_string().c_str(), 64);
+		}
+		DWORD ret = QueueUserAPC(pChatServer->CompleteUnfinishedLogin
+			, pChatServer->_thChatServer.handle
+			, (ULONG_PTR)pAPCData);
+		if (ret == 0)
+		{
+			LOGGING(LOGGING_LEVEL_ERROR, L"failed to queue asynchronous redis get user APC. error:%u, session:%lld, accountNo:%lld\n"
+				, GetLastError(), pAPCData->sessionId, pAPCData->accountNo);
+		}
+		});
+	_pRedisClient->commit();
+	PROFILE_BLOCK_END;
+	LOGGING(LOGGING_LEVEL_DEBUG, L"request asynchronous redis get. session:%lld, accountNo:%lld\n", sessionId, accountNo);
+}
+
+void CChatServer::PacketProc_SectorMoveRequest(__int64 sessionId, CPacket& packet)
+{
+	PROFILE_BEGIN("CChatServer::ThreadChatServer::en_PACKET_CS_CHAT_REQ_SECTOR_MOVE");
+
+	INT64 accountNo;
+	WORD  sectorX;
+	WORD  sectorY;
+	packet >> accountNo >> sectorX >> sectorY;
+
+	// 플레이어 객체 얻기
+	CPlayer_t pPlayer = GetPlayerBySessionId(sessionId);
+	if (pPlayer == nullptr)
+		return; //Crash();
+
+	if (pPlayer->_bDisconnect == true)
+		return;
+
+	// 데이터 검증
+	if (pPlayer->_accountNo != accountNo)
+	{
+		LOGGING(LOGGING_LEVEL_DEBUG, L"receive sector move. account number is invalid!! session:%lld, accountNo (origin:%lld, recved:%lld), sector from (%d,%d) to (%d,%d)\n"
+			, pPlayer->_sessionId, pPlayer->_accountNo, accountNo, pPlayer->_sectorX, pPlayer->_sectorY, sectorX, sectorY);
+		DisconnectPlayer(pPlayer);
+		_monitor.disconnByInvalidAccountNo++;
+		return;
+	}
+	if (sectorX < 0 || sectorX >= SECTOR_MAX_X || sectorY < 0 || sectorY >= SECTOR_MAX_Y)
+	{
+		LOGGING(LOGGING_LEVEL_DEBUG, L"receive sector move. sector coordinate is invalid!! session:%lld, accountNo:%lld, sector from (%d,%d) to (%d,%d)\n"
+			, pPlayer->_sessionId, pPlayer->_accountNo, pPlayer->_sectorX, pPlayer->_sectorY, sectorX, sectorY);
+		DisconnectPlayer(pPlayer);
+		_monitor.disconnByInvalidSector++;
+		return;
+	}
+
+	// 섹터 이동
+	LOGGING(LOGGING_LEVEL_DEBUG, L"receive sector move. session:%lld, accountNo:%lld, sector from (%d,%d) to (%d,%d)\n"
+		, sessionId, accountNo, pPlayer->_sectorX, pPlayer->_sectorY, sectorX, sectorY);
+	MoveSector(pPlayer, sectorX, sectorY);
+	pPlayer->SetHeartBeatTime();
+
+	// 채팅서버 섹터 이동 결과 발송
+	CPacket& sendPacket = AllocPacket();
+	sendPacket << (WORD)en_PACKET_CS_CHAT_RES_SECTOR_MOVE << accountNo << pPlayer->_sectorX << pPlayer->_sectorY;
+	SendUnicast(pPlayer, sendPacket);
+	sendPacket.SubUseCount();
+	LOGGING(LOGGING_LEVEL_DEBUG, L"send sector move. session:%lld, accountNo:%lld, sector to (%d,%d)\n"
+		, sessionId, accountNo, pPlayer->_sectorX, pPlayer->_sectorY);
+}
+
+void CChatServer::PacketProc_ChatRequest(__int64 sessionId, CPacket& packet)
+{
+	PROFILE_BEGIN("CChatServer::ThreadChatServer::en_PACKET_CS_CHAT_REQ_MESSAGE");
+
+	INT64 accountNo;
+	WORD  messageLen;
+	WCHAR* message;
+	packet >> accountNo >> messageLen;
+	message = (WCHAR*)packet.GetFrontPtr();
+
+	CPlayer_t pPlayer = GetPlayerBySessionId(sessionId);
+	if (pPlayer == nullptr)
+		return; //Crash();
+
+	if (pPlayer->_bDisconnect == true)
+		return;
+
+	// 데이터 검증
+	if (pPlayer->_accountNo != accountNo)
+	{
+		LOGGING(LOGGING_LEVEL_DEBUG, L"receive chat message. account number is invalid!! session:%lld, accountNo (origin:%lld, recved:%lld)\n"
+			, pPlayer->_sessionId, pPlayer->_accountNo, accountNo);
+		DisconnectPlayer(pPlayer);
+		_monitor.disconnByInvalidAccountNo++; // 모니터링
+		return;
+	}
+	pPlayer->SetHeartBeatTime();
+
+	// 채팅서버 채팅보내기 응답
+	LOGGING(LOGGING_LEVEL_DEBUG, L"receive chat message. session:%lld, accountNo:%lld, messageLen:%d\n", sessionId, accountNo, messageLen);
+	CPacket& sendPacket = AllocPacket();
+	sendPacket << (WORD)en_PACKET_CS_CHAT_RES_MESSAGE << accountNo;
+	sendPacket.PutData((char*)pPlayer->_id, sizeof(pPlayer->_id));
+	sendPacket.PutData((char*)pPlayer->_nickname, sizeof(pPlayer->_nickname));
+	sendPacket << messageLen;
+	sendPacket.PutData((char*)message, messageLen);
+	int sendCount = SendAroundSector(pPlayer, sendPacket, nullptr);
+	sendPacket.SubUseCount();
+	LOGGING(LOGGING_LEVEL_DEBUG, L"send chat message. to %d players, session:%lld, accountNo:%lld, messageLen:%d, sector:(%d,%d)\n"
+		, sendCount, sessionId, accountNo, messageLen, pPlayer->_sectorX, pPlayer->_sectorY);
+}
+
+void CChatServer::PacketProc_HeartBeat(__int64 sessionId, CPacket& packet)
+{
+	PROFILE_BEGIN("CChatServer::ThreadChatServer::en_PACKET_CS_CHAT_REQ_HEARTBEAT");
+
+	CPlayer_t pPlayer = GetPlayerBySessionId(sessionId);
+	if (pPlayer == nullptr)
+		return;
+	pPlayer->SetHeartBeatTime();
+	LOGGING(LOGGING_LEVEL_DEBUG, L"receive heart beat. session:%lld, accountNo:%lld\n", sessionId, pPlayer->_accountNo);
+}
+
+void CChatServer::PacketProc_Default(__int64 sessionId, CPacket& packet, WORD packetType)
+{
+	PROFILE_BEGIN("CChatServer::ThreadChatServer::DEFAULT");
+
+	CPlayer_t pPlayer = GetPlayerBySessionId(sessionId);
+	LOGGING(LOGGING_LEVEL_DEBUG, L"received invalid packet type. session:%lld, accountNo:%lld, packet type:%d\n"
+		, sessionId, pPlayer == nullptr ? -1 : pPlayer->_accountNo, packetType);
+
+	if (pPlayer == nullptr)
+	{
+		CNetServer::Disconnect(sessionId);
+	}
+	else
+	{
+		DisconnectPlayer(pPlayer);
+	}
+
+	_monitor.disconnByInvalidMessageType++;
+}
+
+
+void CChatServer::MsgProc_JoinPlayer(__int64 sessionId)
+{
+	PROFILE_BEGIN("CChatServer::ThreadChatServer::MSG_JOIN_PLAYER");
+
+	CPlayer_t pPlayer = AllocPlayer(sessionId);
+	_mapPlayer.insert(std::make_pair(sessionId, pPlayer));
+	LOGGING(LOGGING_LEVEL_DEBUG, L"join player. sessionId:%lld\n", sessionId);
+}
+
+void CChatServer::MsgProc_LeavePlayer(__int64 sessionId)
+{
+	PROFILE_BEGIN("CChatServer::ThreadChatServer::MSG_LEAVE_PLAYER");
+
+	LOGGING(LOGGING_LEVEL_DEBUG, L"message leave player. sessionId:%lld\n", sessionId);
+	CPlayer_t pPlayer = GetPlayerBySessionId(sessionId);
+
+	LOGGING(LOGGING_LEVEL_DEBUG, L"leave player. sessionId:%lld, accountNo:%lld\n", sessionId, pPlayer->_bLogin ? pPlayer->_accountNo : -1);
+
+	// 플레이어의 DB status를 로그아웃으로 업데이트 (현재 DB 업데이트는 하지않고있음)
+	//bool retDB = _pDBConn->PostQueryRequest(
+	//	L" UPDATE `accountdb`.`status`"
+	//	L" SET `status` = 0"
+	//	L" WHERE `accountno` = %lld"
+	//	, pPlayer->_accountNo);
+	//if (retDB == false)
+	//{
+	//	LOGGING(LOGGING_LEVEL_ERROR, L"posting DB status update request failed. session:%lld, accountNo:%lld\n", sessionId, pPlayer->_accountNo);
+	//}
+
+	// 플레이어 객체 삭제
+	DeletePlayer(sessionId);
+}
+
+void CChatServer::MsgProc_CheckLoginTimeout()
+{
+	PROFILE_BEGIN("CChatServer::ThreadChatServer::MSG_CHECK_LOGIN_TIMEOUT");
+
+	LOGGING(LOGGING_LEVEL_DEBUG, L"message check login timeout\n");
+	ULONGLONG currentTime;
+	for (auto iter = _mapPlayer.begin(); iter != _mapPlayer.end(); ++iter)
+	{
+		currentTime = GetTickCount64();
+		CPlayer_t& pPlayer = iter->second;
+		if (pPlayer->_bLogin == false && pPlayer->_bDisconnect == false && currentTime - pPlayer->_lastHeartBeatTime > _timeoutLogin)
+		{
+			LOGGING(LOGGING_LEVEL_DEBUG, L"timeout login. sessionId:%lld\n", pPlayer->_sessionId);
+			DisconnectPlayer(pPlayer);
+			_monitor.disconnByLoginTimeout++;
+		}
+	}
+}
+
+void CChatServer::MsgProc_CheckHeartBeatTimeout()
+{
+	LOGGING(LOGGING_LEVEL_DEBUG, L"message check heart beat timeout\n");
+	ULONGLONG currentTime = GetTickCount64();
+	for (auto iter = _mapPlayer.begin(); iter != _mapPlayer.end(); ++iter)
+	{
+		CPlayer_t& pPlayer = iter->second;
+		if (pPlayer->_bDisconnect == false && currentTime - pPlayer->_lastHeartBeatTime > _timeoutHeartBeat)
+		{
+			LOGGING(LOGGING_LEVEL_DEBUG, L"timeout heart beat. sessionId:%lld, accountNo:%lld\n", pPlayer->_sessionId, pPlayer->_accountNo);
+			DisconnectPlayer(pPlayer);
+			_monitor.disconnByHeartBeatTimeout++;
+		}
+	}
+}
+
+void CChatServer::MsgProc_Shutdown()
+{
+	LOGGING(LOGGING_LEVEL_DEBUG, L"message shutdown\n");
+	// 모든 플레이어의 연결을 끊고 스레드를 종료한다.
+	for (auto iter = _mapPlayer.begin(); iter != _mapPlayer.end(); ++iter)
+	{
+		CPlayer_t& pPlayer = iter->second;
+		if (pPlayer->_bDisconnect == false)
+		{
+			DisconnectPlayer(pPlayer);
+		}
+	}
+}
+
+
+
 /* (static) 채팅서버 스레드 */
 unsigned WINAPI CChatServer::ThreadChatServer(PVOID pParam)
 {
 	wprintf(L"begin chat server\n");
 	CChatServer& chatServer = *(CChatServer*)pParam;
-	MsgChatServer* pMsg;
-	WORD packetType;
-	CPlayer* pPlayer;
+
+	chatServer.RunChatServer();
+
+	wprintf(L"end chat server\n");
+	return 0;
+}
+
+void CChatServer::RunChatServer()
+{
 	while (true)
 	{
-		DWORD retWait = WaitForSingleObjectEx(chatServer._hEventMsg, INFINITE, TRUE);
+		DWORD retWait = WaitForSingleObjectEx(_hEventMsg, INFINITE, TRUE);
 		if (retWait != WAIT_OBJECT_0 && retWait != WAIT_IO_COMPLETION)
 		{
 			LOGGING(LOGGING_LEVEL_FATAL, L"Wait for event failed!!, error:%d\n", GetLastError());
-			InterlockedExchange8((char*)&chatServer._bEventSetFlag, false);
-			return 0;
+			InterlockedExchange8((char*)&_bEventSetFlag, false);
+			return;
 		}
-		InterlockedExchange8((char*)&chatServer._bEventSetFlag, false);
+		InterlockedExchange8((char*)&_bEventSetFlag, false);
 
-		while (chatServer._msgQ.Dequeue(pMsg))
+		MsgChatServer* pMsg;
+		while (_msgQ.Dequeue(pMsg))
 		{
 			// 클라이언트에게 받은 메시지일 경우
 			if (pMsg->msgFrom == MSG_FROM_CLIENT)
 			{
+				WORD packetType;
+
 				CPacket& recvPacket = *pMsg->pPacket;
 				recvPacket >> packetType;
-
-				CPacket& sendPacket = chatServer.AllocPacket();  // send용 패킷 alloc (switch문 끝난 뒤 free함)
 
 				// 패킷 타입에 따른 메시지 처리
 				switch (packetType)
 				{
 				// 채팅서버 로그인 요청
 				case en_PACKET_CS_CHAT_REQ_LOGIN:
-				{
-					PROFILE_BEGIN("CChatServer::ThreadChatServer::en_PACKET_CS_CHAT_REQ_LOGIN");
-
-					INT64 accountNo;
-					recvPacket >> accountNo;
-					LOGGING(LOGGING_LEVEL_DEBUG, L"receive login. session:%lld, accountNo:%lld\n", pMsg->sessionId, accountNo);
-
-					// 플레이어객체 존재 체크
-					pPlayer = chatServer.GetPlayerBySessionId(pMsg->sessionId);
-					if (pPlayer == nullptr)
-					{
-						// _mapPlayer에 플레이어객체가 없으므로 세션만 끊는다.
-						chatServer.CNetServer::Disconnect(pMsg->sessionId);
-						chatServer._monitor.disconnByLoginFail++; // 모니터링
-
-						// 로그인실패 응답 발송
-						sendPacket << (WORD)en_PACKET_CS_CHAT_RES_LOGIN << (BYTE)0 << accountNo;
-						chatServer.SendUnicast(pMsg->sessionId, sendPacket);
-						LOGGING(LOGGING_LEVEL_DEBUG, L"send login failed. session:%lld, accountNo:%lld\n", pMsg->sessionId, accountNo);
-						break;
-					}
-					pPlayer->SetLogin();
-
-					// redis 세션key get 작업을 비동기로 요청한다. (테스트해본결과 동기로 redis get 하는데 평균 234us 걸림, 비동기 redis get은 평균 60us)
-					// 비동기 get이 완료되면 CompleteUnfinishedLogin 함수가 APC queue에 삽입된다.
-					PROFILE_BLOCK_BEGIN("CChatServer::ThreadChatServer::RedisGet");
-					StAPCData* pAPCData = chatServer._poolAPCData.Alloc();
-					pAPCData->pChatServer = &chatServer;
-					pAPCData->pPacket = &recvPacket;
-					pAPCData->sessionId = pMsg->sessionId;
-					pAPCData->accountNo = accountNo;
-					recvPacket.AddUseCount();
-					std::string redisKey = std::to_string(accountNo);
-					CChatServer* pChatServer = &chatServer;
-					chatServer._pRedisClient->get(redisKey, [pChatServer, pAPCData](cpp_redis::reply& reply) {
-						if (reply.is_null() == true)
-						{
-							pAPCData->isNull = true;
-						}
-						else
-						{
-							pAPCData->isNull = false;
-							memcpy(pAPCData->sessionKey, reply.as_string().c_str(), 64);
-						}
-						DWORD ret = QueueUserAPC(pChatServer->CompleteUnfinishedLogin
-							, pChatServer->_thChatServer.handle
-							, (ULONG_PTR)pAPCData);
-						if (ret == 0)
-						{
-							LOGGING(LOGGING_LEVEL_ERROR, L"failed to queue asynchronous redis get user APC. error:%u, session:%lld, accountNo:%lld\n"
-								, GetLastError(), pAPCData->sessionId, pAPCData->accountNo);
-						}
-						});
-					chatServer._pRedisClient->commit();
-					PROFILE_BLOCK_END;
-					LOGGING(LOGGING_LEVEL_DEBUG, L"request asynchronous redis get. session:%lld, accountNo:%lld\n", pMsg->sessionId, accountNo);
+					PacketProc_LoginRequest(pMsg->sessionId, recvPacket);
 					break;
-				}
-
 				// 채팅서버 섹터 이동 요청
 				case en_PACKET_CS_CHAT_REQ_SECTOR_MOVE:
-				{
-					PROFILE_BEGIN("CChatServer::ThreadChatServer::en_PACKET_CS_CHAT_REQ_SECTOR_MOVE");
-
-					INT64 accountNo;
-					WORD  sectorX;
-					WORD  sectorY;
-					recvPacket >> accountNo >> sectorX >> sectorY;
-
-					// 플레이어 객체 얻기
-					pPlayer = chatServer.GetPlayerBySessionId(pMsg->sessionId);
-					if (pPlayer == nullptr)
-						break; //chatServer.Crash();
-
-					if (pPlayer->_bDisconnect == true)
-						break;
-
-					// 데이터 검증
-					if (pPlayer->_accountNo != accountNo)
-					{
-						LOGGING(LOGGING_LEVEL_DEBUG, L"receive sector move. account number is invalid!! session:%lld, accountNo (origin:%lld, recved:%lld), sector from (%d,%d) to (%d,%d)\n"
-							, pPlayer->_sessionId, pPlayer->_accountNo, accountNo, pPlayer->_sectorX, pPlayer->_sectorY, sectorX, sectorY);
-						chatServer.DisconnectPlayer(pPlayer);
-						chatServer._monitor.disconnByInvalidAccountNo++; // 모니터링
-						break;
-					}
-					if (sectorX < 0 || sectorX >= dfSECTOR_MAX_X || sectorY < 0 || sectorY >= dfSECTOR_MAX_Y)
-					{
-						LOGGING(LOGGING_LEVEL_DEBUG, L"receive sector move. sector coordinate is invalid!! session:%lld, accountNo:%lld, sector from (%d,%d) to (%d,%d)\n"
-							, pPlayer->_sessionId, pPlayer->_accountNo, pPlayer->_sectorX, pPlayer->_sectorY, sectorX, sectorY);
-						chatServer.DisconnectPlayer(pPlayer);
-						chatServer._monitor.disconnByInvalidSector++; // 모니터링
-						break;
-					}
-
-
-					// 섹터 이동
-					LOGGING(LOGGING_LEVEL_DEBUG, L"receive sector move. session:%lld, accountNo:%lld, sector from (%d,%d) to (%d,%d)\n"
-						, pMsg->sessionId, accountNo, pPlayer->_sectorX, pPlayer->_sectorY, sectorX, sectorY);
-					chatServer.MoveSector(pPlayer, sectorX, sectorY);
-					pPlayer->SetHeartBeatTime();
-
-					// 채팅서버 섹터 이동 결과 발송
-					sendPacket << (WORD)en_PACKET_CS_CHAT_RES_SECTOR_MOVE << accountNo << pPlayer->_sectorX << pPlayer->_sectorY;
-					chatServer.SendUnicast(pPlayer, sendPacket);
-					LOGGING(LOGGING_LEVEL_DEBUG, L"send sector move. session:%lld, accountNo:%lld, sector to (%d,%d)\n"
-						, pMsg->sessionId, accountNo, pPlayer->_sectorX, pPlayer->_sectorY);
+					PacketProc_SectorMoveRequest(pMsg->sessionId, recvPacket);
 					break;
-				}
-
-
 				// 채팅서버 채팅보내기 요청
 				case en_PACKET_CS_CHAT_REQ_MESSAGE:
-				{
-					PROFILE_BEGIN("CChatServer::ThreadChatServer::en_PACKET_CS_CHAT_REQ_MESSAGE");
-
-					INT64 accountNo;
-					WORD  messageLen;
-					WCHAR* message;
-					recvPacket >> accountNo >> messageLen;
-					message = (WCHAR*)recvPacket.GetFrontPtr();
-
-					pPlayer = chatServer.GetPlayerBySessionId(pMsg->sessionId);
-					if (pPlayer == nullptr)
-						break; //chatServer.Crash();
-
-					if (pPlayer->_bDisconnect == true)
-						break;
-
-					// 데이터 검증
-					if (pPlayer->_accountNo != accountNo)
-					{
-						LOGGING(LOGGING_LEVEL_DEBUG, L"receive chat message. account number is invalid!! session:%lld, accountNo (origin:%lld, recved:%lld)\n"
-							, pPlayer->_sessionId, pPlayer->_accountNo, accountNo);
-						chatServer.DisconnectPlayer(pPlayer);
-						chatServer._monitor.disconnByInvalidAccountNo++; // 모니터링
-						break;
-					}
-					pPlayer->SetHeartBeatTime();
-
-					// 채팅서버 채팅보내기 응답
-					LOGGING(LOGGING_LEVEL_DEBUG, L"receive chat message. session:%lld, accountNo:%lld, messageLen:%d\n", pMsg->sessionId, accountNo, messageLen);
-					sendPacket << (WORD)en_PACKET_CS_CHAT_RES_MESSAGE << accountNo;
-					sendPacket.PutData((char*)pPlayer->_id, sizeof(pPlayer->_id));
-					sendPacket.PutData((char*)pPlayer->_nickname, sizeof(pPlayer->_nickname));
-					sendPacket << messageLen;
-					sendPacket.PutData((char*)message, messageLen);
-					int sendCount = chatServer.SendAroundSector(pPlayer, sendPacket, nullptr);
-					LOGGING(LOGGING_LEVEL_DEBUG, L"send chat message. to %d players, session:%lld, accountNo:%lld, messageLen:%d, sector:(%d,%d)\n"
-						, sendCount, pMsg->sessionId, accountNo, messageLen, pPlayer->_sectorX, pPlayer->_sectorY);
+					PacketProc_ChatRequest(pMsg->sessionId, recvPacket);
 					break;
-				}
-
 				// 하트비트
 				case en_PACKET_CS_CHAT_REQ_HEARTBEAT:
-				{
-					PROFILE_BEGIN("CChatServer::ThreadChatServer::en_PACKET_CS_CHAT_REQ_HEARTBEAT");
-
-					pPlayer = chatServer.GetPlayerBySessionId(pMsg->sessionId);
-					if (pPlayer == nullptr)
-						break;
-					pPlayer->SetHeartBeatTime();
-					LOGGING(LOGGING_LEVEL_DEBUG, L"receive heart beat. session:%lld, accountNo:%lld\n", pMsg->sessionId, pPlayer->_accountNo);
+					PacketProc_HeartBeat(pMsg->sessionId, recvPacket);
 					break;
-				}
-
 
 				default:
-				{
-					PROFILE_BEGIN("CChatServer::ThreadChatServer::DEFAULT");
-
-					pPlayer = chatServer.GetPlayerBySessionId(pMsg->sessionId);
-					LOGGING(LOGGING_LEVEL_DEBUG, L"received invalid packet type. session:%lld, accountNo:%lld, packet type:%d\n"
-						, pMsg->sessionId, pPlayer == nullptr ? -1 : pPlayer->_accountNo, packetType);
-					
-					if (pPlayer == nullptr)
-					{
-						chatServer.CNetServer::Disconnect(pMsg->sessionId);
-					}
-					else
-					{
-						chatServer.DisconnectPlayer(pPlayer);
-					}
-
-					chatServer._monitor.disconnByInvalidMessageType++; // 모니터링
+					PacketProc_Default(pMsg->sessionId, recvPacket, packetType);
 					break;
-				}
 				} // end of switch(packetType)
 
 				// 패킷의 사용카운트 감소
 				recvPacket.SubUseCount();
-				sendPacket.SubUseCount();
 			}
 
 			// 채팅서버 내부 메시지인 경우
@@ -789,110 +923,28 @@ unsigned WINAPI CChatServer::ThreadChatServer(PVOID pParam)
 				{
 				// 플레이어 생성 메시지 
 				case EServerMsgType::MSG_JOIN_PLAYER:
-				{
-					PROFILE_BEGIN("CChatServer::ThreadChatServer::MSG_JOIN_PLAYER");
-
-					pPlayer = chatServer._poolPlayer.Alloc();
-					pPlayer->Init(pMsg->sessionId);
-					chatServer._mapPlayer.insert(std::make_pair(pMsg->sessionId, pPlayer));
-					LOGGING(LOGGING_LEVEL_DEBUG, L"join player. sessionId:%lld\n", pMsg->sessionId);
-
+					MsgProc_JoinPlayer(pMsg->sessionId);
 					break;
-				}
-
 				// 플레이어 삭제 메시지 
 				case EServerMsgType::MSG_LEAVE_PLAYER:
-				{
-					PROFILE_BEGIN("CChatServer::ThreadChatServer::MSG_LEAVE_PLAYER");
-
-					LOGGING(LOGGING_LEVEL_DEBUG, L"message leave player. sessionId:%lld\n", pMsg->sessionId);
-					auto iter = chatServer._mapPlayer.find(pMsg->sessionId);
-					if (iter == chatServer._mapPlayer.end())
-						break;
-					pPlayer = iter->second;
-
-					LOGGING(LOGGING_LEVEL_DEBUG, L"leave player. sessionId:%lld, accountNo:%lld\n", pMsg->sessionId, pPlayer->_bLogin ? pPlayer->_accountNo : -1);
-
-					// 플레이어의 DB status를 로그아웃으로 업데이트 (현재 DB 업데이트는 하지않고있음)
-					//bool retDB = chatServer._pDBConn->PostQueryRequest(
-					//	L" UPDATE `accountdb`.`status`"
-					//	L" SET `status` = 0"
-					//	L" WHERE `accountno` = %lld"
-					//	, pPlayer->_accountNo);
-					//if (retDB == false)
-					//{
-					//	LOGGING(LOGGING_LEVEL_ERROR, L"posting DB status update request failed. session:%lld, accountNo:%lld\n", pMsg->sessionId, pPlayer->_accountNo);
-					//}
-
-					// 플레이어 객체 삭제
-					chatServer.DeletePlayer(iter);
-
+					MsgProc_LeavePlayer(pMsg->sessionId);
 					break;
-				}
-
 				// 로그인 타임아웃 확인
 				case EServerMsgType::MSG_CHECK_LOGIN_TIMEOUT:
-				{
-					PROFILE_BEGIN("CChatServer::ThreadChatServer::MSG_CHECK_LOGIN_TIMEOUT");
-
-					LOGGING(LOGGING_LEVEL_DEBUG, L"message check login timeout\n");
-					ULONGLONG currentTime;
-					for (auto iter = chatServer._mapPlayer.begin(); iter != chatServer._mapPlayer.end(); ++iter)
-					{
-						currentTime = GetTickCount64();
-						pPlayer = iter->second;
-						if (pPlayer->_bLogin == false && pPlayer->_bDisconnect == false && currentTime - pPlayer->_lastHeartBeatTime > chatServer._timeoutLogin)
-						{
-							LOGGING(LOGGING_LEVEL_DEBUG, L"timeout login. sessionId:%lld\n", pPlayer->_sessionId);
-							chatServer.DisconnectPlayer(pPlayer);
-							chatServer._monitor.disconnByLoginTimeout++; // 모니터링
-						}
-					}
+					MsgProc_CheckLoginTimeout();
 					break;
-				}
-
 				// 하트비트 타임아웃 확인
 				case EServerMsgType::MSG_CHECK_HEART_BEAT_TIMEOUT:
-				{
-					LOGGING(LOGGING_LEVEL_DEBUG, L"message check heart beat timeout\n");
-					ULONGLONG currentTime = GetTickCount64();
-					for (auto iter = chatServer._mapPlayer.begin(); iter != chatServer._mapPlayer.end(); ++iter)
-					{
-						pPlayer = iter->second;
-						if (pPlayer->_bDisconnect == false && currentTime - pPlayer->_lastHeartBeatTime > chatServer._timeoutHeartBeat)
-						{
-							LOGGING(LOGGING_LEVEL_DEBUG, L"timeout heart beat. sessionId:%lld, accountNo:%lld\n", pPlayer->_sessionId, pPlayer->_accountNo);
-							chatServer.DisconnectPlayer(pPlayer);
-							chatServer._monitor.disconnByHeartBeatTimeout++; // 모니터링
-						}
-					}
+					MsgProc_CheckHeartBeatTimeout();
 					break;
-				}
-
 				// shutdown
 				case EServerMsgType::MSG_SHUTDOWN:
-				{
-					LOGGING(LOGGING_LEVEL_DEBUG, L"message shutdown\n");
-					// 모든 플레이어의 연결을 끊고 스레드를 종료한다.
-					for (auto iter = chatServer._mapPlayer.begin(); iter != chatServer._mapPlayer.end(); ++iter)
-					{
-						pPlayer = iter->second;
-						if (pPlayer->_bDisconnect == false)
-						{
-							chatServer.DisconnectPlayer(pPlayer);
-						}
-					}
-
-					wprintf(L"end chat server\n");
-					return 0;
+					MsgProc_Shutdown();
 					break;
-				}
 
 				default:
-				{
 					LOGGING(LOGGING_LEVEL_ERROR, L"invalid server message type. type:%d\n", pMsg->eServerMsgType);
 					break;
-				}
 				} // end of switch(pMsg->eServerMsgType)
 
 			}
@@ -903,19 +955,14 @@ unsigned WINAPI CChatServer::ThreadChatServer(PVOID pParam)
 			}
 
 			// free 메시지
-			chatServer._poolMsg.Free(pMsg);
+			_poolMsg.Free(pMsg);
 
-			chatServer._monitor.msgHandleCount++;  // 모니터링
+			_monitor.msgHandleCount++;  // 모니터링
 
-		} // end of while (chatServer._msgQ.Dequeue(pMsg))
+		} // end of while (_msgQ.Dequeue(pMsg))
 
 	} // end of while (true)
-
-
-	wprintf(L"end chat server\n");
-	return 0;
 }
-
 
 
 
@@ -925,8 +972,16 @@ unsigned WINAPI CChatServer::ThreadMsgGenerator(PVOID pParam)
 	wprintf(L"begin message generator\n");
 	CChatServer& chatServer = *(CChatServer*)pParam;
 
+	chatServer.RunMsgGenerator();
+
+	wprintf(L"end message generator\n");
+	return 0;
+}
+
+void CChatServer::RunMsgGenerator()
+{
 	constexpr int numMessage = 2;       // 메시지 타입 수
-	int msgPeriod[numMessage] = { chatServer._timeoutLoginCheckPeriod, chatServer._timeoutHeartBeatCheckPeriod };   // 메시지 타입별 발생주기
+	int msgPeriod[numMessage] = { _timeoutLoginCheckPeriod, _timeoutHeartBeatCheckPeriod };   // 메시지 타입별 발생주기
 	EServerMsgType msg[numMessage] = { EServerMsgType::MSG_CHECK_LOGIN_TIMEOUT, EServerMsgType::MSG_CHECK_HEART_BEAT_TIMEOUT };  // 메시지 타입
 	ULONGLONG lastMsgTime[numMessage] = { 0, 0 };  // 마지막으로 해당 타입 메시지를 보낸 시간
 
@@ -964,22 +1019,22 @@ unsigned WINAPI CChatServer::ThreadMsgGenerator(PVOID pParam)
 		if (nextMsgIdx < 0 || nextMsgIdx >= numMessage)
 		{
 			LOGGING(LOGGING_LEVEL_ERROR, L"Message generator is trying to generate an invalid message. message index: %d\n", nextMsgIdx);
-			chatServer.Crash();
-			return 0;
+			Crash();
+			return;
 		}
 
-		if (chatServer._bShutdown == true)
+		if (_bShutdown == true)
 			break;
 		// 다음 메시지 발생 주기까지 기다림
 		if (nextSendTime > currentTime)
 		{
 			Sleep((DWORD)(nextSendTime - currentTime));
 		}
-		if (chatServer._bShutdown == true)
+		if (_bShutdown == true)
 			break;
 
 		// 타입에 따른 메시지 생성
-		MsgChatServer* pMsg = chatServer._poolMsg.Alloc();
+		MsgChatServer* pMsg = _poolMsg.Alloc();
 		pMsg->msgFrom = MSG_FROM_SERVER;
 		switch (msg[nextMsgIdx])
 		{
@@ -1002,17 +1057,14 @@ unsigned WINAPI CChatServer::ThreadMsgGenerator(PVOID pParam)
 		}
 
 		// 메시지큐에 Enqueue
-		chatServer._msgQ.Enqueue(pMsg);
+		_msgQ.Enqueue(pMsg);
 
 		// 마지막으로 메시지 보낸시간 업데이트
 		lastMsgTime[nextMsgIdx] = nextSendTime;
 
 		// 이벤트 set
-		SetEvent(chatServer._hEventMsg);
+		SetEvent(_hEventMsg);
 	}
-
-	wprintf(L"end message generator\n");
-	return 0;
 }
 
 
@@ -1023,6 +1075,14 @@ unsigned WINAPI CChatServer::ThreadMonitoringCollector(PVOID pParam)
 	wprintf(L"begin monitoring collector thread\n");
 	CChatServer& chatServer = *(CChatServer*)pParam;
 
+	chatServer.RunMonitoringCollector();
+
+	wprintf(L"end monitoring collector thread\n");
+	return 0;
+}
+
+void CChatServer::RunMonitoringCollector()
+{
 	PDHCount pdhCount;
 	LARGE_INTEGER liFrequency;
 	LARGE_INTEGER liStartTime;
@@ -1032,43 +1092,42 @@ unsigned WINAPI CChatServer::ThreadMonitoringCollector(PVOID pParam)
 	__int64 sleepTime;
 	DWORD dwSleepTime;
 
-
 	__int64 prevMsgHandleCount = 0;
 	__int64 currMsgHandleCount = 0;
 
 	QueryPerformanceFrequency(&liFrequency);
 
 	// 최초 update
-	chatServer._pCPUUsage->UpdateCpuTime();
-	chatServer._pPDH->Update();
+	_pCPUUsage->UpdateCpuTime();
+	_pPDH->Update();
 
 	// 최초 sleep
 	Sleep(990);
 
 	// 1초마다 모니터링 데이터를 수집하여 모니터링 서버에게 데이터를 보냄
 	QueryPerformanceCounter(&liStartTime);
-	while (chatServer._bShutdown == false)
+	while (_bShutdown == false)
 	{
 		// 데이터 수집
 		time(&collectTime);
-		chatServer._pCPUUsage->UpdateCpuTime();
-		chatServer._pPDH->Update();
-		pdhCount = chatServer._pPDH->GetPDHCount();
-		currMsgHandleCount = chatServer._monitor.GetMsgHandleCount();
+		_pCPUUsage->UpdateCpuTime();
+		_pPDH->Update();
+		pdhCount = _pPDH->GetPDHCount();
+		currMsgHandleCount = _monitor.GetMsgHandleCount();
 
 		// 모니터링 서버에 send
-		lanlib::CPacket& packet = chatServer._pLANClientMonitoring->AllocPacket();
+		lanlib::CPacket& packet = _pLANClientMonitoring->AllocPacket();
 		packet << (WORD)en_PACKET_SS_MONITOR_DATA_UPDATE;
 		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_RUN << (int)1 << (int)collectTime; // 에이전트 ChatServer 실행 여부 ON / OFF
-		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_CPU << (int)chatServer._pCPUUsage->ProcessTotal() << (int)collectTime; // 에이전트 ChatServer CPU 사용률
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_CPU << (int)_pCPUUsage->ProcessTotal() << (int)collectTime; // 에이전트 ChatServer CPU 사용률
 		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SERVER_MEM << (int)((double)pdhCount.processPrivateBytes / 1048576.0) << (int)collectTime; // 에이전트 ChatServer 메모리 사용 MByte
-		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SESSION << chatServer.GetNumSession() << (int)collectTime; // 채팅서버 세션 수 (컨넥션 수)
-		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_PLAYER << chatServer.GetNumAccount() << (int)collectTime; // 채팅서버 인증성공 사용자 수 (실제 접속자)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_SESSION << GetNumSession() << (int)collectTime; // 채팅서버 세션 수 (컨넥션 수)
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_PLAYER << GetNumAccount() << (int)collectTime; // 채팅서버 인증성공 사용자 수 (실제 접속자)
 		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATE_TPS << (int)(currMsgHandleCount - prevMsgHandleCount) << (int)collectTime; // 채팅서버 UPDATE 스레드 초당 처리 횟수
-		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_PACKET_POOL << chatServer.GetPacketAllocCount() << (int)collectTime;    // 채팅서버 패킷풀 사용량
-		//packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL << chatServer.GetMsgAllocCount() << (int)collectTime; // 채팅서버 UPDATE MSG 풀 사용량
-		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL << chatServer.GetUnhandeledMsgCount() << (int)collectTime; // 채팅서버 UPDATE MSG 풀 사용량
-		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_CPU_TOTAL << (int)chatServer._pCPUUsage->ProcessorTotal() << (int)collectTime; // 서버컴퓨터 CPU 전체 사용률
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_PACKET_POOL << GetPacketAllocCount() << (int)collectTime;    // 채팅서버 패킷풀 사용량
+		//packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL << GetMsgAllocCount() << (int)collectTime; // 채팅서버 UPDATE MSG 풀 사용량
+		packet << (BYTE)dfMONITOR_DATA_TYPE_CHAT_UPDATEMSG_POOL << GetUnhandeledMsgCount() << (int)collectTime; // 채팅서버 UPDATE MSG 풀 사용량
+		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_CPU_TOTAL << (int)_pCPUUsage->ProcessorTotal() << (int)collectTime; // 서버컴퓨터 CPU 전체 사용률
 		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NONPAGED_MEMORY << (int)((double)pdhCount.systemNonpagedPoolBytes / 1048576.0) << (int)collectTime; // 서버컴퓨터 논페이지 메모리 MByte
 		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_RECV << (int)(pdhCount.networkRecvBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 수신량 KByte
 		packet << (BYTE)dfMONITOR_DATA_TYPE_MONITOR_NETWORK_SEND << (int)(pdhCount.networkSendBytes / 1024.0) << (int)collectTime; // 서버컴퓨터 네트워크 송신량 KByte
@@ -1076,7 +1135,7 @@ unsigned WINAPI CChatServer::ThreadMonitoringCollector(PVOID pParam)
 
 		prevMsgHandleCount = currMsgHandleCount;
 
-		chatServer._pLANClientMonitoring->SendPacket(packet);
+		_pLANClientMonitoring->SendPacket(packet);
 		packet.SubUseCount();
 
 
@@ -1097,11 +1156,7 @@ unsigned WINAPI CChatServer::ThreadMonitoringCollector(PVOID pParam)
 		liStartTime.QuadPart = liEndTime.QuadPart + (dwSleepTime * (liFrequency.QuadPart / 1000));
 
 	}
-
-	wprintf(L"end monitoring collector thread\n");
-	return 0;
 }
-
 
 
 

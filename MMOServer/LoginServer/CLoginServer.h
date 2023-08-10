@@ -170,6 +170,7 @@ namespace loginserver
 
 		volatile bool _bShutdown;               // shutdown 여부
 		volatile bool _bTerminated;             // 종료됨 여부
+		std::mutex _mtxShutdown;
 		LARGE_INTEGER _performanceFrequency;
 
 

@@ -75,11 +75,11 @@
     <ClCompile Include="main.cpp">
       <Filter>소스 파일</Filter>
     </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="CommonProtocol.h">
-      <Filter>소스 파일\01. ChatServer</Filter>
-    </ClInclude>
     <ClInclude Include="CSector.h">
       <Filter>소스 파일\01. ChatServer</Filter>
     </ClInclude>
@@ -133,6 +133,9 @@
     </ClInclude>
     <ClInclude Include="CObject.h">
       <Filter>소스 파일\01. ChatServer\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>소스 파일</Filter>
     </ClInclude>
   </ItemGroup>
 </Project>
