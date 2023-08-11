@@ -80,7 +80,6 @@ void CSession::Init(SOCKET clntSock, SOCKADDR_IN& clntAddr)
 	_bContentsWaitToDisconnect = false;
 	_lastHeartBeatTime = GetTickCount64();
 	_vecContentsPacket.clear();
-	__vecPacket.clear(); // µð¹ö±×
 
 	_transfer.bOnTransfer = false;
 	_transfer.spDestination = nullptr;

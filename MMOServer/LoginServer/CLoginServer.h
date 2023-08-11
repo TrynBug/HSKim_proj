@@ -10,7 +10,6 @@
 
 #include <shared_mutex>
 
-class CClient;
 class CDBConnectorTLSManager;
 class CCpuUsage;
 class CPDH;

@@ -21,11 +21,6 @@ int main()
 {
 	std::shared_ptr<CGameServer> server(new CGameServer);
 	bool retStart = server->StartUp();
-	if (retStart == false)
-	{
-		wprintf(L"[main] failed to start game server\n");
-		return 0;
-	}
 	ConsoleOutServerState(server);
 
 	return 0;

@@ -33,6 +33,11 @@ Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "LANClient", "LANClient\LANC
 EndProject
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "NetLib_s", "NetLib_s\NetLib_s.vcxproj", "{3D5D0835-13F5-45A1-8D63-A1417396AF80}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "MonitoringServer", "MonitoringServer\MonitoringServer.vcxproj", "{F0903067-AF62-489B-8AC3-5C6DB3204086}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F8AEBF20-EBF5-4A46-B02B-E851CD868C65} = {F8AEBF20-EBF5-4A46-B02B-E851CD868C65}
+	EndProjectSection
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -97,6 +102,14 @@ Global
 		{3D5D0835-13F5-45A1-8D63-A1417396AF80}.Release|x64.Build.0 = Release|x64
 		{3D5D0835-13F5-45A1-8D63-A1417396AF80}.Release|x86.ActiveCfg = Release|Win32
 		{3D5D0835-13F5-45A1-8D63-A1417396AF80}.Release|x86.Build.0 = Release|Win32
+		{F0903067-AF62-489B-8AC3-5C6DB3204086}.Debug|x64.ActiveCfg = Debug|x64
+		{F0903067-AF62-489B-8AC3-5C6DB3204086}.Debug|x64.Build.0 = Debug|x64
+		{F0903067-AF62-489B-8AC3-5C6DB3204086}.Debug|x86.ActiveCfg = Debug|Win32
+		{F0903067-AF62-489B-8AC3-5C6DB3204086}.Debug|x86.Build.0 = Debug|Win32
+		{F0903067-AF62-489B-8AC3-5C6DB3204086}.Release|x64.ActiveCfg = Release|x64
+		{F0903067-AF62-489B-8AC3-5C6DB3204086}.Release|x64.Build.0 = Release|x64
+		{F0903067-AF62-489B-8AC3-5C6DB3204086}.Release|x86.ActiveCfg = Release|Win32
+		{F0903067-AF62-489B-8AC3-5C6DB3204086}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -109,6 +122,7 @@ Global
 		{4D91DDE1-B1AB-4DEF-8017-A4313A7DFF17} = {378AA984-E89B-4E7E-8A8A-A1487DF12D3E}
 		{691F92A1-8676-4C35-B46B-8B2006BF2696} = {575E3B91-D8B4-4265-AF86-30F6EBEC3F37}
 		{3D5D0835-13F5-45A1-8D63-A1417396AF80} = {575E3B91-D8B4-4265-AF86-30F6EBEC3F37}
+		{F0903067-AF62-489B-8AC3-5C6DB3204086} = {378AA984-E89B-4E7E-8A8A-A1487DF12D3E}
 	EndGlobalSection
 	GlobalSection(ExtensibilityGlobals) = postSolution
 		SolutionGuid = {BDBCE837-B39F-4609-BEF2-16C74BCA0740}

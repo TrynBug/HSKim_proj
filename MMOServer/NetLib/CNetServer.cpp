@@ -912,7 +912,7 @@ void CNetServer::ReleaseSession(CSession* pSession)
 	// 세션 반환
 	__int64 sessionId = pSession->_sessionId;
 	_stackSessionIdx.Push(pSession->_index);
-	_monitor.disconnectCount++;  // 모니터링
+	_monitor.disconnectCount++;
 
 	// 세션을 반환하기 전에 OnClientLeave 함수가 호출될경우 다음과 같은 문제가 발생할 수 있다:
 	// OnClientLeave 함수내에서 SendPacket 등으로 세션을 사용함 -> 현재 ioCount가 0이기 때문에 IncreaseIoCount, DecreaseIoCount 하는 과정에서 ioCount가 또다시 0이 되어 ReleaseSession 함수가 한번더 호출됨

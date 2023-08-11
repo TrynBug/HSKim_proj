@@ -1144,7 +1144,6 @@ void CNetServer::ReleaseSession(CSession* pSession)
 		pSession->_vecContentsPacket[i]->SubUseCount();
 	}
 	pSession->_vecContentsPacket.clear();
-	pSession->__vecPacket.clear(); // 디버그
 
 	// 세션 반환
 	__int64 sessionId = pSession->_sessionId;

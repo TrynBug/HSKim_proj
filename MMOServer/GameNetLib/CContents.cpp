@@ -1,18 +1,6 @@
 #include "CNetServer.h"
 #include "CTimeMgr.h"
 
-void __Inspect(const std::vector<netlib_game::CPacket*>& vec) // 디버그
-{
-	for (int i = 0; i < vec.size(); i++)
-	{
-		if (vec[i]->_size != 10000)
-		{
-			int* p = 0;
-			*p = 0;
-		}
-	}
-}
-
 using namespace netlib_game;
 
 CContents::CContents(int FPS)
@@ -184,7 +172,6 @@ void CContents::DisconnectSession(CSession* pSession)
 // 세션 내의 컨텐츠 패킷 벡터 내의 패킷을 전송한다.
 void CContents::_sendContentsPacket(CSession* pSession)
 {	
-	__Inspect(pSession->_vecContentsPacket); // 디버그
 	size_t numPacket = pSession->_vecContentsPacket.size();
 	_pNetAccessor->SendPacketAsync(pSession->_sessionId, pSession->_vecContentsPacket);
 	for (size_t i = 0; i < numPacket; i++)
@@ -192,14 +179,12 @@ void CContents::_sendContentsPacket(CSession* pSession)
 		pSession->_vecContentsPacket[i]->SubUseCount();
 	}
 	pSession->_vecContentsPacket.clear();
-	pSession->__vecPacket.clear(); // 디버그
 }
 
 
 // 세션 내의 컨텐츠 패킷 벡터 내의 패킷을 전송하고 연결을 끊는다.
 void CContents::_sendContentsPacketAndDisconnect(CSession* pSession)
 {
-	__Inspect(pSession->_vecContentsPacket); // 디버그
 	size_t numPacket = pSession->_vecContentsPacket.size();
 	_pNetAccessor->SendPacketAsyncAndDisconnect(pSession->_sessionId, pSession->_vecContentsPacket);
 	for (size_t i = 0; i < numPacket; i++)
@@ -207,7 +192,6 @@ void CContents::_sendContentsPacketAndDisconnect(CSession* pSession)
 		pSession->_vecContentsPacket[i]->SubUseCount();
 	}
 	pSession->_vecContentsPacket.clear();
-	pSession->__vecPacket.clear(); // 디버그
 }
 
 
@@ -276,8 +260,6 @@ bool CContents::SendPacket(__int64 sessionId, CPacket& packet)
 		CSession* pSession = iter->second;
 		packet.AddUseCount();
 		pSession->_vecContentsPacket.push_back(&packet);
-		pSession->__vecPacket.push_back(&packet); // 디버그
-		__Inspect(pSession->_vecContentsPacket); // 디버그
 	}
 
 	return true;
@@ -301,8 +283,6 @@ bool CContents::SendPacket(__int64 sessionId, const std::vector<CPacket*> vecPac
 		{
 			vecPacket[i]->AddUseCount();
 			pSession->_vecContentsPacket.push_back(vecPacket[i]);
-			pSession->__vecPacket.push_back(vecPacket[i]); // 디버그
-			__Inspect(pSession->_vecContentsPacket); // 디버그
 		}
 	}
 
@@ -324,8 +304,6 @@ bool CContents::SendPacketAndDisconnect(__int64 sessionId, CPacket& packet)
 		CSession* pSession = iter->second;
 		packet.AddUseCount();
 		pSession->_vecContentsPacket.push_back(&packet);
-		pSession->__vecPacket.push_back(&packet); // 디버그
-		__Inspect(pSession->_vecContentsPacket); // 디버그
 		pSession->_bContentsWaitToDisconnect = true;
 	}
 	
@@ -607,7 +585,6 @@ void CContents::RunContentsThread()
 				// 세션의 패킷을 모두 전송한다.
 				else if (pSession->_vecContentsPacket.size() > 0)
 				{
-					__Inspect(pSession->_vecContentsPacket); // 디버그
 					_sendContentsPacket(pSession);
 				}
 			}

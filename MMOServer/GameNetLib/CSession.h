@@ -126,8 +126,6 @@ namespace netlib_game
 			Transfer() : bOnTransfer(false), spDestination(nullptr), pData(nullptr) {}
 		};
 		Transfer _transfer;
-
-		std::vector<CPacket*> __vecPacket;   // µð¹ö±×
 	};
 
 

@@ -279,16 +279,19 @@ bool CLoginServer::Shutdown()
 // 세션ID로 클라이언트 객체를 얻는다. 실패할경우 null을 반환한다.
 CClient_t CLoginServer::GetClientBySessionId(__int64 sessionId)
 {
-	CClient_t pClient;
 	_smtxMapClient.lock_shared();
 	const auto& iter = _mapClient.find(sessionId);
 	if (iter == _mapClient.end())
-		pClient = nullptr;
+	{
+		_smtxMapClient.unlock_shared();
+		return nullptr;
+	}
 	else
-		pClient = iter->second;
-	_smtxMapClient.unlock_shared();
-	
-	return std::move(pClient);
+	{
+		CClient_t pPlayer = iter->second;
+		_smtxMapClient.unlock_shared();
+		return pPlayer;
+	}
 }
 
 
@@ -350,11 +353,21 @@ void CLoginServer::DeleteClient(CClient_t& pClient)
 CClient_t CLoginServer::AllocClient(__int64 sessionId)
 {
 	auto Deleter = [this](CClient* pClient) {
-		this->_poolClient.Free(pClient);
+		_poolClient.Free(pClient);
 	};
-	std::shared_ptr<CClient> pClient(_poolClient.Alloc(), Deleter);
+	CClient* pClient = _poolClient.Alloc();
 	pClient->Init(sessionId);
-	return pClient;
+	return CClient_t(pClient, Deleter);
+
+	//auto Deleter = [this](CClient* pClient) {
+	//	this->_monitor.disconnByNoClient++;
+	//	CClient* p = this->_poolClient.Alloc();
+	//	this->_poolClient.Free(p);
+	//	delete pClient;
+	//};
+	//CClient_t pClient(new CClient, Deleter);
+	//pClient->Init(sessionId);
+	//return pClient;
 }
 
 
