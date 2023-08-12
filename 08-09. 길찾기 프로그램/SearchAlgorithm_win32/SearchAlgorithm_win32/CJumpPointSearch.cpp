@@ -66,32 +66,33 @@ CJumpPointSearch::~CJumpPointSearch()
 }
 
 
-void CJumpPointSearch::SetParam(int startRow, int startCol, int endRow, int endCol, const char* const* arr2Wall, int gridRows, int gridCols)
+void CJumpPointSearch::SetParam(const CGrid* pGrid)
 {
-	if (_gridRows != gridRows || _gridCols != gridCols)
+	if (_gridRows != pGrid->GetNumRows() || _gridCols != pGrid->GetNumCols())
 	{
-		_gridRows = gridRows;
-		_gridCols = gridCols;
+		_gridRows = pGrid->GetNumRows();
+		_gridCols = pGrid->GetNumCols();
 		_createCellInfoArray();
 	}
 
-	_ptStart.x = startCol;
-	_ptStart.y = startRow;
-	_ptEnd.x = endCol;
-	_ptEnd.y = endRow;
-	_gridRows = gridRows;
-	_gridCols = gridCols;
+	_ptStart.x = pGrid->GetStartRC().col;
+	_ptStart.y = pGrid->GetStartRC().row;
+	_ptEnd.x = pGrid->GetEndRC().col;
+	_ptEnd.y = pGrid->GetEndRC().row;
+	_gridRows = pGrid->GetNumRows();
+	_gridCols = pGrid->GetNumCols();
 	_isSearchStepByStep = false;
 	_isFoundDest = false;
 
 	Clear();
 
 	// cell info에 벽, 도착지점 정보 입력
+	const EGridState* const* _arr2Grid = pGrid->_getGrid();
 	for (int row = 0; row < _gridRows; row++)
 	{
 		for (int col = 0; col < _gridCols; col++)
 		{
-			if (arr2Wall[row][col] == 1)
+			if (_arr2Grid[row][col] == EGridState::WALL)
 			{
 				_arr2CellInfo[row + 1][col + 1] = (char)eCellInfo::WALL;
 			}

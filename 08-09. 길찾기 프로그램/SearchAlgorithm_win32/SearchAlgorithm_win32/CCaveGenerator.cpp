@@ -4,6 +4,7 @@
 #include "CCaveGenerator.h"
 #include "CBresenhamPath.h"
 
+using namespace cavegen;
 
 int CCaveGenerator::GetNumOfWays()
 {

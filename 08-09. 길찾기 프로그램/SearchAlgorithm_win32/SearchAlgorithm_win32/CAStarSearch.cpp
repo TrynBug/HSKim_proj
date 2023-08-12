@@ -11,8 +11,7 @@ CMemoryPool<AStarNode> g_pool(0, true, false);
 
 
 CAStarSearch::CAStarSearch()
-	:_ptStart{}, _ptEnd{}, _arr2Grid(nullptr)
-	, _gridRows(0), _gridCols(0), _gridSize(0)
+	: _pGrid(nullptr)
 	, _pStartNode(nullptr)
 	, _isSearchStepByStep(false)
 	, _isFoundDest(false)
@@ -27,24 +26,15 @@ CAStarSearch::~CAStarSearch()
 }
 
 
-
-
-
-void CAStarSearch::SetParam(int startRow, int startCol, int endRow, int endCol, char** arr2Grid, int gridRows, int gridCols, int gridSize)
+void CAStarSearch::SetParam(const CGrid* pGrid)
 {
-	_ptStart.x = startCol;
-	_ptStart.y = startRow;
-	_ptEnd.x = endCol;
-	_ptEnd.y = endRow;
-	_arr2Grid = arr2Grid;
-	_gridRows = gridRows;
-	_gridCols = gridCols;
-	_gridSize = gridSize;
+	_pGrid = pGrid;
 	_isSearchStepByStep = false;
 	_isFoundDest = false;
 
 	Clear();
 }
+
 
 bool CAStarSearch::Search()
 {
@@ -62,11 +52,14 @@ bool CAStarSearch::SearchStepByStep()
 	Clear();
 
 	// wall list에 벽 좌표 입력
-	for (int row = 0; row < _gridRows; row++)
+	const EGridState* const* _arr2Grid = _pGrid->_getGrid();
+	int numGridRows = _pGrid->GetNumRows();
+	int numGridCols = _pGrid->GetNumCols();
+	for (int row = 0; row < numGridRows; row++)
 	{
-		for (int col = 0; col < _gridCols; col++)
+		for (int col = 0; col < numGridCols; col++)
 		{
-			if (_arr2Grid[row][col] == 1)
+			if (_arr2Grid[row][col] == EGridState::WALL)
 			{
 				_wallList.insert(MAKE_KEY(col, row));
 			}
@@ -74,14 +67,16 @@ bool CAStarSearch::SearchStepByStep()
 	}
 
 	// 시작 노드 생성
+	RC rcStart = _pGrid->GetStartRC();
+	RC rcEnd = _pGrid->GetEndRC();
 	_pStartNode = g_pool.Alloc();
-	_pStartNode->SetMembers(_ptStart.x, _ptStart.y, nullptr
-		, 0.f, (float)(abs(_ptEnd.x - _ptStart.x) + abs(_ptEnd.y - _ptStart.y))
+	_pStartNode->SetMembers(rcStart.col, rcStart.row, nullptr
+		, 0.f, (float)(abs(rcEnd.row - rcStart.row) + abs(rcEnd.col - rcStart.col))
 		, eAStarNodeType::OPEN);
 
 	// node list에 등록
-	_nodeList.insert(std::make_pair(MAKE_KEY(_ptStart.x, _ptStart.y), _pStartNode));
-	_mulmapFValue.insert(std::make_pair(_pStartNode->_valF, MAKE_KEY(_ptStart.x, _ptStart.y)));
+	_nodeList.insert(std::make_pair(MAKE_KEY(rcStart.col, rcStart.row), _pStartNode));
+	_mulmapFValue.insert(std::make_pair(_pStartNode->_valF, MAKE_KEY(rcStart.col, rcStart.row)));
 	_numOfOpenNode++;
 
 	// step by step search 실행중 체크
@@ -118,7 +113,8 @@ bool CAStarSearch::SearchNextStep()
 	_numOfOpenNode--;
 
 	// 좌표가 목적지와 동일하다면 도착
-	if (x == _ptEnd.x && y == _ptEnd.y)
+	RC rcEnd = _pGrid->GetEndRC();
+	if (x == rcEnd.col && y == rcEnd.row)
 	{
 		// 목적지에서 시작점까지의 경로를 저장함
 		AStarNode* pNextNode = pParentNode;
@@ -148,8 +144,8 @@ bool CAStarSearch::SearchNextStep()
 	AStarNode* pOpenNode;
 	for (int i = 0; i < 8; i++)
 	{
-		if (arrX[i] < 0 || arrX[i] >= _gridCols
-			|| arrY[i] < 0 || arrY[i] >= _gridRows)
+		if (arrX[i] < 0 || arrX[i] >= _pGrid->GetNumCols()
+			|| arrY[i] < 0 || arrY[i] >= _pGrid->GetNumRows())
 		{
 			continue;
 		}
@@ -170,7 +166,7 @@ bool CAStarSearch::SearchNextStep()
 				pNewNode = g_pool.Alloc();
 				pNewNode->SetMembers(arrX[i], arrY[i], pParentNode
 					, pParentNode->_valG + arrG[i]
-					, (float)(abs(arrX[i] - _ptEnd.x) + abs(arrY[i] - _ptEnd.y))
+					, (float)(abs(arrX[i] - rcEnd.row) + abs(arrY[i] - rcEnd.col))
 					, eAStarNodeType::OPEN);
 
 				// node list에 등록

@@ -13,14 +13,17 @@
       <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
       <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
     </Filter>
-    <Filter Include="소스 파일\01. AStarSearch">
+    <Filter Include="소스 파일\02. AStarSearch">
       <UniqueIdentifier>{0d2bd1d5-e52b-4833-8606-3122c720b36b}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\02. JumpPointSearch">
+    <Filter Include="소스 파일\03. JumpPointSearch">
       <UniqueIdentifier>{cb1541cf-80c1-4976-a4e2-43c4adedda8d}</UniqueIdentifier>
     </Filter>
-    <Filter Include="소스 파일\03. Tools">
+    <Filter Include="소스 파일\04. Tools">
       <UniqueIdentifier>{64ddf63d-18d0-4add-ad2e-a52fa420a748}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\01. Win32">
+      <UniqueIdentifier>{a2c5ad0e-b585-4e94-8ddc-d043f35da61d}</UniqueIdentifier>
     </Filter>
   </ItemGroup>
   <ItemGroup>
@@ -34,22 +37,28 @@
       <Filter>헤더 파일</Filter>
     </ClInclude>
     <ClInclude Include="CBresenhamPath.h">
-      <Filter>소스 파일\03. Tools</Filter>
+      <Filter>소스 파일\04. Tools</Filter>
     </ClInclude>
     <ClInclude Include="utils.h">
-      <Filter>소스 파일\03. Tools</Filter>
+      <Filter>소스 파일\04. Tools</Filter>
     </ClInclude>
     <ClInclude Include="CCaveGenerator.h">
-      <Filter>소스 파일\03. Tools</Filter>
+      <Filter>소스 파일\04. Tools</Filter>
     </ClInclude>
     <ClInclude Include="CAStarSearch.h">
-      <Filter>소스 파일\01. AStarSearch</Filter>
+      <Filter>소스 파일\02. AStarSearch</Filter>
     </ClInclude>
     <ClInclude Include="CJumpPointSearch.h">
-      <Filter>소스 파일\02. JumpPointSearch</Filter>
+      <Filter>소스 파일\03. JumpPointSearch</Filter>
     </ClInclude>
     <ClInclude Include="CMemoryPool.h">
-      <Filter>소스 파일\03. Tools</Filter>
+      <Filter>소스 파일\04. Tools</Filter>
+    </ClInclude>
+    <ClInclude Include="CWinSearch.h">
+      <Filter>소스 파일\01. Win32</Filter>
+    </ClInclude>
+    <ClInclude Include="CGrid.h">
+      <Filter>소스 파일\04. Tools</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
@@ -57,19 +66,25 @@
       <Filter>소스 파일</Filter>
     </ClCompile>
     <ClCompile Include="CBresenhamPath.cpp">
-      <Filter>소스 파일\03. Tools</Filter>
+      <Filter>소스 파일\04. Tools</Filter>
     </ClCompile>
     <ClCompile Include="utils.cpp">
-      <Filter>소스 파일\03. Tools</Filter>
+      <Filter>소스 파일\04. Tools</Filter>
     </ClCompile>
     <ClCompile Include="CCaveGenerator.cpp">
-      <Filter>소스 파일\03. Tools</Filter>
+      <Filter>소스 파일\04. Tools</Filter>
     </ClCompile>
     <ClCompile Include="CAStarSearch.cpp">
-      <Filter>소스 파일\01. AStarSearch</Filter>
+      <Filter>소스 파일\02. AStarSearch</Filter>
     </ClCompile>
     <ClCompile Include="CJumpPointSearch.cpp">
-      <Filter>소스 파일\02. JumpPointSearch</Filter>
+      <Filter>소스 파일\03. JumpPointSearch</Filter>
+    </ClCompile>
+    <ClCompile Include="CWinSearch.cpp">
+      <Filter>소스 파일\01. Win32</Filter>
+    </ClCompile>
+    <ClCompile Include="CGrid.cpp">
+      <Filter>소스 파일\04. Tools</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>

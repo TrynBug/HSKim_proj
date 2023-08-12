@@ -145,8 +145,10 @@
     <ClInclude Include="CAStarSearch.h" />
     <ClInclude Include="CBresenhamPath.h" />
     <ClInclude Include="CCaveGenerator.h" />
+    <ClInclude Include="CGrid.h" />
     <ClInclude Include="CJumpPointSearch.h" />
     <ClInclude Include="CMemoryPool.h" />
+    <ClInclude Include="CWinSearch.h" />
     <ClInclude Include="framework.h" />
     <ClInclude Include="Resource.h" />
     <ClInclude Include="targetver.h" />
@@ -156,7 +158,9 @@
     <ClCompile Include="CAStarSearch.cpp" />
     <ClCompile Include="CBresenhamPath.cpp" />
     <ClCompile Include="CCaveGenerator.cpp" />
+    <ClCompile Include="CGrid.cpp" />
     <ClCompile Include="CJumpPointSearch.cpp" />
+    <ClCompile Include="CWinSearch.cpp" />
     <ClCompile Include="main.cpp" />
     <ClCompile Include="utils.cpp" />
   </ItemGroup>

@@ -5,6 +5,7 @@
 #include <unordered_map>
 #include <unordered_set>
 #include <vector>
+#include "CGrid.h"
 
 
 enum class eAStarNodeType
@@ -14,16 +15,53 @@ enum class eAStarNodeType
 	END
 };
 
-class AStarNode
+class AStarNode;
+
+class CAStarSearch
 {
 public:
-	int _x;
-	int _y;
-	AStarNode* _pParent;
-	float _valG;
-	float _valH;
-	float _valF;
-	eAStarNodeType _type;
+	CAStarSearch();
+	~CAStarSearch();
+
+public:
+	// 파라미터 다시 설정
+	void SetParam(const CGrid* pGrid);
+	void Clear();
+
+public:
+	// search 시작
+	bool Search();
+
+	// step by step search 수행하기
+	bool SearchStepByStep();  // 첫 시작
+	bool SearchNextStep();    // 다음 step search
+
+public:
+	// get
+	const std::vector<POINT>& GetPath() { return _vecPath; }
+	const std::unordered_map<__int64, AStarNode*>& GetNodeInfo() { return _nodeList; }
+	bool IsSucceeded() { return _isFoundDest; }
+
+
+private:
+	bool _isSearchStepByStep;
+	bool _isFoundDest;
+
+	const CGrid* _pGrid;
+	AStarNode* _pStartNode;
+	std::unordered_map<__int64, AStarNode*> _nodeList;
+	std::unordered_set<__int64> _wallList;
+	std::multimap<float, __int64> _mulmapFValue;
+	int _numOfOpenNode;
+
+	std::vector<POINT> _vecPath;  // 경로 저장 벡터	
+};
+
+
+
+class AStarNode
+{
+	friend class CAStarSearch;
 
 public:
 	AStarNode()
@@ -44,48 +82,12 @@ public:
 		_type = type;
 	}
 
-};
-
-
-class CAStarSearch
-{
-private:
-	POINT _ptStart;
-	POINT _ptEnd;
-	char** _arr2Grid;
-	int _gridRows;
-	int _gridCols;
-	int _gridSize;
-	bool _isSearchStepByStep;
-	bool _isFoundDest;
-
-	AStarNode* _pStartNode;
-	std::unordered_map<__int64, AStarNode*> _nodeList;
-	std::unordered_set<__int64> _wallList;
-	std::multimap<float, __int64> _mulmapFValue;
-	int _numOfOpenNode;
-
-	std::vector<POINT> _vecPath;  // 경로 저장 벡터	
-
 public:
-	CAStarSearch();
-	~CAStarSearch();
-
-public:
-	// 파라미터 다시 설정
-	void SetParam(int startRow, int startCol, int endRow, int endCol, char** arr2Grid, int gridRows, int gridCols, int gridSize);
-
-	bool Search();
-
-	// step by step search
-	bool SearchStepByStep();  // 시작
-	bool SearchNextStep();    // 다음 step search
-
-	// get
-	const std::vector<POINT>& GetPath() { return _vecPath; }
-	const std::unordered_map<__int64, AStarNode*>& GetNodeInfo() { return _nodeList; }
-	bool IsSucceeded() { return _isFoundDest; }
-
-	void Clear();
+	int _x;
+	int _y;
+	AStarNode* _pParent;
+	float _valG;
+	float _valH;
+	float _valF;
+	eAStarNodeType _type;
 };
-

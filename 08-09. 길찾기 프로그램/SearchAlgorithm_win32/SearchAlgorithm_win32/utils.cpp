@@ -5,8 +5,9 @@
 
 #include "utils.h"
 
+using namespace utils;
 
-COLORREF hcl_to_rgb(double hue, double chroma, double luma, double alpha)
+COLORREF utils::hcl_to_rgb(double hue, double chroma, double luma, double alpha)
 {
     // hue, chroma, luma must be in the range (0, 1)
 
@@ -91,7 +92,7 @@ COLORREF hcl_to_rgb(double hue, double chroma, double luma, double alpha)
 }
 
 
-bool ggColorSlice(int numOfColors, COLORREF* arrRGB, double alpha)
+bool utils::ggColorSlice(int numOfColors, COLORREF* arrRGB, double alpha)
 {
     // numOfColors must be in the range (1, 360)
 
@@ -166,7 +167,7 @@ bool ggColorSlice(int numOfColors, COLORREF* arrRGB, double alpha)
 
 
 void _visit(int x, int y, int width, int height, std::unordered_set<__int64>& usetVisited, char** maze);
-void MakeMaze(int width, int height, char** maze)
+void utils::MakeMaze(int width, int height, char** maze)
 {
     for (int h = 0; h < height; h++)
     {

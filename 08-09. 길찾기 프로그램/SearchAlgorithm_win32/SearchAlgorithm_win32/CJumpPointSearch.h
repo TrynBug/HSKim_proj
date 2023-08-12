@@ -1,5 +1,7 @@
 #pragma once
 
+#include "CGrid.h"
+
 // CREATE_COLOR_GROUP이 정의되어 있으면 cell 들의 색상 그룹 정보를 생성한다.
 // 색상 그룹 정보는 _arr2CellColorGroup 에 저장된다.
 #define CREATE_COLOR_GROUP
@@ -26,46 +28,7 @@ enum class eJPSNodeDirection
 	LU,
 };
 
-
-class JPSNode
-{
-public:
-	int _x;
-	int _y;
-	JPSNode* _pParent;
-	float _valG;
-	float _valH;
-	float _valF;
-	eJPSNodeType _type;
-	eJPSNodeDirection _direction;
-
-public:
-	JPSNode(int x, int y, JPSNode* pParent, float valG, float valH, eJPSNodeType type, eJPSNodeDirection direction)
-		: _x(x), _y(y), _pParent(pParent), _valG(valG), _valH(valH), _valF(valG + valH)
-		, _type(type), _direction(direction)
-	{ }
-
-	JPSNode()
-		: _x(0), _y(0), _pParent(nullptr), _valG(0.f), _valH(0.f), _valF(0.f)
-		, _type(eJPSNodeType::NONE), _direction(eJPSNodeDirection::NONE)
-	{}
-
-	void SetMembers(int x, int y, JPSNode* pParent, float valG, float valH, eJPSNodeType type, eJPSNodeDirection direction)
-	{
-		_x = x;
-		_y = y;
-		_pParent = pParent;
-		_valG = valG;
-		_valH = valH;
-		_valF = valG + valH;
-		_type = type;
-		_direction = direction;
-	}
-};
-
-
-
-
+class JPSNode;
 class CJumpPointSearch
 {
 private:
@@ -79,40 +42,13 @@ private:
 		END = 127,
 	};
 
-private:
-	POINT _ptStart;
-	POINT _ptEnd;
-	int _gridRows;
-	int _gridCols;
-
-	bool _isSearchStepByStep;      // step by step search 시행중 여부
-	bool _isFoundDest;
-	char** _arr2CellInfo;          // cell 속성. (char)eCellInfo 를 값으로 가진다. 
-	                               // 배열의 크기는 (_gridRows + 2) * (_gridCols + 2) 인데, 전체 grid를 둘러싸는 가상의 wall을 만들기 위해서이다.
-	                               // 때문에 이 배열을 사용할 때는 (x, y) 좌표를 (x+1, y+1) 로 보정하여 사용한다.
-
-	JPSNode* _pStartNode;
-	std::multimap<float, JPSNode*> _mulmapOpenList;  // open list
-	std::vector<JPSNode*> _vecCloseList;             // close list
-	std::vector<POINT> _vecPath;                     // 경로 저장 벡터	
-	std::vector<POINT> _vecSmoothPath;               // Bresenham 알고리즘으로 보정된 path
-
-
-
-#ifdef CREATE_COLOR_GROUP
-	unsigned char** _arr2CellColorGroup;   // cell 색상 그룹. _colorGroup 을 값으로 가진다. 배열의 크기는 _gridRows * _gridCols 이다.
-	unsigned char _colorGroup;
-#endif
-
-
 public:
 	CJumpPointSearch();
 	~CJumpPointSearch();
 
 public:
 	// 파라미터 설정
-	// _arr2Wall는 grid Wall 정보. 값이 1이면 wall, 0이면 wall이 아님.
-	void SetParam(int startRow, int startCol, int endRow, int endCol, const char* const* arr2Wall, int gridRows, int gridCols);
+	void SetParam(const CGrid* pGrid);
 
 	// search
 	bool Search();
@@ -161,5 +97,70 @@ private:
 
 
 
+private:
+	POINT _ptStart;
+	POINT _ptEnd;
+	int _gridRows;
+	int _gridCols;
+
+	bool _isSearchStepByStep;      // step by step search 시행중 여부
+	bool _isFoundDest;
+	char** _arr2CellInfo;          // cell 속성. (char)eCellInfo 를 값으로 가진다. 
+	// 배열의 크기는 (_gridRows + 2) * (_gridCols + 2) 인데, 전체 grid를 둘러싸는 가상의 wall을 만들기 위해서이다.
+	// 때문에 이 배열을 사용할 때는 (x, y) 좌표를 (x+1, y+1) 로 보정하여 사용한다.
+
+	JPSNode* _pStartNode;
+	std::multimap<float, JPSNode*> _mulmapOpenList;  // open list
+	std::vector<JPSNode*> _vecCloseList;             // close list
+	std::vector<POINT> _vecPath;                     // 경로 저장 벡터	
+	std::vector<POINT> _vecSmoothPath;               // Bresenham 알고리즘으로 보정된 path
+
+
+
+#ifdef CREATE_COLOR_GROUP
+	unsigned char** _arr2CellColorGroup;   // cell 색상 그룹. _colorGroup 을 값으로 가진다. 배열의 크기는 _gridRows * _gridCols 이다.
+	unsigned char _colorGroup;
+#endif
+
+
+};
+
+
+
+
+class JPSNode
+{
+public:
+	JPSNode(int x, int y, JPSNode* pParent, float valG, float valH, eJPSNodeType type, eJPSNodeDirection direction)
+		: _x(x), _y(y), _pParent(pParent), _valG(valG), _valH(valH), _valF(valG + valH)
+		, _type(type), _direction(direction)
+	{ }
+
+	JPSNode()
+		: _x(0), _y(0), _pParent(nullptr), _valG(0.f), _valH(0.f), _valF(0.f)
+		, _type(eJPSNodeType::NONE), _direction(eJPSNodeDirection::NONE)
+	{}
+
+	void SetMembers(int x, int y, JPSNode* pParent, float valG, float valH, eJPSNodeType type, eJPSNodeDirection direction)
+	{
+		_x = x;
+		_y = y;
+		_pParent = pParent;
+		_valG = valG;
+		_valH = valH;
+		_valF = valG + valH;
+		_type = type;
+		_direction = direction;
+	}
+
+public:
+	int _x;
+	int _y;
+	JPSNode* _pParent;
+	float _valG;
+	float _valH;
+	float _valF;
+	eJPSNodeType _type;
+	eJPSNodeDirection _direction;
 
 };
