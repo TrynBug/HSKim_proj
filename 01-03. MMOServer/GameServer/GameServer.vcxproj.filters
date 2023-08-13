@@ -1,0 +1,180 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="소스 파일">
+      <UniqueIdentifier>{4FC737F1-C7A5-4376-A066-2A32D752A2FF}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;c++;cppm;ixx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="헤더 파일">
+      <UniqueIdentifier>{93995380-89BD-4b04-88EB-625FBE52EBFB}</UniqueIdentifier>
+      <Extensions>h;hh;hpp;hxx;h++;hm;inl;inc;ipp;xsd</Extensions>
+    </Filter>
+    <Filter Include="리소스 파일">
+      <UniqueIdentifier>{67DA6AB6-F800-4c08-8B7A-83BB121AAD01}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav;mfcribbon-ms</Extensions>
+    </Filter>
+    <Filter Include="소스 파일\01. GameServer">
+      <UniqueIdentifier>{449bf0ad-3bc8-4807-b689-af4e8738ac1a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\01. GameServer\Contents">
+      <UniqueIdentifier>{e7f8aaa9-0efc-4364-9f80-b85aa765e524}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\01. GameServer\Object">
+      <UniqueIdentifier>{34e9a49a-91f9-42ed-bf1d-6660d9b61778}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\03. LAN">
+      <UniqueIdentifier>{e0f25443-77ad-4fee-ac61-bd990da9ea43}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\04. DB">
+      <UniqueIdentifier>{88c3a232-2335-41eb-b62a-7570c2e35c8a}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="소스 파일\05. Utils">
+      <UniqueIdentifier>{f54e3582-5710-435d-82cd-c05f55d2afcf}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="CGameContents.cpp">
+      <Filter>소스 파일\01. GameServer\Contents</Filter>
+    </ClCompile>
+    <ClCompile Include="CGameContentsAuth.cpp">
+      <Filter>소스 파일\01. GameServer\Contents</Filter>
+    </ClCompile>
+    <ClCompile Include="CGameContentsField.cpp">
+      <Filter>소스 파일\01. GameServer\Contents</Filter>
+    </ClCompile>
+    <ClCompile Include="CCrystal.cpp">
+      <Filter>소스 파일\01. GameServer\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="CGameServer.cpp">
+      <Filter>소스 파일\01. GameServer</Filter>
+    </ClCompile>
+    <ClCompile Include="CLANClientMonitoring.cpp">
+      <Filter>소스 파일\03. LAN</Filter>
+    </ClCompile>
+    <ClCompile Include="CTile.cpp">
+      <Filter>소스 파일\01. GameServer</Filter>
+    </ClCompile>
+    <ClCompile Include="CSector.cpp">
+      <Filter>소스 파일\01. GameServer</Filter>
+    </ClCompile>
+    <ClCompile Include="CPlayer.cpp">
+      <Filter>소스 파일\01. GameServer\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="CObject.cpp">
+      <Filter>소스 파일\01. GameServer\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="CMonster.cpp">
+      <Filter>소스 파일\01. GameServer\Object</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CDBAsyncWriter.cpp">
+      <Filter>소스 파일\04. DB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CDBConnector.cpp">
+      <Filter>소스 파일\04. DB</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CCpuUsage.cpp">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CCrashDump.cpp">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CJsonParser.cpp">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CPDH.cpp">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\CRingbuffer.cpp">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\logger.cpp">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="..\utils\profiler.cpp">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClCompile>
+    <ClCompile Include="main.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+    <ClCompile Include="stdafx.cpp">
+      <Filter>소스 파일</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="CGameContents.h">
+      <Filter>소스 파일\01. GameServer\Contents</Filter>
+    </ClInclude>
+    <ClInclude Include="CGameContentsAuth.h">
+      <Filter>소스 파일\01. GameServer\Contents</Filter>
+    </ClInclude>
+    <ClInclude Include="CGameContentsField.h">
+      <Filter>소스 파일\01. GameServer\Contents</Filter>
+    </ClInclude>
+    <ClInclude Include="CCrystal.h">
+      <Filter>소스 파일\01. GameServer\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="CGameServer.h">
+      <Filter>소스 파일\01. GameServer</Filter>
+    </ClInclude>
+    <ClInclude Include="CLANClientMonitoring.h">
+      <Filter>소스 파일\03. LAN</Filter>
+    </ClInclude>
+    <ClInclude Include="defineGameServer.h">
+      <Filter>소스 파일\01. GameServer</Filter>
+    </ClInclude>
+    <ClInclude Include="CTile.h">
+      <Filter>소스 파일\01. GameServer</Filter>
+    </ClInclude>
+    <ClInclude Include="CSector.h">
+      <Filter>소스 파일\01. GameServer</Filter>
+    </ClInclude>
+    <ClInclude Include="CPlayer.h">
+      <Filter>소스 파일\01. GameServer\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="CObject.h">
+      <Filter>소스 파일\01. GameServer\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="CMonster.h">
+      <Filter>소스 파일\01. GameServer\Object</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CDBAsyncWriter.h">
+      <Filter>소스 파일\04. DB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CDBConnector.h">
+      <Filter>소스 파일\04. DB</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CCpuUsage.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CCrashDump.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CJsonParser.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CLockfreeQueue.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CMemoryPool.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CMemoryPoolTLS.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CPDH.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\CRingbuffer.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\logger.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="..\utils\profiler.h">
+      <Filter>소스 파일\05. Utils</Filter>
+    </ClInclude>
+    <ClInclude Include="stdafx.h">
+      <Filter>소스 파일</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>

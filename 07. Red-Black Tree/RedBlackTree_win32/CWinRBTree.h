@@ -31,7 +31,7 @@ namespace rbtree
 		void Close();
 
 	private:
-		/* Create Windows */
+		/* Windows */
 		ATOM MyRegisterClass(HINSTANCE hInstance);
 		BOOL InitInstance(HINSTANCE, int);
 		static LRESULT CALLBACK WndProc(HWND, UINT, WPARAM, LPARAM);
