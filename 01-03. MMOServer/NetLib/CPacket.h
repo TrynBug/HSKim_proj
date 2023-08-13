@@ -7,36 +7,12 @@ namespace netlib
 {
 	class CPacket
 	{
-	private:
-		char* _buf;
-		int _size;
-		int _sizeHeader;
-		int _offsetFront;
-		int _offsetRear;
-		bool _isHeaderSet; // 헤더 세팅 여부. PutHeader 함수 호출시 true가됨
-		bool _isEncoded;   // 암호화 여부. 암호화 후 수동으로 세팅해주어야함
-		long _useCount;
-
-		static int _sDefaultPacketSize;  // 패킷의 기본 버퍼 사이즈(기본값: 10000)
-
 	public:
 		CPacket();
 		~CPacket();
 
 		CPacket(const CPacket&) = delete;
 		CPacket(CPacket&&) = delete;
-
-	private:
-		inline void _checkWriteOverflow(int sizeWrite)
-		{
-			if (_offsetRear + sizeWrite >= _size)
-				throw std::overflow_error(std::string("Packet buffer overflow has occurred during write size ") + std::to_string(sizeWrite) + " data.\n");
-		}
-		inline void _checkReadOverflow(int sizeRead)
-		{
-			if (_offsetFront + sizeRead > _offsetRear)
-				throw std::overflow_error(std::string("Packet buffer overflow has occurred during read size ") + std::to_string(sizeRead) + " data.\n");
-		}
 
 	public:
 		/* 패킷 기본 크기 (static) */
@@ -278,9 +254,6 @@ namespace netlib
 		long AddUseCount(int value);
 		long SubUseCount();
 	
-	
-
-
 		/* 암호화 여부 */
 		void SetEncoded() { _isEncoded = true; }
 		void SetDecoded() { _isEncoded = false; }
@@ -295,5 +268,29 @@ namespace netlib
 		static int GetAllocCount();
 		static int GetActualAllocCount();
 		static int GetFreeCount();
+
+	private:
+		inline void _checkWriteOverflow(int sizeWrite)
+		{
+			if (_offsetRear + sizeWrite >= _size)
+				throw std::overflow_error(std::string("Packet buffer overflow has occurred during write size ") + std::to_string(sizeWrite) + " data.\n");
+		}
+		inline void _checkReadOverflow(int sizeRead)
+		{
+			if (_offsetFront + sizeRead > _offsetRear)
+				throw std::overflow_error(std::string("Packet buffer overflow has occurred during read size ") + std::to_string(sizeRead) + " data.\n");
+		}
+
+	private:
+		char* _buf;
+		int _size;
+		int _sizeHeader;
+		int _offsetFront;
+		int _offsetRear;
+		bool _isHeaderSet; // 헤더 세팅 여부. PutHeader 함수 호출시 true가됨
+		bool _isEncoded;   // 암호화 여부. 암호화 후 수동으로 세팅해주어야함
+		long _useCount;
+
+		static int _sDefaultPacketSize;  // 패킷의 기본 버퍼 사이즈(기본값: 10000)
 	};
 }
