@@ -94,7 +94,7 @@ const CJsonParser& CGameServer::Config::GetJsonParser() const
 bool CGameServer::StartUp()
 {
 	// 패킷풀 설정
-	netlib_game::CPacket::RegeneratePacketPool(10000, 0, 1000);
+	netlib_game::CPacket::RegeneratePacketPool(1000, 0, 1000);
 
 	// config 파일 읽기
 	// 현재 경로와 config 파일 경로를 얻음

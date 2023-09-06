@@ -430,8 +430,6 @@ void CChatServer::MoveSector(CPlayer_t& pPlayer, WORD x, WORD y)
 	if (pPlayer->_sectorX >= 0 && pPlayer->_sectorX < SECTOR_MAX_X
 		&& pPlayer->_sectorY >= 0 && pPlayer->_sectorY < SECTOR_MAX_Y)
 	{
-		CObject_t o = std::static_pointer_cast<CObject>(pPlayer);
-		CObject_t o2 = pPlayer;
 		_sector.RemoveObject(pPlayer->_sectorX, pPlayer->_sectorY, ESectorObjectType::PLAYER, pPlayer);
 	}
 	

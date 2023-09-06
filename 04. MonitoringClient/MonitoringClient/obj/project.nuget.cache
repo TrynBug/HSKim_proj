@@ -1,0 +1,15 @@
+{
+  "version": 2,
+  "dgSpecHash": "X/fJX2LDjcWuv8OPZuW63S+s9XZMy7mCq1qGgZoM0xpRdvokO9Af45hpX9VHDD38ozf4tTV9K90VnGgrgqam2A==",
+  "success": true,
+  "projectFilePath": "C:\\project\\HSKim_proj\\04. MonitoringClient\\MonitoringClient\\MonitoringClient.csproj",
+  "expectedPackageFiles": [
+    "C:\\Users\\polas\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.4\\microsoft.netcore.platforms.3.1.4.nupkg.sha512",
+    "C:\\Users\\polas\\.nuget\\packages\\microsoft.win32.systemevents\\4.7.0\\microsoft.win32.systemevents.4.7.0.nupkg.sha512",
+    "C:\\Users\\polas\\.nuget\\packages\\scottplot\\4.1.67\\scottplot.4.1.67.nupkg.sha512",
+    "C:\\Users\\polas\\.nuget\\packages\\scottplot.winforms\\4.1.67\\scottplot.winforms.4.1.67.nupkg.sha512",
+    "C:\\Users\\polas\\.nuget\\packages\\system.drawing.common\\4.7.2\\system.drawing.common.4.7.2.nupkg.sha512",
+    "C:\\Users\\polas\\.nuget\\packages\\system.numerics.vectors\\4.5.0\\system.numerics.vectors.4.5.0.nupkg.sha512"
+  ],
+  "logs": []
+}

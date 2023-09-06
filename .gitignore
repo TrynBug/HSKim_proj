@@ -11,6 +11,8 @@
 /01-03. MMOServer/NetLib/x64
 /01-03. MMOServer/LANClient/x64
 /01-03. MMOServer/MonitoringServer/x64
+/04. MonitoringClient/MonitoringClient/.vs
+/04. MonitoringClient/MonitoringClient/bin
 /04. Lockfree Stack/LockfreeStack/.vs/LockfreeStack
 /04. Lockfree Stack/LockfreeStack/LockfreeStack/x64
 /04. Lockfree Stack/LockfreeStack/x64
@@ -20,8 +22,6 @@
 /06. TLS 메모리풀/TLSMemoryPool/.vs/TLSMemoryPool
 /06. TLS 메모리풀/TLSMemoryPool/TLSMemoryPool/x64
 /06. TLS 메모리풀/TLSMemoryPool/x64
-/07. Red-Black Tree/RedBlackTree_win32/x64
-/07. Red-Black Tree/RedBlackTree_win32/.vs
 /08-09. 길찾기 프로그램/SearchAlgorithm_win32/.vs/SearchAlgorithm_win32
 /08-09. 길찾기 프로그램/SearchAlgorithm_win32/SearchAlgorithm_win32/x64
 /08-09. 길찾기 프로그램/SearchAlgorithm_win32/x64

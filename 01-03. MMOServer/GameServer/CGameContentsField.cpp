@@ -518,7 +518,7 @@ void CGameContentsField::OnInitialSessionJoin(__int64 sessionId)
 	LOGGING(LOGGING_LEVEL_ERROR, L"CGameContentsField::OnInitialSessionJoin. Invalid function call. sessionId:%lld\n", sessionId);
 }
 
-// 스레드에 플레이어과 들어왔을 때 호출됨(다른 컨텐츠로부터 이동해옴)
+// 스레드에 플레이어가 들어왔을 때 호출됨(다른 컨텐츠로부터 이동해옴)
 void CGameContentsField::OnPlayerJoin(__int64 sessionId, CPlayer_t pPlayer)
 {
 	PROFILE_BEGIN("CGameContentsField::OnPlayerJoin");

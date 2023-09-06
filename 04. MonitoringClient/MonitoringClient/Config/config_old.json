@@ -1,0 +1,150 @@
+{
+	"MonitoringServerIP":"192.168.0.5",
+	"MonitoringServerPort":10001,
+	"LoginKey":"ajfw@!cv980dSZ[fje#@fdj123948djf",
+	"PacketHeaderCode":109,
+	"PacketEncodeKey":30,
+	"AutoConnect":true,
+	"ListMonitor": [
+		{"Title":"", "Server":"GAME_SERVER"
+		    , "Display":"EMPTY", "DataEnum":0, "BackColor":"GRAY0"
+			, "Row":0, "Width":150, "Height":130},
+	
+		{"Title":"서버 CPU : %d %", "Server":"GAME_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":40, "BackColor":"GRAY0"
+			, "Row":0, "Width":430, "Height":130},
+			
+		{"Title":"서버 사용가능 메모리 : %d MB", "Server":"GAME_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":44, "BackColor":"GRAY0"
+			, "Row":0, "Width":430, "Height":130},
+			
+		{"Title":"Nonpaged Mem : %d MB", "Server":"GAME_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":41, "BackColor":"GRAY0"
+			, "Row":0, "Width":430, "Height":130},
+
+		{"Title":"Network Traffic (KB)", "Server":"GAME_SERVER"
+		    , "Display":"LINE_MULTI", "BackColor":"GRAY0"
+			, "Row":0, "Width":430, "Height":130
+			, "ListMultiData":[ {"DataEnum":42, "DataName":"Recv"},
+					            {"DataEnum":43, "DataName":"Send"} ] },
+					
+		
+		{"Title":"게임서버", "Server":"GAME_SERVER"
+		    , "Display":"ONOFF", "DataEnum":10, "BackColor":"GRAY2"
+			, "Row":1, "Width":150, "Height":130},
+		
+		{"Title":"게임서버 CPU : %d %", "Server":"GAME_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":11, "BackColor":"GRAY2"
+			, "Row":1, "Width":430, "Height":130},
+				
+		{"Title":"게임서버 메모리 : %d MB", "Server":"GAME_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":12, "BackColor":"GRAY2"
+			, "Row":1, "Width":430, "Height":130},
+			
+		{"Title":"PacketPool : %d", "Server":"GAME_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":23, "BackColor":"GRAY2"
+			, "Row":1, "Width":430, "Height":130},
+			
+		{"Title":"Accept TPS : %d", "Server":"GAME_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":16, "BackColor":"GRAY2"
+			, "Row":1, "Width":430, "Height":130},
+			
+		{"Title":"서버 CPU %", "Server":"GAME_SERVER"
+		    , "Display":"NUMBER", "DataEnum":11, "BackColor":"GRAY2"
+			, "Row":2, "Width":150, "Height":130},
+			
+		{"Title":"플레이어", "Server":"GAME_SERVER"
+		    , "Display":"LINE_MULTI", "BackColor":"GRAY2"
+			, "Row":2, "Width":430, "Height":130
+			, "ListMultiData":[ {"DataEnum":14, "DataName":"Auth"},
+					            {"DataEnum":15, "DataName":"Game"},
+							    {"DataEnum":13, "DataName":"Session"} ] },
+							
+		{"Title":"플레이어", "Server":"GAME_SERVER"
+		    , "Display":"NUMBER", "DataEnum":15, "BackColor":"GRAY2"
+			, "Row":2, "Width":300, "Height":130},
+			
+		{"Title":"Contents FPS", "Server":"GAME_SERVER"
+		    , "Display":"LINE_MULTI", "BackColor":"GRAY2"
+			, "Row":2, "Width":430, "Height":130
+			, "ListMultiData":[ {"DataEnum":21, "DataName":"Auth FPS"},
+					            {"DataEnum":22, "DataName":"Game FPS"} ] },
+							
+		{"Title":"DB Write", "Server":"GAME_SERVER"
+		    , "Display":"NUMBER", "DataEnum":19, "BackColor":"GRAY2"
+			, "Row":2, "Width":150, "Height":130},
+			
+		{"Title":"DB Msg Queue", "Server":"GAME_SERVER"
+		    , "Display":"NUMBER", "DataEnum":20, "BackColor":"GRAY2"
+			, "Row":2, "Width":150, "Height":130},
+			
+			
+		
+		{"Title":"채팅서버", "Server":"CHAT_SERVER"
+		    , "Display":"ONOFF", "DataEnum":30, "BackColor":"BLUE0"
+			, "Row":3, "Width":150, "Height":130},
+		
+		{"Title":"채팅서버 CPU : %d %", "Server":"CHAT_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":31, "BackColor":"BLUE0"
+			, "Row":3, "Width":430, "Height":130},
+				
+		{"Title":"채팅서버 메모리 : %d MB", "Server":"CHAT_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":32, "BackColor":"BLUE0"
+			, "Row":3, "Width":430, "Height":130},
+			
+		{"Title":"PacketPool : %d", "Server":"CHAT_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":36, "BackColor":"BLUE0"
+			, "Row":3, "Width":430, "Height":130},
+			
+		{"Title":"채팅서버 CPU %", "Server":"CHAT_SERVER"
+		    , "Display":"NUMBER", "DataEnum":31, "BackColor":"BLUE0"
+			, "Row":4, "Width":150, "Height":130},
+		
+		{"Title":"세션 : %d", "Server":"CHAT_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":33, "BackColor":"BLUE0"
+			, "Row":4, "Width":430, "Height":130},
+				
+		{"Title":"플레이어 : %d", "Server":"CHAT_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":34, "BackColor":"BLUE0"
+			, "Row":4, "Width":430, "Height":130},
+			
+		{"Title":"Message TPS (Update) : %d", "Server":"CHAT_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":35, "BackColor":"BLUE0"
+			, "Row":4, "Width":430, "Height":130},
+			
+		{"Title":"Message Queue : %d", "Server":"CHAT_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":37, "BackColor":"BLUE0"
+			, "Row":4, "Width":430, "Height":130},
+			
+			
+			
+		{"Title":"로그인서버", "Server":"LOGIN_SERVER"
+		    , "Display":"ONOFF", "DataEnum":1, "BackColor":"BLUE0"
+			, "Row":5, "Width":150, "Height":130},
+		
+		{"Title":"로그인서버 CPU : %d %", "Server":"LOGIN_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":2, "BackColor":"BLUE0"
+			, "Row":5, "Width":430, "Height":130},
+				
+		{"Title":"로그인서버 메모리 : %d MB", "Server":"LOGIN_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":3, "BackColor":"BLUE0"
+			, "Row":5, "Width":430, "Height":130},
+			
+		{"Title":"PacketPool : %d", "Server":"LOGIN_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":6, "BackColor":"BLUE0"
+			, "Row":5, "Width":430, "Height":130},
+		
+		{"Title":"", "Server":"LOGIN_SERVER"
+		    , "Display":"EMPTY", "DataEnum":0, "BackColor":"GRAY0"
+			, "Row":6, "Width":150, "Height":130},
+		
+		{"Title":"로그인서버 세션 : %d", "Server":"LOGIN_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":4, "BackColor":"BLUE0"
+			, "Row":6, "Width":430, "Height":130},
+				
+		{"Title":"인증성공 TPS", "Server":"LOGIN_SERVER"
+		    , "Display":"LINE_SINGLE", "DataEnum":5, "BackColor":"BLUE0"
+			, "Row":6, "Width":430, "Height":130}
+	]
+}
+
