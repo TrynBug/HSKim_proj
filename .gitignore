@@ -13,15 +13,15 @@
 /01-03. MMOServer/MonitoringServer/x64
 /04. MonitoringClient/MonitoringClient/.vs
 /04. MonitoringClient/MonitoringClient/bin
-/04. Lockfree Stack/LockfreeStack/.vs/LockfreeStack
-/04. Lockfree Stack/LockfreeStack/LockfreeStack/x64
-/04. Lockfree Stack/LockfreeStack/x64
-/05. Lockfree Queue/LockfreeQueue/.vs/LockfreeQueue
-/05. Lockfree Queue/LockfreeQueue/LockfreeQueue/x64
-/05. Lockfree Queue/LockfreeQueue/x64
-/06. TLS 메모리풀/TLSMemoryPool/.vs/TLSMemoryPool
-/06. TLS 메모리풀/TLSMemoryPool/TLSMemoryPool/x64
-/06. TLS 메모리풀/TLSMemoryPool/x64
+/05. Lockfree Stack/LockfreeStack/.vs/LockfreeStack
+/05. Lockfree Stack/LockfreeStack/LockfreeStack/x64
+/05. Lockfree Stack/LockfreeStack/x64
+/06. Lockfree Queue/LockfreeQueue/.vs/LockfreeQueue
+/06. Lockfree Queue/LockfreeQueue/LockfreeQueue/x64
+/06. Lockfree Queue/LockfreeQueue/x64
+/07. TLS 메모리풀/TLSMemoryPool/.vs/TLSMemoryPool
+/07. TLS 메모리풀/TLSMemoryPool/TLSMemoryPool/x64
+/07. TLS 메모리풀/TLSMemoryPool/x64
 /08-09. 길찾기 프로그램/SearchAlgorithm_win32/.vs/SearchAlgorithm_win32
 /08-09. 길찾기 프로그램/SearchAlgorithm_win32/SearchAlgorithm_win32/x64
 /08-09. 길찾기 프로그램/SearchAlgorithm_win32/x64
