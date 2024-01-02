@@ -10,7 +10,7 @@ namespace Server.Data
     [Serializable]
     public class ServerConfig
     {
-        public string dataPath;  // 현재 값은 dataPath="../../../../../RookissMMORPG/Assets/Resources/Data" 이다.
+        public string dataPath;  // 현재 값은 dataPath="../../../../../Client/Assets/Resources/Data" 이다.
     }
 
     // 서버 설정파일을 관리하는 매니저

@@ -44,7 +44,7 @@ namespace Server.Game
             // 타겟 플레이어 찾기
             Player target = Room.FindPlayer(p =>
             {
-                Vector2Int dir = p.CellPos - CellPos;
+                Vector2Int dir = p.Cell - Cell;
                 return dir.cellDistFromZero <= _searchCellDist;
             });
             if (target == null)
@@ -74,7 +74,7 @@ namespace Server.Game
             }
 
             // 타겟이 너무 멀리 있을 경우 종료
-            Vector2Int dir = _target.CellPos - CellPos;
+            Vector2Int dir = _target.Cell - Cell;
             int dist = dir.cellDistFromZero;
             if (dist == 0 || dist > _chaseCellDist)
             {
@@ -85,7 +85,7 @@ namespace Server.Game
             }
 
             // 타겟까지의 길 찾기
-            List<Vector2Int> path = Room.Map.FindPath(CellPos, _target.CellPos, checkObjects: false);
+            List<Vector2Int> path = Room.Map.FindPath(Cell, _target.Cell, checkObjects: false);
             // 길이 없거나(path.Count < 2) 너무 멀리 있을경우 종료
             if (path.Count < 2 || path.Count > _chaseCellDist)
             {
@@ -105,8 +105,8 @@ namespace Server.Game
 
             // 이동
             Dir = GetDirFromVec(path[1]);
-            Room.Map.ApplyMove(this, path[1]);
-            Logger.WriteLog(LogLevel.Debug, $"Monster.UpdateMoving. Id:{Id}, pos:{CellPos}");
+            Room.Map.TryMove(this, path[1]);
+            Logger.WriteLog(LogLevel.Debug, $"Monster.UpdateMoving. Id:{Id}, pos:{Cell}");
 
             // 이동패킷 전송
             BroadcastMove();
@@ -136,7 +136,7 @@ namespace Server.Game
                 }
 
                 // 스킬 범위 체크
-                Vector2Int dir = (_target.CellPos - CellPos);
+                Vector2Int dir = (_target.Cell - Cell);
                 int dist = dir.cellDistFromZero;
                 bool canUseSkill = (dist <= _skillRange && (dir.x == 0 || dir.y == 0));
                 if(canUseSkill == false)
@@ -147,7 +147,7 @@ namespace Server.Game
                 }
 
                 // 타겟 바라보기
-                MoveDir lookDir = GetDirFromVec(_target.CellPos);
+                MoveDir lookDir = GetDirFromVec(_target.Cell);
                 if(Dir != lookDir)
                 {
                     Dir = lookDir;
@@ -158,7 +158,7 @@ namespace Server.Game
                 Skill skillData = null;
                 DataManager.SkillDict.TryGetValue(1, out skillData);
                 _target.OnDamaged(this, skillData.damage + Stat.Attack);
-                Logger.WriteLog(LogLevel.Debug, $"Monster.UpdateSkill. Id:{Id}, pos:{CellPos}, targetPos:{_target.CellPos}");
+                Logger.WriteLog(LogLevel.Debug, $"Monster.UpdateSkill. Id:{Id}, pos:{Cell}, targetPos:{_target.Cell}");
 
                 // 스킬 사용 패킷 전송
                 S_Skill skill = new S_Skill() { Info = new SkillInfo() };

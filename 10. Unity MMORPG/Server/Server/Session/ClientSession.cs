@@ -40,13 +40,13 @@ namespace Server
         public override void OnConnected(EndPoint endPoint)
         {
             // 플레이어 생성
+            GameRoom room = RoomManager.Instance.Find(1);
             MyPlayer = ObjectManager.Instance.Add<Player>();
             {
                 MyPlayer.Info.Name = $"Player_{MyPlayer.Id}";
-                MyPlayer.Info.PosInfo.State = CreatureState.Idle;
-                MyPlayer.Info.PosInfo.MoveDir = MoveDir.Down;
-                MyPlayer.Info.PosInfo.PosX = 0;
-                MyPlayer.Info.PosInfo.PosY = 0;
+                MyPlayer.State = CreatureState.Idle;
+                MyPlayer.Dir = MoveDir.Down;
+                MyPlayer.Pos = room.PosCenter;
 
                 StatInfo stat = null;
                 DataManager.StatDict.TryGetValue(1, out stat);
@@ -57,7 +57,7 @@ namespace Server
             Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnConnected. sessionId:{SessionId}, playerId:{MyPlayer.Info.ObjectId}, endPoint:{endPoint}");
 
             // 1번 게임룸에 플레이어 추가
-            RoomManager.Instance.Find(1).EnterGame(MyPlayer);
+            room.EnterGame(MyPlayer);
         }
 
         public override void OnDisconnected(EndPoint endPoint)

@@ -21,14 +21,20 @@ namespace Server.Game
     {
         public int RoomId { get; set; }
 
+        // object
         Dictionary<int, Player> _players = new Dictionary<int, Player>();
         Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
         Dictionary<int, Projectile> _projectiles = new Dictionary<int, Projectile>();
 
+        // map
         public Map Map { get; private set; } = new Map();
-        //Map Map { get; set; } = new Map();
+
+        // pos
+        public Vector2 PosCenter { get { return Util.CellToCenterPos(CellCenter); } }
+        public Vector2Int CellCenter { get { return new Vector2Int(Map.CellMaxX / 2, Map.CellMaxY / 2); } }
 
 
+        // push job
         public void Init(int mapId) { Push(_init, mapId); }
         public void EnterGame(GameObject gameObject) { Push(_enterGame, gameObject); }
         public void LeaveGame(int objectId) { Push(_leaveGame, objectId); }
@@ -97,12 +103,12 @@ namespace Server.Game
                 Player newPlayer = gameObject as Player;
                 newPlayer.Room = this;
                 Vector2Int emptyCell;
-                if(Map.GetEmptyCell(newPlayer.CellPos, true, out emptyCell) == false)
+                if(Map.GetEmptyCell(newPlayer.Cell, true, out emptyCell) == false)
                 {
-                    Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. objectId:{newPlayer.Id}");
+                    Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. {newPlayer}");
                     return;
                 }
-                newPlayer.CellPos = emptyCell;
+                newPlayer.Pos = Util.CellToCenterPos(emptyCell);
                 _players.Add(newPlayer.Id, newPlayer);
 
                 // 맵에 추가
@@ -135,12 +141,12 @@ namespace Server.Game
                 Monster monster = gameObject as Monster;
                 monster.Room = this;
                 Vector2Int emptyCell;
-                if (Map.GetEmptyCell(monster.CellPos, true, out emptyCell) == false)
+                if (Map.GetEmptyCell(monster.Cell, true, out emptyCell) == false)
                 {
                     Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. objectId:{monster.Id}");
                     return;
                 }
-                monster.CellPos = emptyCell;
+                monster.Pos = Util.CellToCenterPos(emptyCell);
                 _monsters.Add(monster.Id, monster);
 
                 // 맵에 추가
@@ -164,8 +170,7 @@ namespace Server.Game
                 }
             }
 
-            Logger.WriteLog(LogLevel.Debug, $"GameRoom.EnterGame. ObjectId:{gameObject.Id}, type:{type}, " +
-                $"state:{gameObject.PosInfo.State}, dir:{gameObject.PosInfo.MoveDir}, pos:({gameObject.PosInfo.PosX},{gameObject.PosInfo.PosY})");
+            Logger.WriteLog(LogLevel.Debug, $"GameRoom.EnterGame. {gameObject.ToString(InfoLevel.All)}");
             
         }
 
@@ -250,24 +255,21 @@ namespace Server.Game
             if (player == null)
                 return;
 
+
             PositionInfo movePosInfo = movePacket.PosInfo;
             ObjectInfo info = player.Info;
+            Vector2Int destCell = Util.PosToCell(new Vector2(movePosInfo.PosX, movePosInfo.PosY));
 
-            // 다른 좌표로 이동할 경우 갈 수 있는지 체크
-            if(movePosInfo.PosX != info.PosInfo.PosX || movePosInfo.PosY != info.PosInfo.PosY)
-            {
-                if (Map.CanGo(new Vector2Int(movePosInfo.PosX, movePosInfo.PosY)) == false)
-                {
-                    Logger.WriteLog(LogLevel.Error, $"GameRoom.HandleMove. Player can't go to position. " +
-                        $"objectId:{info.ObjectId}, state:{info.PosInfo.State}, dir:{info.PosInfo.MoveDir}, pos:({info.PosInfo.PosX},{info.PosInfo.PosY})");
-                    return;
-                }
-            }
+            // cell 이동을 시도한다. (cell 위치가 같아도 성공임)
+            bool isMoved = Map.TryMove(player, destCell);
+            if (isMoved == false)
+                return;
 
-            // 위치 이동
-            info.PosInfo.State = movePosInfo.State;
-            info.PosInfo.MoveDir = movePosInfo.MoveDir;
-            Map.ApplyMove(player, new Vector2Int(movePosInfo.PosX, movePosInfo.PosY));
+
+            // cell 이동 성공시 위치이동
+            player.Pos = new Vector2(movePosInfo.PosX, movePosInfo.PosY);
+            player.Dir = movePosInfo.MoveDir;
+            player.State = movePosInfo.State;
 
             // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
             S_Move resMovePacket = new S_Move();

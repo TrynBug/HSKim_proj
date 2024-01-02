@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ServerCore;
+using System.Numerics;
 
 namespace Server.Game
 {
@@ -18,22 +19,25 @@ namespace Server.Game
         }
 
         public GameRoom Room { get; set; } = null;
-        public ObjectInfo Info { get; set; } = new ObjectInfo();   // Info.PosInfo 는 PosInfo를 리턴함
+        public ObjectInfo Info { get; private set; } = new ObjectInfo();   // Info.PosInfo 는 PosInfo를 리턴함
         public PositionInfo PosInfo { get; private set; } = new PositionInfo();
         public StatInfo Stat { get; private set; } = new StatInfo();  // Info.StatInfo 는 Stat을 리턴함
 
-        public Vector2Int CellPos
+        public Vector2 Pos
         {
             get
             {
-                return new Vector2Int(PosInfo.PosX, PosInfo.PosY);
+                return new Vector2(PosInfo.PosX, PosInfo.PosY);
             }
             set
             {
                 PosInfo.PosX = value.x;
                 PosInfo.PosY = value.y;
+                Cell = Util.PosToCell(Pos);
             }
         }
+
+        public Vector2Int Cell { get; private set; }
 
         public float Speed
         {
@@ -53,17 +57,46 @@ namespace Server.Game
             set { PosInfo.MoveDir = value; }
         }
 
+        public int Hp
+        {
+            get { return Stat.Hp; }
+            set { Stat.Hp = Math.Clamp(value, 0, Stat.MaxHp); }
+        }
+
+
         public GameObject()
         {
             Info.PosInfo = PosInfo;
             Info.StatInfo = Stat;
         }
 
-        public int Hp
+
+
+
+        // ToString
+        public override string? ToString()
         {
-            get { return Stat.Hp; }
-            set { Stat.Hp = Math.Clamp(value, 0, Stat.MaxHp); }
+            return ToString(InfoLevel.Identity);
         }
+        public virtual string? ToString(InfoLevel infoType)
+        {
+            switch (infoType)
+            {
+                case InfoLevel.Identity:
+                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}";
+                case InfoLevel.Position:
+                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}, pos:{Pos}, cell:{Cell}, state:{State}, dir:{Dir}";
+                case InfoLevel.Stat:
+                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}, speed:{Speed}, hp:{Hp}";
+                case InfoLevel.All:
+                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}, pos:{Pos}, cell:{Cell}, state:{State}, dir:{Dir}, speed:{Speed}, hp:{Hp}";
+                default:
+                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}";
+            }
+        }
+
+
+
 
         // update
         public virtual void Update()
@@ -105,7 +138,7 @@ namespace Server.Game
         //  특정 방향 앞의 Cell 좌표 얻기
         public Vector2Int GetFrontCellPos(MoveDir dir)
         {
-            Vector2Int cellPos = CellPos;
+            Vector2Int cellPos = Cell;
 
             switch (dir)
             {
@@ -135,7 +168,7 @@ namespace Server.Game
         // 내 위치를 기준으로 했을 때 target이 어느 방향에 있는지 알아냄
         public MoveDir GetDirFromVec(Vector2Int target)
         {
-            Vector2Int diff = target - CellPos;
+            Vector2Int diff = target - Cell;
             if (diff.x > 0)
                 return MoveDir.Right;
             else if (diff.x < 0)
