@@ -99,7 +99,7 @@ namespace Server.Game
             if(dist <= _skillRange && (dir.x == 0 || dir.y == 0))
             {
                 _coolTick = 0;
-                State = CreatureState.Skill;
+                //State = CreatureState.Skill;
                 return;
             }
 

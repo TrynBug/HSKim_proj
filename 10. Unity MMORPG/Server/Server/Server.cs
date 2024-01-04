@@ -37,8 +37,10 @@ namespace Server
 
 
             // 게임룸 생성
-            GameRoom room = RoomManager.Instance.Add(1);
-            TickRoom(room, 50);  // 50 tick 마다 update
+            for(int i=1; i<=10; i++)
+                RoomManager.Instance.Add(i);
+            //TickRoom(room, 50);  // 50 tick 마다 update
+            RoomManager.Instance.RunAllRooms();
 
 
             // DNS로 내 IP를 알아낸다.
@@ -56,7 +58,8 @@ namespace Server
             {
                 //RoomManager.Instance.Find(1).Update();
 
-                Thread.Sleep(100);
+                Thread.Sleep(1000);
+                Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}");
             }
         }
     }

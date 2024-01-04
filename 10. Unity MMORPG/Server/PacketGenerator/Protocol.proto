@@ -21,8 +21,7 @@ enum CreatureState
 {
     IDLE = 0;    
     MOVING = 1;
-    SKILL = 2;
-    DEAD = 3;
+    DEAD = 2;
 }
 
 enum MoveDir
@@ -112,6 +111,8 @@ message PositionInfo {
     MoveDir moveDir = 2;
     float posX = 3;
     float posY = 4;
+    float destX = 5;
+    float destY = 6;
 }
 
 message StatInfo {

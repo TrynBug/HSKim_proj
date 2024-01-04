@@ -60,7 +60,7 @@ public abstract class CreatureController : BaseController
     protected void AddHpBar()
     {
         GameObject go = Managers.Resource.Instantiate("UI/HpBar", transform);
-        go.transform.localPosition = new Vector3(0, 0.5f, 0);
+        go.transform.localPosition = new Vector3(0, 1.0f, 0);
         go.name = "HpBar";
         _hpBar = go.GetComponent<HpBar>();
         UpdateHpBar();

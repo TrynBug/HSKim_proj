@@ -48,4 +48,13 @@ public class Define
     {
         QuarterView,
     }
+
+
+    public enum InfoLevel
+    {
+        Identity,
+        Position,
+        Stat,
+        All,
+    }
 }

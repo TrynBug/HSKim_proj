@@ -21,6 +21,19 @@ namespace Server.Game
     {
         public int RoomId { get; set; }
 
+        // FPS, Delta Time
+        public Time Time { get; private set; } = new Time();
+        class CalcFrame           // 프레임 시간 계산을 위한 값들
+        {
+            public long logicStartTime = 0;       // 로직 시작 tick
+            public long logicEndTime = 0;         // 로직 종료 tick
+            public long catchUpTime = 0;          // FPS를 유지하기위해 따라잡아야할 tick. 이 값만큼 덜 sleep 해야한다.
+            public void Init() { logicStartTime = DateTime.Now.Ticks; }
+        };
+        CalcFrame _calcFrame = new CalcFrame();
+        System.Timers.Timer _timer = new System.Timers.Timer();
+        int _sleepMilliseconds = 0;
+
         // object
         Dictionary<int, Player> _players = new Dictionary<int, Player>();
         Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
@@ -34,11 +47,16 @@ namespace Server.Game
         public Vector2Int CellCenter { get { return new Vector2Int(Map.CellMaxX / 2, Map.CellMaxY / 2); } }
 
 
+
+
+
+
+
         // push job
         public void Init(int mapId) { Push(_init, mapId); }
         public void EnterGame(GameObject gameObject) { Push(_enterGame, gameObject); }
         public void LeaveGame(int objectId) { Push(_leaveGame, objectId); }
-        public void Update() { Push(_update); }
+        //public void Update() { Push(_update); }
         public void Broadcast(IMessage packet) { Push(_broadcast, packet); }
         public void HandleMove(Player player, C_Move movePacket) { Push(_handleMove, player, movePacket); }
         public void HandleSkill(Player player, C_Skill skillPacket) { Push(_handleSkill, player, skillPacket); }
@@ -54,6 +72,7 @@ namespace Server.Game
                 if (condition.Invoke(player))
                     return player;
             }
+            
             return null;
         }
 
@@ -64,6 +83,27 @@ namespace Server.Game
             // temp
             Monster monster = ObjectManager.Instance.Add<Monster>();
             _enterGame(monster);
+
+            _timer.Elapsed += ((s, e) => Run());
+            _calcFrame.Init();
+        }
+
+
+
+        public void Run()
+        {
+            // 다음 로직의 시작시간은 [현재 로직 종료시간 + sleep한 시간] 이다.
+            _calcFrame.logicStartTime = _calcFrame.logicEndTime + (_sleepMilliseconds * (TimeSpan.TicksPerSecond / 1000));
+            Time.Update();
+
+            _update();
+            _sleepMilliseconds = _calcSleepTime();
+            //Logger.WriteLog(LogLevel.Debug, $"room:{RoomId}, DT:{Time.DeltaTime}, FPS:{Time.AvgFPS1m}, sleep:{_sleepMilliseconds}, thread:{Thread.CurrentThread.ManagedThreadId}");
+
+            _timer.Interval = _sleepMilliseconds;
+            _timer.AutoReset = false;
+            _timer.Enabled = true;     // timer를 실행한다.
+
         }
 
         public void _update()
@@ -86,6 +126,43 @@ namespace Server.Game
             Flush();  // job queue 내의 모든 job 실행
         }
 
+        // 로직 실행시간을 FPS에 맞춘다. 수행못한 프레임은 버린다. 최대 FPS가 지정한 값으로 유지된다.
+        private void _syncLogicTime()
+        {
+            long oneFrameTime = TimeSpan.TicksPerSecond / Config.FPS;
+            _calcFrame.logicEndTime = DateTime.Now.Ticks;
+            long spentTime = Math.Max(0, _calcFrame.logicEndTime - _calcFrame.logicStartTime);
+            long sleepTime = oneFrameTime - spentTime;
+
+            int sleepMilliseconds = 0;
+            // sleep 해야할 시간이 있는 경우
+            if (sleepTime > 0)
+            {
+                // sleep 시간을 ms 단위로 변환하여 sleep 한다.
+                sleepMilliseconds = (int)Math.Round((double)(sleepTime * 1000) / (double)TimeSpan.TicksPerSecond);
+                Thread.Sleep(sleepMilliseconds);
+            }
+
+            // 다음 로직의 시작시간은 [현재 로직 종료시간 + sleep한 시간] 이다.
+            _calcFrame.logicStartTime = _calcFrame.logicEndTime + (sleepMilliseconds * (TimeSpan.TicksPerSecond / 1000));
+        }
+
+        private int _calcSleepTime()
+        {
+            long oneFrameTime = TimeSpan.TicksPerSecond / Config.FPS;
+            _calcFrame.logicEndTime = DateTime.Now.Ticks;
+            long spentTime = Math.Max(0, _calcFrame.logicEndTime - _calcFrame.logicStartTime);
+            long sleepTime = oneFrameTime - spentTime;
+
+            int sleepMilliseconds = 0;
+            // sleep 해야할 시간이 있는 경우
+            if (sleepTime > 0)
+            {
+                // sleep 시간을 ms 단위로 변환하여 sleep 한다.
+                sleepMilliseconds = (int)Math.Round((double)(sleepTime * 1000) / (double)TimeSpan.TicksPerSecond);
+            }
+            return sleepMilliseconds;
+        }
 
 
         // 오브젝트가 게임룸에 들어옴
@@ -103,7 +180,7 @@ namespace Server.Game
                 Player newPlayer = gameObject as Player;
                 newPlayer.Room = this;
                 Vector2Int emptyCell;
-                if(Map.GetEmptyCell(newPlayer.Cell, true, out emptyCell) == false)
+                if(Map.FindEmptyCell(newPlayer.Cell, true, out emptyCell) == false)
                 {
                     Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. {newPlayer}");
                     return;
@@ -141,7 +218,7 @@ namespace Server.Game
                 Monster monster = gameObject as Monster;
                 monster.Room = this;
                 Vector2Int emptyCell;
-                if (Map.GetEmptyCell(monster.Cell, true, out emptyCell) == false)
+                if (Map.FindEmptyCell(monster.Cell, true, out emptyCell) == false)
                 {
                     Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. objectId:{monster.Id}");
                     return;
@@ -255,28 +332,28 @@ namespace Server.Game
             if (player == null)
                 return;
 
-
             PositionInfo movePosInfo = movePacket.PosInfo;
             ObjectInfo info = player.Info;
-            Vector2Int destCell = Util.PosToCell(new Vector2(movePosInfo.PosX, movePosInfo.PosY));
-
-            // cell 이동을 시도한다. (cell 위치가 같아도 성공임)
-            bool isMoved = Map.TryMove(player, destCell);
-            if (isMoved == false)
-                return;
 
 
-            // cell 이동 성공시 위치이동
-            player.Pos = new Vector2(movePosInfo.PosX, movePosInfo.PosY);
+            // 클라 pos와 서버 pos가 크게 다를 경우 처리?
+            // TBC
+
+            
+            // 위치 설정
+            // Pos는 변경하지 않는다?
+            player.Dest = new Vector2(movePosInfo.DestX, movePosInfo.DestY);
             player.Dir = movePosInfo.MoveDir;
             player.State = movePosInfo.State;
+
 
             // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
             S_Move resMovePacket = new S_Move();
             resMovePacket.ObjectId = info.ObjectId;
-            resMovePacket.PosInfo = info.PosInfo;
+            resMovePacket.PosInfo = info.PosInfo.Clone();
             _broadcast(resMovePacket);
         }
+
 
         // 스킬사용요청 처리
         public void _handleSkill(Player player, C_Skill skillPacket)
@@ -293,7 +370,7 @@ namespace Server.Game
             }
 
             // 플레이어 상태변경
-            info.PosInfo.State = CreatureState.Skill;
+            //info.PosInfo.State = CreatureState.Skill;
 
             // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
             S_Skill resSkillPacket = new S_Skill() { Info = new SkillInfo() };

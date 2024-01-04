@@ -15,6 +15,7 @@ public class PlayerController : CreatureController
 
     protected override void Init()
     {
+        ObjectType = GameObjectType.Player;
         base.Init();
     }
 
@@ -58,7 +59,7 @@ public class PlayerController : CreatureController
     {
         // 쿨타임 후 상태를 Idle로 바꾼다.
         _rangeSkill = false;
-        State = CreatureState.Skill;
+        //State = CreatureState.Skill;
         yield return new WaitForSeconds(0.5f);
         State = CreatureState.Idle;
         _coSkill = null;
@@ -70,7 +71,7 @@ public class PlayerController : CreatureController
     {
         // 쿨타임 후 상태를 Idle로 바꾼다.
         _rangeSkill = true;
-        State = CreatureState.Skill;
+        //State = CreatureState.Skill;
         yield return new WaitForSeconds(0.3f);
         State = CreatureState.Idle;
         _coSkill = null;

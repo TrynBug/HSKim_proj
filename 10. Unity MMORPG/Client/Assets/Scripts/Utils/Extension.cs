@@ -21,4 +21,10 @@ public static class Extension
     {
         return go != null && go.activeSelf;
     }
+
+
+    public static float AbsSumXY(this Vector3 v)
+    {
+        return Mathf.Abs(v.x) + Mathf.Abs(v.y);
+    }
 }

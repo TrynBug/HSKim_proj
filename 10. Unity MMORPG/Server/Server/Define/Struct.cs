@@ -23,9 +23,40 @@ namespace Server
             return new Vector2(a.x - b.x, a.y - b.y);
         }
 
-        public float sqrtMagnitude { get { return (x * x + y * y); } }
-        public float magnitude { get { return (float)Math.Sqrt(sqrtMagnitude); } }
+        public static Vector2 operator *(Vector2 a, Vector2 b)
+        {
+            return new Vector2(a.x * b.x, a.y * b.y);
+        }
+
+        public static Vector2 operator /(Vector2 a, Vector2 b)
+        {
+            return new Vector2(a.x / b.x, a.y / b.y);
+        }
+
+        public static Vector2 operator +(Vector2 a, float b)
+        {
+            return new Vector2(a.x + b, a.y + b);
+        }
+
+        public static Vector2 operator -(Vector2 a, float b)
+        {
+            return new Vector2(a.x - b, a.y - b);
+        }
+
+        public static Vector2 operator *(Vector2 a, float b)
+        {
+            return new Vector2(a.x * b, a.y * b);
+        }
+
+        public static Vector2 operator /(Vector2 a, float b)
+        {
+            return new Vector2(a.x / b, a.y / b);
+        }
+
+        public float squareMagnitude { get { return (x * x + y * y); } }
+        public float magnitude { get { return (float)Math.Sqrt(squareMagnitude); } }
         public float cellDistFromZero { get { return Math.Abs(x) + Math.Abs(y); } }
+        public Vector2 normalized { get { return new Vector2(x / magnitude, y / magnitude); } }
 
         public override string? ToString() { return $"({x},{y})"; }
     }

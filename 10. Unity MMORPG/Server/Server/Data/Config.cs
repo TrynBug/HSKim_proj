@@ -8,8 +8,12 @@ namespace Server.Data
 {
     public static class Config
     {
-        public static readonly int CellMultiple = 2;
-        public static readonly float CellWidth = 1f / CellMultiple;
-        public static readonly float CellHeight = 1f / CellMultiple;
+        /* room */
+        public const int FPS = 4;
+
+        /* map */
+        public const int CellMultiple = 2;
+        public const float CellWidth = 1f / CellMultiple;
+        public const float CellHeight = 1f / CellMultiple;
     }
 }

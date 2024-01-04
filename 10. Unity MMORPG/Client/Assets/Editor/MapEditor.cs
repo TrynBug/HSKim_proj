@@ -39,7 +39,7 @@ public class MapEditor
             {
                 // 1개 cell 크기 write
                 writer.WriteLine(grid.cellSize.x);
-                writer.WriteLine(grid.cellSize.z);
+                writer.WriteLine(grid.cellSize.y);
                 
                 // Ground 타일맵의 크기를 write한다.
                 writer.WriteLine(tmGround.cellBounds.xMin);

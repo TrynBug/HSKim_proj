@@ -36,7 +36,7 @@ namespace Server.Game
                 Cell = Util.PosToCell(Pos);
             }
         }
-
+        public Vector2 Dest { get; set; }
         public Vector2Int Cell { get; private set; }
 
         public float Speed
@@ -108,9 +108,6 @@ namespace Server.Game
                     break;
                 case CreatureState.Moving:
                     UpdateMoving();
-                    break;
-                case CreatureState.Skill:
-                    UpdateSkill();
                     break;
                 case CreatureState.Dead:
                     UpdateDead();

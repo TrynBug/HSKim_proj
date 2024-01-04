@@ -30,6 +30,7 @@ namespace Server.Game
             return gameRoom;
         }
 
+
         public bool Remove(int roomId)
         {
             lock(_lock)
@@ -42,6 +43,7 @@ namespace Server.Game
             }
         }
 
+
         public GameRoom Find(int roomId)
         {
             lock(_lock)
@@ -53,5 +55,34 @@ namespace Server.Game
                 return null;
             }
         }
+
+
+        public void RunAllRooms()
+        {
+            Logger.WriteLog(LogLevel.Debug, $"Start RunAllRooms");
+            lock (_lock)
+            {
+                foreach (GameRoom room in _rooms.Values)
+                {
+                    room.Run();
+                    //Task task = new Task((object? r) =>
+                    //{
+                    //    while (true)
+                    //    {
+                    //        GameRoom room = r as GameRoom;
+                    //        room._update();
+                    //        Logger.WriteLog(LogLevel.Debug, $"room:{room.RoomId}, DT:{room.Time.DeltaTime}, FPS:{room.Time.AvgFPS1m}, thread:{Thread.CurrentThread.ManagedThreadId}");
+                    //    }
+                    //}
+                    //, room);
+                    //task.Start();
+                    Logger.WriteLog(LogLevel.Debug, $"start room {room.RoomId}");
+                }
+            }
+            Logger.WriteLog(LogLevel.Debug, $"End RunAllRooms");
+        }
+
+
+
     }
 }

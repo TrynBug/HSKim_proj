@@ -3,6 +3,14 @@
 ##
 ## Get latest from https://github.com/github/gitignore/blob/main/VisualStudio.gitignore
 
+
+
+# 제외대상이 아님
+!/Common/
+
+
+
+
 # User-specific files
 *.rsuser
 *.suo
@@ -397,5 +405,3 @@ FodyWeavers.xsd
 # JetBrains Rider
 *.sln.iml
 
-# 제외대상이 아님
-!/Common/

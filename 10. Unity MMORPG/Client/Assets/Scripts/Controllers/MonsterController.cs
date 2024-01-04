@@ -34,9 +34,5 @@ public class MonsterController : CreatureController
 
     public override void UseSkill(int skillId)
     {
-        if (skillId == 1)
-        {
-            State = CreatureState.Skill;
-        }
     }
 }

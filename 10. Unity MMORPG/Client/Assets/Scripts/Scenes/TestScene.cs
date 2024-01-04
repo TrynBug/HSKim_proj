@@ -6,6 +6,14 @@ using UnityEngine.Tilemaps;
 
 public class TestScene : BaseScene
 {
+    protected override void Awake()
+    {
+        base.Awake();
+
+        // 맵 데이터 로드
+        Managers.Map.LoadMap(1);
+    }
+
     // Start is called before the first frame update
     void Start()
     {

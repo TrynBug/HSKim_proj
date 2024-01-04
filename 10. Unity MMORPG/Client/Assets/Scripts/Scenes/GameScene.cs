@@ -5,17 +5,22 @@ using ServerCore;
 
 public class GameScene : BaseScene
 {
-    protected override void Init()
+    protected override void Awake()
     {
-        base.Init();
-        SceneType = Define.Scene.Game;
+        base.Awake();
 
         // 해상도 설정
         Screen.SetResolution(640, 480, false);  // 해상도 640 x 480 으로 설정하고 fullscreen은 false로 한다.
 
         // 맵 데이터 로드
         Managers.Map.LoadMap(1);
+    }
 
+
+    protected override void Init()
+    {
+        base.Init();
+        SceneType = Define.Scene.Game;
 
         // 몬스터 생성
         //for (int i = 0; i < 5; i++)

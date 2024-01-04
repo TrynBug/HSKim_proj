@@ -100,12 +100,15 @@ namespace Server.Game
                     {
                         _collision[y * CellMultiple, x * CellMultiple] = true;
                         _collision[y * CellMultiple, x * CellMultiple + 1] = true;
-
+                        _collision[y * CellMultiple + 1, x * CellMultiple] = true;
+                        _collision[y * CellMultiple + 1, x * CellMultiple + 1] = true;
                     }
                     else
                     {
                         _collision[y * CellMultiple, x * CellMultiple] = false;
                         _collision[y * CellMultiple, x * CellMultiple + 1] = false;
+                        _collision[y * CellMultiple + 1, x * CellMultiple] = false;
+                        _collision[y * CellMultiple + 1, x * CellMultiple + 1] = false;
                     }
 
                 }
@@ -205,7 +208,7 @@ namespace Server.Game
 
         // center를 기준으로 가장 가까운 빈 공간을 찾아준다.
         // 찾았으면 true, 찾지 못했으면 false를 리턴함
-        public bool GetEmptyCell(Vector2Int center, bool checkObjects, out Vector2Int emptyCell)
+        public bool FindEmptyCell(Vector2Int center, bool checkObjects, out Vector2Int emptyCell)
         {
             if (IsInvalidCell(center))
             {

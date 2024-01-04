@@ -30,15 +30,11 @@ internal class PacketHandler
         GameRoom room = player.Room;
         if(room == null)
         {
-            Logger.WriteLog(LogLevel.Error, $"PacketHandler.C_MoveHandler. Player has no room. sessionId:{clientSession.SessionId}, playerId:{player.Info.ObjectId}");
+            Logger.WriteLog(LogLevel.Error, $"PacketHandler.C_MoveHandler. Player has no room. sessionId:{clientSession.SessionId}, {player}");
             return;
         }
 
-        ObjectInfo info = player.Info;
-        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_MoveHandler. sessionId:{clientSession.SessionId}, playerId:{player.Info.ObjectId}, " +
-            $"state:{info.PosInfo.State} to {movePacket.PosInfo.State}, " +
-            $"dir:{info.PosInfo.MoveDir} to {movePacket.PosInfo.MoveDir}, " +
-            $"pos:({info.PosInfo.PosX},{info.PosInfo.PosY}) to ({movePacket.PosInfo.PosX},{movePacket.PosInfo.PosY})");
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_MoveHandler. sessionId:{clientSession.SessionId}, {player.ToString(InfoLevel.Position)}");
 
         room.HandleMove(player, movePacket);
     }
@@ -60,13 +56,11 @@ internal class PacketHandler
         GameRoom room = player.Room;
         if (room == null)
         {
-            Logger.WriteLog(LogLevel.Error, $"PacketHandler.C_SkillHandler. Player has no room. sessionId:{clientSession.SessionId}, playerId:{player.Info.ObjectId}");
+            Logger.WriteLog(LogLevel.Error, $"PacketHandler.C_SkillHandler. Player has no room. sessionId:{clientSession.SessionId}, {player}");
             return;
         }
 
-        ObjectInfo info = player.Info;
-        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SkillHandler. sessionId:{clientSession.SessionId}, " +
-            $"playerId:{player.Info.ObjectId}, skillId:{skillPacket.Info.SkillId}");
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SkillHandler. sessionId:{clientSession.SessionId}, skillId:{skillPacket.Info.SkillId}, {player}");
 
 
         room.HandleSkill(player, skillPacket);

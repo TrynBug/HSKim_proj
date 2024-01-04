@@ -96,8 +96,8 @@ public class ObjectManager
     }
 
 
-    // cellPos 위치에 있는 CreatureController 컴포넌트가 있는 오브젝트를 찾는다.
-    public GameObject FindCreature(Vector3Int cellPos)
+    // cell 위치에 있는 CreatureController 컴포넌트가 있는 오브젝트를 찾는다.
+    public GameObject FindCreature(Vector2Int cell)
     {
         foreach (GameObject obj in _objects.Values)
         {
@@ -105,7 +105,7 @@ public class ObjectManager
             if (cc == null)
                 continue;
 
-            if (cc.CellPos == cellPos)
+            if (cc.Cell == cell)
                 return obj;
         }
 

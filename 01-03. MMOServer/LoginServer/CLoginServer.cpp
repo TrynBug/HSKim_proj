@@ -898,7 +898,9 @@ unsigned WINAPI CLoginServer::ThreadMonitoringCollector(PVOID pParam)
 		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SERVER_MEM << (int)((double)pdhCount.processPrivateBytes / 1048576.0) << (int)collectTime; // 로그인서버 메모리 사용 MByte
 		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_SESSION << server.GetNumSession() << (int)collectTime; // 로그인서버 세션 수 (컨넥션 수)
 		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_AUTH_TPS << (int)(currLoginCount - prevLoginCount) << (int)collectTime; // 로그인서버 인증 처리 초당 횟수
-		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_PACKET_POOL << server.GetPacketAllocCount() << (int)collectTime; // 로그인서버 패킷풀 사용량
+		//packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_PACKET_POOL << server.GetPacketAllocCount() << (int)collectTime; // 로그인서버 패킷풀 사용량
+		packet << (BYTE)dfMONITOR_DATA_TYPE_LOGIN_PACKET_POOL << server.GetPacketActualAllocCount() << (int)collectTime; // 로그인서버 패킷풀 사용량
+		
 
 		prevLoginCount = currLoginCount;
 

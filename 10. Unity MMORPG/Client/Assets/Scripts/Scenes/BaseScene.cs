@@ -8,6 +8,14 @@ public abstract class BaseScene : MonoBehaviour
 {
     public Define.Scene SceneType { get; protected set; } = Define.Scene.Unknown;
 
+    protected virtual void Awake()
+    {
+        // EventSystem이 없을 경우 생성
+        Object obj = GameObject.FindObjectOfType(typeof(EventSystem));
+        if (obj == null)
+            Managers.Resource.Instantiate("UI/EventSystem").name = "@EventSystem";
+    }
+
     void Start()
     {
         Init();
@@ -15,10 +23,7 @@ public abstract class BaseScene : MonoBehaviour
 
     protected virtual void Init()
     {
-        // EventSystem이 없을 경우 생성
-        Object obj = GameObject.FindObjectOfType(typeof(EventSystem));
-        if (obj == null)
-            Managers.Resource.Instantiate("UI/EventSystem").name = "@EventSystem";
+
     }
 
     public abstract void Clear();
