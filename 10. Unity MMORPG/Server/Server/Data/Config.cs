@@ -13,7 +13,7 @@ namespace Server.Data
 
         /* map */
         public const int CellMultiple = 2;
-        public const float CellWidth = 1f / CellMultiple;
-        public const float CellHeight = 1f / CellMultiple;
+
+        public const float DifferenceTolerance = 0.001f;
     }
 }

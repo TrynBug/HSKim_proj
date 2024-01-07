@@ -70,11 +70,22 @@ public class BaseController : MonoBehaviour
         {
             PosInfo.PosX = value.x;
             PosInfo.PosY = value.y;
-            Cell = Util.PosToCell(Pos);
+            Cell = Managers.Map.PosToCell(Pos);
             gameObject.transform.position = Managers.Map.ServerPosToClientPos(Pos);
         }
     }
-    public Vector3 Dest { get; protected set; }      // 목적지
+    public Vector3 Dest    // 목적지
+    {
+        get
+        {
+            return new Vector3(PosInfo.DestX, PosInfo.DestY, Config.ObjectDefaultZ);
+        }
+        set
+        {
+            PosInfo.DestX = value.x;
+            PosInfo.DestY = value.y;
+        }
+    }     
     public Vector2Int Cell { get; private set; }   // 현재 cell
     
 

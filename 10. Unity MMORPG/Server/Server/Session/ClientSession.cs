@@ -43,10 +43,12 @@ namespace Server
             GameRoom room = RoomManager.Instance.Find(1);
             MyPlayer = ObjectManager.Instance.Add<Player>();
             {
+                MyPlayer.Room = room;
                 MyPlayer.Info.Name = $"Player_{MyPlayer.Id}";
                 MyPlayer.State = CreatureState.Idle;
                 MyPlayer.Dir = MoveDir.Down;
                 MyPlayer.Pos = room.PosCenter;
+                MyPlayer.Dest = MyPlayer.Pos;
 
                 StatInfo stat = null;
                 DataManager.StatDict.TryGetValue(1, out stat);

@@ -3,6 +3,7 @@ using ServerCore;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Threading;
 using Unity.VisualScripting;
 using UnityEngine;
 
@@ -20,7 +21,7 @@ public class ObjectManager
     }
 
 
-    public void Add(ObjectInfo info, bool myPlayer = false)
+    public BaseController Add(ObjectInfo info, bool myPlayer = false)
     {
         GameObjectType objType = GetObjectTypeById(info.ObjectId);
         if (objType == GameObjectType.Player)
@@ -28,17 +29,23 @@ public class ObjectManager
             if (myPlayer)
             {
                 if (MyPlayer != null)
-                    ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. MyPlayer already exists. before id:{MyPlayer.Id}, after id:{info.ObjectId}");
+                    ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. MyPlayer already exists. before id:{MyPlayer.Id}, new id:{info.ObjectId}");
 
                 // 내 플레이어 생성
                 GameObject player = Managers.Resource.Instantiate("Creature/MyPlayer");
                 player.name = "MyPlayer";
                 _objects.Add(info.ObjectId, player);
 
-                MyPlayer = player.GetOrAddComponent<MyPlayerController>();
+                GameObject unitRoot = Util.FindChild(player, "UnitRoot");
+                MyPlayer = unitRoot.GetOrAddComponent<MyPlayerController>();
                 MyPlayer.Id = info.ObjectId;
                 MyPlayer.PosInfo = info.PosInfo;
                 MyPlayer.Stat = info.StatInfo;
+
+                // map에 추가
+                Managers.Map.Add(MyPlayer);
+
+                return MyPlayer;
             }
             else
             {
@@ -47,10 +54,16 @@ public class ObjectManager
                 player.name = info.Name;
                 _objects.Add(info.ObjectId, player);
 
-                PlayerController pc = player.GetOrAddComponent<PlayerController>();
+                GameObject unitRoot = Util.FindChild(player, "UnitRoot");
+                PlayerController pc = unitRoot.GetOrAddComponent<PlayerController>();
                 pc.Id = info.ObjectId;
                 pc.PosInfo = info.PosInfo;
                 pc.Stat = info.StatInfo;
+
+                // map에 추가
+                Managers.Map.Add(pc);
+
+                return pc;
             }
         }
         else if (objType == GameObjectType.Monster)
@@ -64,6 +77,8 @@ public class ObjectManager
             mc.Id = info.ObjectId;
             mc.PosInfo = info.PosInfo;
             mc.Stat = info.StatInfo;
+
+            return mc;
         }
         else if (objType == GameObjectType.Projectile)
         {
@@ -76,7 +91,11 @@ public class ObjectManager
             ac.Id = info.ObjectId;
             ac.PosInfo = info.PosInfo;
             ac.Stat = info.StatInfo;
+
+            return ac;
         }
+
+        return null;
     }
 
     public void Add(int id, GameObject go)

@@ -58,7 +58,13 @@ namespace Server
         public float cellDistFromZero { get { return Math.Abs(x) + Math.Abs(y); } }
         public Vector2 normalized { get { return new Vector2(x / magnitude, y / magnitude); } }
 
-        public override string? ToString() { return $"({x},{y})"; }
+
+        public float AbsSum()
+        {
+            return Math.Abs(x) + Math.Abs(y);
+        }
+
+        public override string? ToString() { return $"({x:f2},{y:f2})"; }
     }
 
 
@@ -76,7 +82,6 @@ namespace Server
         public static Vector2Int left { get { return new Vector2Int(-1, 0); } }
         public static Vector2Int right { get { return new Vector2Int(1, 0); } }
 
-
         public static Vector2Int one { get { return new Vector2Int(1, 1); } }
         public static Vector2Int zero { get { return new Vector2Int(0, 0); } }
 
@@ -88,6 +93,46 @@ namespace Server
         public static Vector2Int operator -(Vector2Int a, Vector2Int b)
         {
             return new Vector2Int(a.x - b.x, a.y - b.y);
+        }
+
+        public static Vector2Int operator *(Vector2Int a, Vector2Int b)
+        {
+            return new Vector2Int(a.x * b.x, a.y * b.y);
+        }
+
+        public static Vector2Int operator /(Vector2Int a, Vector2Int b)
+        {
+            return new Vector2Int(a.x / b.x, a.y / b.y);
+        }
+
+        public static Vector2Int operator +(Vector2Int a, int b)
+        {
+            return new Vector2Int(a.x + b, a.y + b);
+        }
+
+        public static Vector2Int operator -(Vector2Int a, int b)
+        {
+            return new Vector2Int(a.x - b, a.y - b);
+        }
+
+        public static Vector2Int operator *(Vector2Int a, int b)
+        {
+            return new Vector2Int(a.x * b, a.y * b);
+        }
+
+        public static Vector2Int operator /(Vector2Int a, int b)
+        {
+            return new Vector2Int(a.x / b, a.y / b);
+        }
+
+        public static bool operator == (Vector2Int a, Vector2Int b)
+        {
+            return a.x == b.x && a.y == b.y;
+        }
+
+        public static bool operator !=(Vector2Int a, Vector2Int b)
+        {
+            return !(a == b);
         }
 
         public int sqrtMagnitude { get { return (x * x + y * y); } }

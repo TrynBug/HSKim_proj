@@ -33,10 +33,22 @@ namespace Server.Game
             {
                 PosInfo.PosX = value.x;
                 PosInfo.PosY = value.y;
-                Cell = Util.PosToCell(Pos);
+                if(Room != null)
+                    Cell = Room.Map.PosToCell(Pos);
             }
         }
-        public Vector2 Dest { get; set; }
+        public Vector2 Dest
+        {
+            get
+            {
+                return new Vector2(PosInfo.DestX, PosInfo.DestY);
+            }
+            set
+            {
+                PosInfo.DestX = value.x;
+                PosInfo.DestY = value.y;
+            }
+        }
         public Vector2Int Cell { get; private set; }
 
         public float Speed
@@ -85,11 +97,11 @@ namespace Server.Game
                 case InfoLevel.Identity:
                     return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}";
                 case InfoLevel.Position:
-                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}, pos:{Pos}, cell:{Cell}, state:{State}, dir:{Dir}";
+                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}, pos:{Pos}, dest:{Dest}, cell:{Cell}, state:{State}, dir:{Dir}";
                 case InfoLevel.Stat:
                     return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}, speed:{Speed}, hp:{Hp}";
                 case InfoLevel.All:
-                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}, pos:{Pos}, cell:{Cell}, state:{State}, dir:{Dir}, speed:{Speed}, hp:{Hp}";
+                    return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}, pos:{Pos}, dest:{Dest}, cell:{Cell}, state:{State}, dir:{Dir}, speed:{Speed}, hp:{Hp}";
                 default:
                     return $"id:{Id}, type:{ObjectType}, room:{Room?.RoomId}";
             }

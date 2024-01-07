@@ -66,5 +66,17 @@ internal class PacketHandler
         room.HandleSkill(player, skillPacket);
     }
 
+    // 시간동기화 요청 처리
+    public static void C_SyncTimeHandler(PacketSession session, IMessage packet)
+    {
+        C_SyncTime syncTime = packet as C_SyncTime;
+        ClientSession clientSession = session as ClientSession;
+
+        S_SyncTimeResponse syncTimeResponse = new S_SyncTimeResponse();
+        syncTimeResponse.ClientTime = syncTime.ClientTime;
+        syncTimeResponse.ServerTime = TimeManager.ServerTime;
+        clientSession.Send(syncTimeResponse);
+    }
+
 }
 

@@ -35,6 +35,26 @@ namespace Server.Game
         GameObject[,] _objects;
 
 
+        // utils
+        public Vector2Int PosToCell(Vector2 pos)
+        {
+            return new Vector2Int((int)(pos.x / CellWidth), (int)(pos.y / CellHeight));
+        }
+
+        public Vector2 CellToPos(Vector2Int cell)
+        {
+            return new Vector2((float)cell.x * CellWidth, (float)cell.y * CellHeight);
+        }
+
+        public Vector2 CellToCenterPos(Vector2Int cell)
+        {
+            Vector2 pos = CellToPos(cell);
+            return new Vector2(pos.x + CellWidth / 2f, pos.y + CellHeight / 2f);
+        }
+
+
+
+
 
         // check
         public bool IsInvalidPos(Vector2 pos)
@@ -56,7 +76,25 @@ namespace Server.Game
             else
                 return _collision[cell.y, cell.x] == false;
         }
-
+        public bool IsEmptyCell(Vector2 pos, bool checkObjects = true)
+        {
+            return IsEmptyCell(PosToCell(pos), checkObjects);
+        }
+        // go가 dest로 이동 가능한지 확인.
+        // go.Cell 이 dest와 같다면 같은cell에 있기 때문에 리턴값은 true이다.
+        public bool IsMovable(GameObject go, Vector2Int dest, bool checkObjects = true)
+        {
+            if (go.Cell == dest)
+                return true;
+            return IsEmptyCell(dest, checkObjects);
+        }
+        public bool IsMovable(GameObject go, Vector2 dest, bool checkObjects = true)
+        {
+            Vector2Int cell = PosToCell(dest);
+            if (go.Cell == cell)
+                return true;
+            return IsEmptyCell(cell, checkObjects);
+        }
 
 
         // 맵 데이터 로드
@@ -70,19 +108,21 @@ namespace Server.Game
             StringReader reader = new StringReader(text);
 
             // cell 크기 얻기
-            CellWidth = float.Parse(reader.ReadLine());
-            CellHeight = float.Parse(reader.ReadLine());
+            float cellWidth = float.Parse(reader.ReadLine());
+            float cellHeight = float.Parse(reader.ReadLine());
+            CellWidth = 1f / (float)CellMultiple;   // Cell 크기는 1/CellMultiple 로 고정
+            CellHeight = 1f / (float)CellMultiple;
 
             // grid의 min, max 위치 얻기
             int minX = int.Parse(reader.ReadLine());
             int maxX = int.Parse(reader.ReadLine()) + 1;
             int minY = int.Parse(reader.ReadLine());
             int maxY = int.Parse(reader.ReadLine()) + 1;
-            PosMaxX = (maxX - minX + 1) * CellWidth;
-            PosMaxY = (maxY - minY + 1) * CellWidth;
-            CellMaxX = (maxX - minX + 1) * CellMultiple;
-            CellMaxY = (maxY - minY + 1) * CellMultiple;
-            
+            CellMaxX = (maxX - minX) * CellMultiple;
+            CellMaxY = (maxY - minY) * CellMultiple;
+            PosMaxX = CellMaxX * CellWidth;
+            PosMaxY = CellMaxY * CellHeight;
+
 
             // grid 생성
             _collision = new bool[CellMaxY, CellMaxX];

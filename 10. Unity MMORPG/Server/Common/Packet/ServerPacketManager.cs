@@ -38,7 +38,9 @@ class PacketManager
 		_makeFunc.Add((ushort)MsgId.CMove, MakePacket<C_Move>);
 		_handler.Add((ushort)MsgId.CMove, PacketHandler.C_MoveHandler);		
 		_makeFunc.Add((ushort)MsgId.CSkill, MakePacket<C_Skill>);
-		_handler.Add((ushort)MsgId.CSkill, PacketHandler.C_SkillHandler);
+		_handler.Add((ushort)MsgId.CSkill, PacketHandler.C_SkillHandler);		
+		_makeFunc.Add((ushort)MsgId.CSyncTime, MakePacket<C_SyncTime>);
+		_handler.Add((ushort)MsgId.CSyncTime, PacketHandler.C_SyncTimeHandler);
 	}
 
     // buffer에서 패킷ID를 추출하고, 패킷ID에 해당하는 패킷을 생성한다(_makeFunc에서 찾은 MakePacket<T> 함수를 호출하여).

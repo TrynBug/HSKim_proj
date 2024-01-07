@@ -20,10 +20,12 @@ public class Managers : MonoBehaviour
     MapManager _map = new MapManager();
     ObjectManager _object = new ObjectManager();
     NetworkManager _network = new NetworkManager();
+    TimeManager _time = new TimeManager();
 
     public static MapManager Map { get { return Instance._map; } }
     public static ObjectManager Object { get { return Instance._object; } }
     public static NetworkManager Network { get { return Instance._network; } }
+    public static TimeManager Time { get { return Instance._time; } }
     #endregion
 
 
@@ -63,6 +65,7 @@ public class Managers : MonoBehaviour
             s_instance._sound.Init();  // SoundManager 초기화
             s_instance._pool.Init();   // PoolManager 초기화
             s_instance._network.Init();
+            s_instance._time.Init();
         }
     }
 
@@ -88,5 +91,6 @@ public class Managers : MonoBehaviour
     {
         _network.OnUpdate();
         _input.OnUpdate();
+        _time.OnUpdate();
     }
 }

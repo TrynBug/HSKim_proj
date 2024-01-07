@@ -9,6 +9,7 @@ using ServerCore;
 using UnityEngine.Diagnostics;
 using UnityEngine.Tilemaps;
 using TMPro;
+using Data;
 
 public struct Pos
 {
@@ -48,6 +49,8 @@ public class MapManager
     int _gridMinX;
     int _gridMaxY;
     int _gridMinY;
+    float _gridCellWidth;
+    float _gridCellHeight;
 
     // cell 개수를 몇배수로 할지 결정함
     public int CellMultiple { get { return Data.Config.CellMultiple; } }
@@ -66,6 +69,52 @@ public class MapManager
     // grid
     bool[,] _collision;
     BaseController[,] _objects;
+
+
+    // utils
+    public Vector2Int PosToCell(Vector3 pos)
+    {
+        return new Vector2Int((int)(pos.x / CellWidth), (int)(pos.y / CellHeight));
+    }
+
+    public Vector3 CellToPos(Vector2Int cell, float z = Config.ObjectDefaultZ)
+    {
+        return new Vector3((float)cell.x * CellWidth, (float)cell.y * CellHeight, z);
+    }
+
+    public Vector2 CellToCenterPos(Vector2Int cell, float z = Config.ObjectDefaultZ)
+    {
+        Vector3 pos = CellToPos(cell, z);
+        return new Vector3(pos.x + CellWidth / 2f, pos.y + CellHeight / 2f, z);
+    }
+
+    public Vector3 ServerPosToClientPos(Vector3 serverPos)
+    {
+        //Vector3 clientPos = new Vector3(serverPos.x + (_gridMinX * _gridCellWidth), (_gridMaxY * _gridCellHeight) - serverPos.y, 0);
+        //clientPos = TileGround.CellToLocalInterpolated(clientPos);
+        //clientPos += new Vector3(-_gridCellWidth / 2f, _gridCellHeight / 2f, 0);
+        //return new Vector3(clientPos.x, clientPos.y, serverPos.z);
+
+        // serverPos의 x 범위 : 0 ~ (gridMaxX - gridMinX + 1)
+        // serverPos의 y 범위 : 0 ~ (gridMaxY - gridMinY + 1)
+        // clientPos의 x 범위 : gridMinX * gridCellWidth  ~ gridMaxX * gridCellWidth
+        // clientPos의 y 범위 : gridMinY * gridCellHeight ~ gridMaxY * gridCellHeight
+
+        Vector3 clientPos = new Vector3(serverPos.x + _gridMinX, _gridMaxY - serverPos.y, 0);
+        clientPos = TileGround.CellToLocalInterpolated(clientPos);
+        clientPos += new Vector3(-_gridCellWidth / 2f, _gridCellHeight / 2f, 0);
+        return new Vector3(clientPos.x, clientPos.y, serverPos.z);
+    }
+
+    public Vector3 ClientPosToServerPos(Vector3 clientPos)
+    {
+        Vector3 serverPos = clientPos += new Vector3(_gridCellWidth / 2f, -_gridCellHeight / 2f, 0);
+        serverPos = TileGround.LocalToCellInterpolated(new Vector3(serverPos.x, serverPos.y, 0));
+        serverPos = new Vector3(serverPos.x - _gridMinX, _gridMaxY - serverPos.y, clientPos.z);
+        return serverPos;
+    }
+
+
 
     // check
     public bool IsInvalidPos(Vector2 pos)
@@ -86,6 +135,25 @@ public class MapManager
             return (_collision[cell.y, cell.x] == false) && (_objects[cell.y, cell.x] == null);
         else
             return _collision[cell.y, cell.x] == false;
+    }
+    public bool IsEmptyCell(Vector2 pos, bool checkObjects = true)
+    {
+        return IsEmptyCell(PosToCell(pos), checkObjects);
+    }
+    // bc가 dest로 이동 가능한지 확인.
+    // bc.Cell 이 dest와 같다면 같은cell에 있기 때문에 리턴값은 true이다.
+    public bool IsMovable(BaseController bc, Vector2Int dest, bool checkObjects = true)
+    {
+        if (bc.Cell == dest)
+            return true;
+        return IsEmptyCell(dest, checkObjects);
+    }
+    public bool IsMovable(BaseController bc, Vector2 dest, bool checkObjects = true)
+    {
+        Vector2Int cell = PosToCell(dest);
+        if (bc.Cell == cell)
+            return true;
+        return IsEmptyCell(cell, checkObjects);
     }
 
 
@@ -113,8 +181,10 @@ public class MapManager
         StringReader reader = new StringReader(txt.text);
 
         // cell 크기 얻기
-        CellWidth = float.Parse(reader.ReadLine());
-        CellHeight = float.Parse(reader.ReadLine());
+        _gridCellWidth = float.Parse(reader.ReadLine());
+        _gridCellHeight = float.Parse(reader.ReadLine());
+        CellWidth = 1f / (float)CellMultiple;     // Cell 크기는 1/CellMultiple 로 고정
+        CellHeight = 1f / (float)CellMultiple;
 
         // grid의 min, max 위치 얻기
         _gridMinX = int.Parse(reader.ReadLine());
@@ -125,10 +195,10 @@ public class MapManager
         int maxX = _gridMaxX + 1;
         int minY = _gridMinY;
         int maxY = _gridMaxY + 1;
-        PosMaxX = (maxX - minX + 1) * CellWidth;
-        PosMaxY = (maxY - minY + 1) * CellWidth;
-        CellMaxX = (maxX - minX + 1) * CellMultiple;
-        CellMaxY = (maxY - minY + 1) * CellMultiple;
+        CellMaxX = (maxX - minX) * CellMultiple;
+        CellMaxY = (maxY - minY) * CellMultiple;
+        PosMaxX = CellMaxX * CellWidth;
+        PosMaxY = CellMaxY * CellHeight;
 
         // grid 생성
         _collision = new bool[CellMaxY, CellMaxX];
@@ -212,23 +282,6 @@ public class MapManager
         }
     }
 
-
-    public Vector3 ServerPosToClientPos(Vector3 serverPos)
-    {
-        Vector3 clientPos = new Vector3(serverPos.x + (float)_gridMinX, (float)_gridMaxY - serverPos.y, 0);
-        clientPos = TileGround.CellToLocalInterpolated(clientPos);
-        clientPos += new Vector3(-CellWidth / 2, CellHeight / 2, 0);
-        return new Vector3(clientPos.x, clientPos.y, serverPos.z);
-    }
-
-    public Vector3 ClientPosToServerPos(Vector3 clientPos)
-    {
-        Vector3 serverPos = clientPos += new Vector3(CellWidth / 2, -CellHeight / 2, 0);
-        serverPos = TileGround.LocalToCellInterpolated(new Vector3(serverPos.x, serverPos.y, 0));
-        serverPos = new Vector3(serverPos.x - (float)_gridMinX, (float)_gridMaxY - serverPos.y, clientPos.z);
-        return serverPos;
-    }
-
     // 특정 위치의 오브젝트 얻기
     public BaseController Find(Vector2Int cell)
     {
@@ -243,7 +296,7 @@ public class MapManager
     {
         if (IsInvalidCell(obj.Cell))
         {
-            Util.OnNetworkLog(LogLevel.Error, $"Map.Add. Invalid Cell. {obj.ToString(InfoLevel.Position)}");
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Add. Invalid Cell. {obj.ToString(InfoLevel.Position)}");
             return false;
         }
 
@@ -251,13 +304,13 @@ public class MapManager
         int y = obj.Cell.y;
         if (IsEmptyCell(obj.Cell) == false)
         {
-            Util.OnNetworkLog(LogLevel.Error, $"Map.Add. Cell already occupied " +
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Add. Cell already occupied " +
                 $"cell:{obj.Cell}, collider:{_collision[y, x]}, occupied:[{_objects[y, x]}], me:[{obj}]");
             return false;
         }
 
         _objects[y, x] = obj;
-        Util.OnNetworkLog(LogLevel.Debug, $"Map.Add. {obj.ToString(InfoLevel.Position)}");
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"Map.Add. {obj.ToString(InfoLevel.Position)}");
         return true;
     }
 
@@ -271,12 +324,12 @@ public class MapManager
         int y = obj.Cell.y;
         if (_objects[y, x] != obj)
         {
-            Util.OnNetworkLog(LogLevel.Error, $"Map.Remove. Object mismatch. cell:{obj.Cell}, resident:{_objects[y, x]} me:{obj}");
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Remove. Object mismatch. cell:{obj.Cell}, resident:{_objects[y, x]} me:{obj}");
             return false;
         }
 
         _objects[y, x] = null;
-        Util.OnNetworkLog(LogLevel.Debug, $"Map.Remove. {obj.ToString(InfoLevel.Position)}");
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"Map.Remove. {obj.ToString(InfoLevel.Position)}");
         return true;
     }
 
@@ -296,14 +349,14 @@ public class MapManager
 
         if (IsEmptyCell(dest) == false)
         {
-            Util.OnNetworkLog(LogLevel.Error, $"Map.Move. Cell already occupied. " +
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Move. Cell already occupied. " +
                 $"cell:{obj.Cell}, collider:{_collision[dest.y, dest.x]}, occupied:[{_objects[dest.y, dest.x]}], me:[{obj}]");
             return false;
         }
 
         if (_objects[y, x] != obj)
         {
-            Util.OnNetworkLog(LogLevel.Error, $"Map.Move. Object mismatch. " +
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Move. Object mismatch. " +
                 $"cell:{obj.Cell}, resident:[{_objects[y, x]}], me:[{obj}]");
             return false;
         }
@@ -312,6 +365,10 @@ public class MapManager
         _objects[y, x] = null;
         _objects[dest.y, dest.x] = obj;
         return true;
+    }
+    public bool TryMove(BaseController obj, Vector3 dest)
+    {
+        return TryMove(obj, PosToCell(dest));
     }
 
     // center를 기준으로 가장 가까운 빈 공간을 찾아준다.

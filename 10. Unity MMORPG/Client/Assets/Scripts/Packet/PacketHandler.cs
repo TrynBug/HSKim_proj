@@ -15,11 +15,13 @@ class PacketHandler
         ServerSession serverSession = session as ServerSession;
 
         // 내 플레이어 생성
-        Managers.Object.Add(enterGamePacket.Player, myPlayer: true);
+        BaseController bc = Managers.Object.Add(enterGamePacket.Player, myPlayer: true);
+        if (bc == null)
+            return;
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_EnterGameHandler. " +
-            $"playerId:{enterGamePacket.Player.ObjectId}, name:{enterGamePacket.Player.Name}, pos:({enterGamePacket.Player.PosInfo.PosX},{enterGamePacket.Player.PosInfo.PosY})");
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_EnterGameHandler. name:{enterGamePacket.Player.Name}, {bc.ToString(Define.InfoLevel.All)}");
     }
+
 
     public static void S_LeaveGameHandler(PacketSession session, IMessage packet)
     {
@@ -31,6 +33,7 @@ class PacketHandler
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_LeaveGameHandler");
     }
+
 
     public static void S_SpawnHandler(PacketSession session, IMessage packet)
     {
@@ -46,6 +49,7 @@ class PacketHandler
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SpawnHandler. objects:{spawnPacket.Objects}");
     }
 
+
     public static void S_DespawnHandler(PacketSession session, IMessage packet)
     {
         S_Despawn despawnPacket = packet as S_Despawn;
@@ -59,6 +63,7 @@ class PacketHandler
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_DespawnHandler. objectIds:{despawnPacket.ObjectIds}");
     }
+
 
     public static void S_MoveHandler(PacketSession session, IMessage packet)
     {
@@ -76,18 +81,24 @@ class PacketHandler
         if (Managers.Object.MyPlayer.Id == movePacket.ObjectId)
             return;
 
-        BaseController bc = go.GetComponent<BaseController>();
+        
+        GameObject unitRoot = Util.FindChild(go, "UnitRoot");
+        BaseController bc = unitRoot.GetComponent<BaseController>();
         if (bc == null)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_MoveHandler. Object has no BaseController component. objectId:{movePacket.ObjectId}");
             return;
         }
 
-        bc.PosInfo = movePacket.PosInfo;
+        // 목적지만 교체해준다.
+        bc.Dest = new Vector3(movePacket.PosInfo.DestX, movePacket.PosInfo.DestY, 0);
+        bc.Dir = movePacket.PosInfo.MoveDir;
+        //player.State = movePosInfo.State;
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_MoveHandler. " +
             $"objectId:{movePacket.ObjectId}, state:{movePacket.PosInfo.State}, dir:{movePacket.PosInfo.MoveDir}, pos:({movePacket.PosInfo.PosX},{movePacket.PosInfo.PosY})");
     }
+
 
     public static void S_SkillHandler(PacketSession session, IMessage packet)
     {
@@ -112,6 +123,7 @@ class PacketHandler
 
         cc.UseSkill(skillPacket.Info.SkillId);
     }
+
 
     public static void S_ChangeHpHandler(PacketSession session, IMessage packet)
     {
@@ -161,5 +173,14 @@ class PacketHandler
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_DieHandler. objectId:{diePacket.ObjectId}, attackerId:{diePacket.AttackerId}");
     }
-    
+
+
+    public static void S_SyncTimeResponseHandler(PacketSession session, IMessage packet)
+    {
+        S_SyncTimeResponse syncPacket = packet as S_SyncTimeResponse;
+        ServerSession serverSession = session as ServerSession;
+
+        Managers.Time.SyncTime(syncPacket);
+    }
+
 }

@@ -59,7 +59,7 @@ namespace Server
                 //RoomManager.Instance.Find(1).Update();
 
                 Thread.Sleep(1000);
-                Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}");
+                //Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}");
             }
         }
     }

@@ -67,27 +67,8 @@ public static class Util
 
 
 
-
-    public static Vector2Int PosToCell(Vector3 pos)
-    {
-        return new Vector2Int((int)(pos.x * (float)Config.CellMultiple), (int)(pos.y * (float)Config.CellMultiple));
-    }
-
-    public static Vector3 CellToPos(Vector2Int cell, float z = Config.ObjectDefaultZ)
-    {
-        return new Vector3((float)cell.x / (float)Config.CellMultiple, (float)cell.y / (float)Config.CellMultiple, z);
-    }
-
-    public static Vector3 CellToCenterPos(Vector2Int cell, float z = Config.ObjectDefaultZ)
-    {
-        Vector3 pos = CellToPos(cell, z);
-        return new Vector3(pos.x + Config.CellWidth, pos.y + Config.CellHeight, pos.z);
-    }
-
     public static bool Equals(Vector3 a, Vector3 b)
     {
         return (Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y) < Config.DifferenceTolerance);
     }
-
-
 }

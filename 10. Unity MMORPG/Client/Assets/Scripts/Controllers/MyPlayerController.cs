@@ -4,30 +4,24 @@ using UnityEngine;
 using Google.Protobuf.Protocol;
 using ServerCore;
 using static Define;
-using Unity.VisualScripting;
-using UnityEngine.Tilemaps;
-using TMPro;
-using static UnityEditor.PlayerSettings;
 using Data;
 using System;
 
 
 public class MyPlayerController : PlayerController
 { 
-    public float RTT { get; set; } = 0.1f;
-
     bool _isMoveKeyPressed = false;   // 키보드 이동키가 눌려짐
     bool _isSkillKeyPressed = false;  // 스킬 키가 눌려짐
 
-    C_Move _lastCMove;       // 마지막으로 보낸 C_Move 패킷
-    int _lastCMoveSendTime;  // 마지막으로 C_Move 패킷 보낸 시간
+    C_Move _lastCMove = null;       // 마지막으로 보낸 C_Move 패킷
+    int _lastCMoveSendTime = 0;  // 마지막으로 C_Move 패킷 보낸 시간
 
     protected override void Init()
     {
         base.Init();
-        Pos = new Vector3(10, 10);
-        Dest = Pos;
-        Speed = 5.0f;
+        //Pos = new Vector3(10, 10);
+        //Dest = Pos;
+        //Speed = 5.0f;
     }
 
     protected override void UpdateController()
@@ -145,60 +139,98 @@ public class MyPlayerController : PlayerController
 
         GetKeyInput();
 
-        // 목적지 이동
+        // 방향키 눌림
         if (_isMoveKeyPressed == true)
         {
-            Vector3 vecDir = GetDirectionVector();
-            Vector3 dest = Dest + vecDir * RTT * Speed;
-            Dest = dest;
+            // 목적지 계산
+            Vector3 pos = Pos;
+            Vector3 dir = GetDirectionVector();
+            Vector3 dest = Pos + dir * Config.MyPlayerMinimumMove * Speed;   // 원하는 목적지
+            Vector3 finalDest;    // 최종 목적지
+            int loopCount = 0;
+            while (true)
+            {
+                loopCount++;
+                Debug.Assert(loopCount < 1000, $"MyPlayerController.UpdateIdle loopCount:{loopCount}");
+
+                // 목적지에 도착했으면 break
+                if ((dest - pos).magnitude <= Time.deltaTime * Speed)
+                {
+                    if (Managers.Map.IsMovable(this, dest) == false)
+                        finalDest = pos;
+                    else
+                        finalDest = dest;
+                    break;
+                }
+
+                // 1 frame 이동을 시도한다.
+                pos += dir * Time.deltaTime * Speed;
+                if (Managers.Map.IsMovable(this, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
+                {
+                    continue;
+                }
+                else
+                {
+                    finalDest = pos - dir * Time.deltaTime * Speed;
+                    break;
+                }
+            }
+
+
+            // 목적지 설정
+            Dest = finalDest;
             State = CreatureState.Moving;
 
+            // 서버에 전송
             SendMovePacket();
         }
-
     }
 
     protected override void UpdateMoving()
     {
-        //Debug.Log($"pos:{Pos}, cell:{Cell}");
         GetKeyInput();
 
-        // 목적지 이동
+        // 키보드 방향키가 눌려있는 동안은 Dest를 계속해서 이동시킨다.
         if (_isMoveKeyPressed == true)
         {
             Vector3 direction = GetDirectionVector();
             Vector3 dest = Dest + direction * Time.deltaTime * Speed;
-            Dest = dest;
 
-            SendMovePacket();
+            if (Managers.Map.IsMovable(this, dest))
+            {
+                Dest = dest;
+                SendMovePacket();
+            }
+        }
+        // 키보드 방향키를 누르고있지 않다면 Dest에 도착시 상태를 Idle로 바꾼다.
+        else
+        {
+            float diff = (Dest - Pos).magnitude;
+            if (diff <= Time.deltaTime * Speed)
+            {
+                if (Managers.Map.TryMove(this, Dest))
+                {
+                    Pos = Dest;
+                }
+
+                State = CreatureState.Idle;
+                SendMovePacket();
+                return;
+            }
         }
 
-        // 이동
+
+        // 실제 위치 이동
         Vector3 vecDir = (Dest - Pos).normalized;
         Vector3 pos = Pos + vecDir * Time.deltaTime * Speed;
-        Vector2Int cell = Util.PosToCell(pos);
-        if (Managers.Map.IsEmptyCell(cell))
+        if (Managers.Map.TryMove(this, pos))
         {
             Pos = pos;
         }
         else
         {
             Dest = Pos;
-
             SendMovePacket();
-        }
-
-        if (_isMoveKeyPressed == false)
-        {
-            float diff = (Dest - Pos).AbsSumXY();
-            if (diff <= Time.deltaTime * Speed)
-            {
-                Pos = Dest;
-                State = CreatureState.Idle;
-
-                SendMovePacket();
-                return;
-            }
         }
 
     }
@@ -213,9 +245,13 @@ public class MyPlayerController : PlayerController
         {
             bSend = true;
         }
+        else if (_lastCMove == null)
+        {
+            bSend = true;
+        }
         else if(PosInfo.MoveDir != _lastCMove.PosInfo.MoveDir
             || PosInfo.State != _lastCMove.PosInfo.State
-            || tick - _lastCMoveSendTime > 200)
+            || tick - _lastCMoveSendTime > Config.MovePacketSendInterval)
         {
             bSend = true;
         }
@@ -226,6 +262,7 @@ public class MyPlayerController : PlayerController
         // 서버에 전송
         C_Move movePacket = new C_Move();
         movePacket.PosInfo = PosInfo.Clone();
+        movePacket.MoveTime = Managers.Time.CurrentTime;
         Managers.Network.Send(movePacket);
 
         _lastCMove = movePacket;

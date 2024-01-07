@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -43,7 +44,7 @@ namespace Server.Game
         public Map Map { get; private set; } = new Map();
 
         // pos
-        public Vector2 PosCenter { get { return Util.CellToCenterPos(CellCenter); } }
+        public Vector2 PosCenter { get { return Map.CellToCenterPos(CellCenter); } }
         public Vector2Int CellCenter { get { return new Vector2Int(Map.CellMaxX / 2, Map.CellMaxY / 2); } }
 
 
@@ -57,7 +58,7 @@ namespace Server.Game
         public void EnterGame(GameObject gameObject) { Push(_enterGame, gameObject); }
         public void LeaveGame(int objectId) { Push(_leaveGame, objectId); }
         //public void Update() { Push(_update); }
-        public void Broadcast(IMessage packet) { Push(_broadcast, packet); }
+        public void Broadcast(IMessage packet, Player except = null) { Push(_broadcast, packet, except); }
         public void HandleMove(Player player, C_Move movePacket) { Push(_handleMove, player, movePacket); }
         public void HandleSkill(Player player, C_Skill skillPacket) { Push(_handleSkill, player, skillPacket); }
 
@@ -76,20 +77,8 @@ namespace Server.Game
             return null;
         }
 
-        public void _init(int mapId)
-        {
-            Map.LoadMap(mapId, "../../../../Common/Map");
-
-            // temp
-            Monster monster = ObjectManager.Instance.Add<Monster>();
-            _enterGame(monster);
-
-            _timer.Elapsed += ((s, e) => Run());
-            _calcFrame.Init();
-        }
-
-
-
+        
+        // FPS에 맞추어 게임룸을 주기적으로 업데이트한다.
         public void Run()
         {
             // 다음 로직의 시작시간은 [현재 로직 종료시간 + sleep한 시간] 이다.
@@ -106,6 +95,24 @@ namespace Server.Game
 
         }
 
+
+
+        public void _init(int mapId)
+        {
+            Map.LoadMap(mapId, "../../../../Common/Map");
+
+            // temp
+            //Monster monster = ObjectManager.Instance.Add<Monster>();
+            //_enterGame(monster);
+
+            _timer.Elapsed += ((s, e) => Run());
+            _calcFrame.Init();
+        }
+
+
+
+
+        // frame update
         public void _update()
         {
             Flush();  // job queue 내의 모든 job 실행
@@ -122,31 +129,9 @@ namespace Server.Game
             {
                 projectile.Update();
             }
-
-            Flush();  // job queue 내의 모든 job 실행
         }
 
-        // 로직 실행시간을 FPS에 맞춘다. 수행못한 프레임은 버린다. 최대 FPS가 지정한 값으로 유지된다.
-        private void _syncLogicTime()
-        {
-            long oneFrameTime = TimeSpan.TicksPerSecond / Config.FPS;
-            _calcFrame.logicEndTime = DateTime.Now.Ticks;
-            long spentTime = Math.Max(0, _calcFrame.logicEndTime - _calcFrame.logicStartTime);
-            long sleepTime = oneFrameTime - spentTime;
-
-            int sleepMilliseconds = 0;
-            // sleep 해야할 시간이 있는 경우
-            if (sleepTime > 0)
-            {
-                // sleep 시간을 ms 단위로 변환하여 sleep 한다.
-                sleepMilliseconds = (int)Math.Round((double)(sleepTime * 1000) / (double)TimeSpan.TicksPerSecond);
-                Thread.Sleep(sleepMilliseconds);
-            }
-
-            // 다음 로직의 시작시간은 [현재 로직 종료시간 + sleep한 시간] 이다.
-            _calcFrame.logicStartTime = _calcFrame.logicEndTime + (sleepMilliseconds * (TimeSpan.TicksPerSecond / 1000));
-        }
-
+        // FPS를 유지하기 위해 sleep 해야하는 시간을 계산한다.
         private int _calcSleepTime()
         {
             long oneFrameTime = TimeSpan.TicksPerSecond / Config.FPS;
@@ -178,14 +163,14 @@ namespace Server.Game
             if(type == GameObjectType.Player)
             {
                 Player newPlayer = gameObject as Player;
-                newPlayer.Room = this;
                 Vector2Int emptyCell;
                 if(Map.FindEmptyCell(newPlayer.Cell, true, out emptyCell) == false)
                 {
                     Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. {newPlayer}");
                     return;
                 }
-                newPlayer.Pos = Util.CellToCenterPos(emptyCell);
+                newPlayer.Pos = Map.CellToCenterPos(emptyCell);
+                newPlayer.Dest = newPlayer.Pos;
                 _players.Add(newPlayer.Id, newPlayer);
 
                 // 맵에 추가
@@ -223,7 +208,7 @@ namespace Server.Game
                     Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. objectId:{monster.Id}");
                     return;
                 }
-                monster.Pos = Util.CellToCenterPos(emptyCell);
+                monster.Pos = Map.CellToCenterPos(emptyCell);
                 _monsters.Add(monster.Id, monster);
 
                 // 맵에 추가
@@ -317,10 +302,12 @@ namespace Server.Game
 
 
         // 패킷 브로드캐스팅
-        public void _broadcast(IMessage packet)
+        public void _broadcast(IMessage packet, Player except = null)
         {
             foreach (Player p in _players.Values)
             {
+                if (p == except)
+                    continue;
                 p.Session.Send(packet);
             }
         }
@@ -337,20 +324,62 @@ namespace Server.Game
 
 
             // 클라 pos와 서버 pos가 크게 다를 경우 처리?
-            // TBC
+            // TBD
 
-            
+            // 현재 이동 가능한 상태인지 확인
+            // TBD
+
+
+            // 목적지에 도착가능한지 확인
+            Vector2 pos = player.Pos;
+            Vector2 dest = new Vector2(movePosInfo.DestX, movePosInfo.DestY);
+            Vector2 dir = (dest - pos).normalized;
+            Vector2 finalDest;    // 최종 목적지
+            int loopCount = 0;
+            while (true)
+            {
+                loopCount++;
+                Debug.Assert(loopCount < 1000, $"GameRoom._handleMove loopCount:{loopCount}");
+
+                // 목적지에 도착했으면 break
+                if((dest - pos).magnitude <= Time.DeltaTime * player.Speed)
+                {
+                    if (player.Room.Map.IsMovable(player, dest))
+                        finalDest = dest;
+                    else
+                        finalDest = pos;
+
+                    break;
+                }
+
+                // 1 frame 이동을 시도한다.
+                pos += dir * Time.DeltaTime * player.Speed;
+                if(player.Room.Map.IsMovable(player, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
+                {
+                    continue;
+                }
+                else
+                {
+                    finalDest = pos - dir * Time.DeltaTime * player.Speed;
+                    break;
+                }
+            }
+
             // 위치 설정
-            // Pos는 변경하지 않는다?
-            player.Dest = new Vector2(movePosInfo.DestX, movePosInfo.DestY);
+            // Pos는 변경하지 않는다? 목적지만 설정??
+            player.Dest = finalDest;
+            //player.Pos = new Vector2(movePosInfo.PosX, movePosInfo.PosY);
             player.Dir = movePosInfo.MoveDir;
-            player.State = movePosInfo.State;
+            //player.State = movePosInfo.State;
+            player.ClientState = movePosInfo.State;
+            player.ClientDir = movePosInfo.MoveDir;
 
 
             // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
             S_Move resMovePacket = new S_Move();
             resMovePacket.ObjectId = info.ObjectId;
             resMovePacket.PosInfo = info.PosInfo.Clone();
+            resMovePacket.MoveTime = movePacket.MoveTime;
             _broadcast(resMovePacket);
         }
 

@@ -14,6 +14,10 @@ namespace Server.Game
     {
         public ClientSession Session { get; set; }
 
+        public CreatureState ClientState { get; set; } = CreatureState.Idle;
+        public MoveDir ClientDir { get; set; } = MoveDir.Down;
+
+
         public Player()
         {
             ObjectType = GameObjectType.Player;
@@ -22,34 +26,50 @@ namespace Server.Game
 
         protected override void UpdateIdle()
         {
+            
+
+            if(Util.Equals(Dest, Pos) == false)
+            {
+                State = CreatureState.Moving;
+                UpdateMoving();
+            }
         }
 
         protected override void UpdateMoving()
         {
-
-            Vector2 vecDir = (Dest - Pos).normalized;
-            Vector2 pos = Pos + vecDir * Room.Time.DeltaTime * Speed;
-            Vector2Int cell = Util.PosToCell(pos);
-            if (Room.Map.IsEmptyCell(cell))
+            // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
+            if ((Dest - Pos).magnitude < Room.Time.DeltaTime * Speed)
             {
-                Pos = pos;
+                Vector2Int destCell = Room.Map.PosToCell(Dest);
+                if (Room.Map.TryMove(this, destCell))
+                {
+                    Pos = Dest;
+                    State = CreatureState.Idle;
+                }
+                else
+                {
+                    Dest = Pos;
+                    State = CreatureState.Idle;
+                }
             }
+            // 이동
             else
             {
-                Dest = Pos;
+                Vector2 dir = (Dest - Pos).normalized;
+                Vector2 pos = Pos + dir * Room.Time.DeltaTime * Speed;
+                Vector2Int cell = Room.Map.PosToCell(pos);
+                if (Room.Map.TryMove(this, cell))
+                {
+                    Pos = pos;
+                }
+                else
+                {
+                    Dest = Pos;
+                    State = CreatureState.Idle;
+                }
             }
 
-
-
-
-
-
-            //Vector2Int destCell = Util.PosToCell(new Vector2(movePosInfo.PosX, movePosInfo.PosY));
-
-            //// cell 이동을 시도한다. (cell 위치가 같아도 성공임)
-            //bool isMoved = Map.TryMove(player, destCell);
-            //if (isMoved == false)
-            //    return;
+            Logger.WriteLog(LogLevel.Debug, $"Player.UpdateMoving. {this.ToString(InfoLevel.Position)}");
         }
 
         protected override void UpdateSkill()

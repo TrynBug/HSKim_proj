@@ -22,13 +22,10 @@ public abstract class CreatureController : BaseController
         }
     }
 
-    private void Awake()
-    {
-        _animator = GetComponent<Animator>();
-    }
-
     protected override void Init()
     {
+        _animator = GetComponent<Animator>();
+
         base.Init();
         AddHpBar();
     }

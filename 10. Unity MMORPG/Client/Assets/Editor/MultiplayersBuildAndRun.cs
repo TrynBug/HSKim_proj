@@ -67,6 +67,12 @@ public class MultiplayersBuildAndRun
     }
 
     // 유니티 메뉴에 추가(파라미터가 있는 메소드는 메뉴에 추가가 안됨)
+    [MenuItem("Tools/Run Multiplayer/1 Players")]
+    static void PerformWin64Build1()
+    {
+        PerformWin64Build(1);
+    }
+
     [MenuItem("Tools/Run Multiplayer/2 Players")]
     static void PerformWin64Build2()
     {

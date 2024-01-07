@@ -12,22 +12,9 @@ namespace Server
 {
     public static class Util
     {
-        public static Vector2Int PosToCell(Vector2 pos)
+        public static bool Equals(Vector2 a, Vector2 b)
         {
-            return new Vector2Int((int)(pos.x * (float)Config.CellMultiple), (int)(pos.y * (float)Config.CellMultiple));
+            return (Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y) < Config.DifferenceTolerance);
         }
-
-        public static Vector2 CellToPos(Vector2Int cell)
-        {
-            return new Vector2((float)cell.x / (float)Config.CellMultiple, (float)cell.y / (float)Config.CellMultiple);
-        }
-
-        public static Vector2 CellToCenterPos(Vector2Int cell)
-        {
-            Vector2 pos = CellToPos(cell);
-            return new Vector2(pos.x + Config.CellWidth, pos.y + Config.CellHeight);
-        }
-
-
     }
 }

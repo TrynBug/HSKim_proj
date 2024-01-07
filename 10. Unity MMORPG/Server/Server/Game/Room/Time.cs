@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Server.Data;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -21,7 +22,7 @@ namespace Server.Game
         public double MaxDT2nd { get; private set; } = double.MinValue;   // 최대DT (최대값 바로아래)
 
         /* FPS */
-        public int FPS { get; private set; } = 0;
+        public int FPS { get { return Config.FPS; } }
         public float AvgFPS1s { get; private set; } = 0f;   // 지난 1초 평균 FPS(AvgDT1s 값을 FPS로 환산)
         public float AvgFPS1m { get; private set; } = 0f;   // 지난 1분 평균 FPS
         public int MinFPS1st { get; private set; } = int.MaxValue;  // 최소FPS (최소값)

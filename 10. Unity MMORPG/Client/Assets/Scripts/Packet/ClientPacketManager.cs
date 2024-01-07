@@ -50,7 +50,9 @@ class PacketManager
 		_makeFunc.Add((ushort)MsgId.SChangeHp, MakePacket<S_ChangeHp>);
 		_handler.Add((ushort)MsgId.SChangeHp, PacketHandler.S_ChangeHpHandler);		
 		_makeFunc.Add((ushort)MsgId.SDie, MakePacket<S_Die>);
-		_handler.Add((ushort)MsgId.SDie, PacketHandler.S_DieHandler);
+		_handler.Add((ushort)MsgId.SDie, PacketHandler.S_DieHandler);		
+		_makeFunc.Add((ushort)MsgId.SSyncTimeResponse, MakePacket<S_SyncTimeResponse>);
+		_handler.Add((ushort)MsgId.SSyncTimeResponse, PacketHandler.S_SyncTimeResponseHandler);
 	}
 
     // buffer에서 패킷ID를 추출하고, 패킷ID에 해당하는 패킷을 생성한다(_makeFunc에서 찾은 MakePacket<T> 함수를 호출하여).
