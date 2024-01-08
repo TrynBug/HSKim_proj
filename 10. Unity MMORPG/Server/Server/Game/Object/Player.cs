@@ -14,8 +14,8 @@ namespace Server.Game
     {
         public ClientSession Session { get; set; }
 
-        public CreatureState ClientState { get; set; } = CreatureState.Idle;
-        public MoveDir ClientDir { get; set; } = MoveDir.Down;
+        public CreatureState RemoteState { get; set; } = CreatureState.Idle;
+        public MoveDir RemoteDir { get; set; } = MoveDir.Down;
 
 
         public Player()
@@ -26,9 +26,7 @@ namespace Server.Game
 
         protected override void UpdateIdle()
         {
-            
-
-            if(Util.Equals(Dest, Pos) == false)
+            if(RemoteState == CreatureState.Moving || Util.Equals(Pos, Dest) == false)
             {
                 State = CreatureState.Moving;
                 UpdateMoving();
@@ -37,37 +35,82 @@ namespace Server.Game
 
         protected override void UpdateMoving()
         {
-            // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
-            if ((Dest - Pos).magnitude < Room.Time.DeltaTime * Speed)
+            // 클라이언트에게 멈춤 패킷을 받음
+            if(MoveKeyDown == false)
             {
-                Vector2Int destCell = Room.Map.PosToCell(Dest);
-                if (Room.Map.TryMove(this, destCell))
+                // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
+                if ((Dest - Pos).magnitude < Room.Time.DeltaTime * Speed)
                 {
-                    Pos = Dest;
-                    State = CreatureState.Idle;
+                    Vector2Int destCell = Room.Map.PosToCell(Dest);
+                    if (Room.Map.TryMove(this, destCell))
+                    {
+                        Pos = Dest;
+                        State = CreatureState.Idle;
+                    }
+                    else
+                    {
+                        Dest = Pos;
+                        State = CreatureState.Idle;
+                    }
                 }
+                // 이동
                 else
                 {
-                    Dest = Pos;
-                    State = CreatureState.Idle;
+                    Vector2 dir = (Dest - Pos).normalized;
+                    Vector2 pos = Pos + dir * Room.Time.DeltaTime * Speed;
+                    Vector2Int cell = Room.Map.PosToCell(pos);
+                    if (Room.Map.TryMove(this, cell))
+                    {
+                        Pos = pos;
+                    }
+                    else
+                    {
+                        Dest = Pos;
+                        State = CreatureState.Idle;
+                    }
                 }
             }
-            // 이동
+            // 클라이언트에게 이전에 이동 패킷을 받았음
             else
             {
-                Vector2 dir = (Dest - Pos).normalized;
-                Vector2 pos = Pos + dir * Room.Time.DeltaTime * Speed;
-                Vector2Int cell = Room.Map.PosToCell(pos);
-                if (Room.Map.TryMove(this, cell))
+                // Dest를 이동시킨다.
+                Vector2 dest = Dest + GetDirectionVector(RemoteDir) * Room.Time.DeltaTime * Speed;
+                if (Room.Map.IsMovable(this, dest))
                 {
-                    Pos = pos;
+                    Dest = dest;
                 }
+                
+                // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
+                if ((Dest - Pos).magnitude < Room.Time.DeltaTime * Speed)
+                {
+                    Vector2Int destCell = Room.Map.PosToCell(Dest);
+                    if (Room.Map.TryMove(this, destCell))
+                    {
+                        Pos = Dest;
+                    }
+                    else
+                    {
+                        Dest = Pos;
+                    }
+                }
+                // 이동
                 else
                 {
-                    Dest = Pos;
-                    State = CreatureState.Idle;
+                    Vector2 dir = (Dest - Pos).normalized;
+                    Vector2 pos = Pos + dir * Room.Time.DeltaTime * Speed;
+                    Vector2Int cell = Room.Map.PosToCell(pos);
+                    if (Room.Map.TryMove(this, cell))
+                    {
+                        Pos = pos;
+                    }
+                    else
+                    {
+                        Dest = Pos;
+                    }
                 }
             }
+
+
 
             Logger.WriteLog(LogLevel.Debug, $"Player.UpdateMoving. {this.ToString(InfoLevel.Position)}");
         }

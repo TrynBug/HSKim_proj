@@ -72,45 +72,35 @@ public class MapManager
 
 
     // utils
-    public Vector2Int PosToCell(Vector3 pos)
+    public Vector2Int PosToCell(Vector2 pos)
     {
         return new Vector2Int((int)(pos.x / CellWidth), (int)(pos.y / CellHeight));
     }
 
-    public Vector3 CellToPos(Vector2Int cell, float z = Config.ObjectDefaultZ)
+    public Vector2 CellToPos(Vector2Int cell)
     {
-        return new Vector3((float)cell.x * CellWidth, (float)cell.y * CellHeight, z);
+        return new Vector2((float)cell.x * CellWidth, (float)cell.y * CellHeight);
     }
 
-    public Vector2 CellToCenterPos(Vector2Int cell, float z = Config.ObjectDefaultZ)
+    public Vector2 CellToCenterPos(Vector2Int cell)
     {
-        Vector3 pos = CellToPos(cell, z);
-        return new Vector3(pos.x + CellWidth / 2f, pos.y + CellHeight / 2f, z);
+        Vector2 pos = CellToPos(cell);
+        return new Vector2(pos.x + CellWidth / 2f, pos.y + CellHeight / 2f);
     }
 
-    public Vector3 ServerPosToClientPos(Vector3 serverPos)
+    public Vector3 ServerPosToClientPos(Vector2 serverPos)
     {
-        //Vector3 clientPos = new Vector3(serverPos.x + (_gridMinX * _gridCellWidth), (_gridMaxY * _gridCellHeight) - serverPos.y, 0);
-        //clientPos = TileGround.CellToLocalInterpolated(clientPos);
-        //clientPos += new Vector3(-_gridCellWidth / 2f, _gridCellHeight / 2f, 0);
-        //return new Vector3(clientPos.x, clientPos.y, serverPos.z);
-
-        // serverPos의 x 범위 : 0 ~ (gridMaxX - gridMinX + 1)
-        // serverPos의 y 범위 : 0 ~ (gridMaxY - gridMinY + 1)
-        // clientPos의 x 범위 : gridMinX * gridCellWidth  ~ gridMaxX * gridCellWidth
-        // clientPos의 y 범위 : gridMinY * gridCellHeight ~ gridMaxY * gridCellHeight
-
-        Vector3 clientPos = new Vector3(serverPos.x + _gridMinX, _gridMaxY - serverPos.y, 0);
+        Vector2 clientPos = new Vector2(serverPos.x + _gridMinX, _gridMaxY - serverPos.y);
         clientPos = TileGround.CellToLocalInterpolated(clientPos);
-        clientPos += new Vector3(-_gridCellWidth / 2f, _gridCellHeight / 2f, 0);
-        return new Vector3(clientPos.x, clientPos.y, serverPos.z);
+        clientPos += new Vector2(-_gridCellWidth / 2f, _gridCellHeight / 2f);
+        return new Vector3(clientPos.x, clientPos.y, Config.ObjectDefaultZ);
     }
 
-    public Vector3 ClientPosToServerPos(Vector3 clientPos)
+    public Vector2 ClientPosToServerPos(Vector2 clientPos)
     {
-        Vector3 serverPos = clientPos += new Vector3(_gridCellWidth / 2f, -_gridCellHeight / 2f, 0);
-        serverPos = TileGround.LocalToCellInterpolated(new Vector3(serverPos.x, serverPos.y, 0));
-        serverPos = new Vector3(serverPos.x - _gridMinX, _gridMaxY - serverPos.y, clientPos.z);
+        Vector2 serverPos = clientPos += new Vector2(_gridCellWidth / 2f, -_gridCellHeight / 2f);
+        serverPos = TileGround.LocalToCellInterpolated(new Vector2(serverPos.x, serverPos.y));
+        serverPos = new Vector2(serverPos.x - _gridMinX, _gridMaxY - serverPos.y);
         return serverPos;
     }
 
@@ -235,7 +225,7 @@ public class MapManager
 
 
 
-        DrawDebug();
+        //DrawDebug();
     }
 
     void DrawDebug()
@@ -261,7 +251,8 @@ public class MapManager
             for (int x = 0; x < xBound; x++)
             {
                 GameObject go = Managers.Resource.Instantiate("DummyText");
-                Vector3 pos = Managers.Map.ServerPosToClientPos(new Vector3(x, y, 10));
+                Vector3 pos = Managers.Map.ServerPosToClientPos(new Vector2(x, y));
+                pos.z = 10;
 
                 go.name = $"{go.name}_({x},{y})";
                 go.transform.position = pos;
@@ -366,7 +357,7 @@ public class MapManager
         _objects[dest.y, dest.x] = obj;
         return true;
     }
-    public bool TryMove(BaseController obj, Vector3 dest)
+    public bool TryMove(BaseController obj, Vector2 dest)
     {
         return TryMove(obj, PosToCell(dest));
     }
@@ -488,7 +479,94 @@ public class MapManager
 
 
 
+    public bool CollisionDetection(Vector2 pos, Vector2 dest, out Vector2 intersection)
+    {
+        // reference : https://www.youtube.com/watch?v=NbSee-XM7WA
+        const float zeroReplacement = 0.00000001f;
 
+        intersection = new Vector2(0, 0);
+
+        // cell 크기 1 x 1 을 기준으로 pos와 dest를 보정한다.
+        Vector2 srcCellSize = new Vector2(CellWidth, CellHeight);
+        Vector2 posAdj = pos / srcCellSize;
+        Vector2 destAdj = dest / srcCellSize;
+        Vector2 posMax = new Vector2(PosMaxX, PosMaxY) / srcCellSize;
+
+        // 방향 계산
+        Vector2 rayStart = posAdj;
+        Vector2 rayDir = (destAdj - posAdj).normalized;
+        if (rayDir.x == 0) rayDir.x = zeroReplacement;
+        if (rayDir.y == 0) rayDir.y = zeroReplacement;
+
+        // step size 계산
+        Vector2 rayUnitStepSize = new Vector2((float)Math.Sqrt(1f + (rayDir.y / rayDir.x) * (rayDir.y / rayDir.x)), (float)Math.Sqrt(1f + (rayDir.x / rayDir.y) * (rayDir.x / rayDir.y)));
+        Vector2 mapCheck = rayStart;
+        Vector2 rayLength1D;
+        Vector2 step;
+
+        // 초기 조건 설정
+        if (rayDir.x < 0)
+        {
+            step.x = -1;
+            rayLength1D.x = (rayStart.x - mapCheck.x) * rayUnitStepSize.x;
+        }
+        else
+        {
+            step.x = 1;
+            rayLength1D.x = ((mapCheck.x + 1) - rayStart.x) * rayUnitStepSize.x;
+        }
+
+        if (rayDir.y < 0)
+        {
+            step.y = -1;
+            rayLength1D.y = (rayStart.y - mapCheck.y) * rayUnitStepSize.y;
+        }
+        else
+        {
+            step.y = 1;
+            rayLength1D.y = ((mapCheck.y + 1) - rayStart.y) * rayUnitStepSize.y;
+        }
+
+        // collider에 부딪히거나 dest에 도착 시 종료
+        bool bCollision = false;
+        float maxDistance = (destAdj - posAdj).magnitude;
+        float distance = 0;
+        while (!bCollision && distance < maxDistance)
+        {
+            // Walk along shortest path
+            if (rayLength1D.x < rayLength1D.y)
+            {
+                mapCheck.x += step.x;
+                distance = rayLength1D.x;
+                rayLength1D.x += rayUnitStepSize.x;
+            }
+            else
+            {
+                mapCheck.y += step.y;
+                distance = rayLength1D.y;
+                rayLength1D.y += rayUnitStepSize.y;
+            }
+
+            // Test tile at new test point
+            if (mapCheck.x >= 0 && mapCheck.x < posMax.x && mapCheck.y >= 0 && mapCheck.y < posMax.y)
+            {
+                Vector2Int cell = PosToCell(mapCheck * srcCellSize);
+                if (_collision[cell.y, cell.x] == true)
+                {
+                    bCollision = true;
+                }
+            }
+        }
+
+        // 충돌 지점 계산
+        if (bCollision)
+        {
+            intersection = rayStart + rayDir * distance;
+            intersection *= srcCellSize;
+        }
+
+        return bCollision;
+    }
 
 
 

@@ -1,4 +1,5 @@
 using Google.Protobuf.Protocol;
+using Google.Protobuf.WellKnownTypes;
 using ServerCore;
 using System;
 using System.Collections;
@@ -16,6 +17,7 @@ public class ObjectManager
     // id 에서 타입 얻기
     public static GameObjectType GetObjectTypeById(int id)
     {
+        // bits : [ Unused(1) | Type(7) | Id(24) ]
         int type = (id >> 24) & 0x7F;
         return (GameObjectType)type;
     }
@@ -32,7 +34,9 @@ public class ObjectManager
                     ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. MyPlayer already exists. before id:{MyPlayer.Id}, new id:{info.ObjectId}");
 
                 // 내 플레이어 생성
-                GameObject player = Managers.Resource.Instantiate("Creature/MyPlayer");
+                string prefab = "Player" + (info.ObjectId & 0xf).ToString("000");   // 00# 형태의 string으로 변경
+                GameObject player = Managers.Resource.Instantiate($"Creature/{prefab}");
+                player.transform.position = Vector3.zero;
                 player.name = "MyPlayer";
                 _objects.Add(info.ObjectId, player);
 
@@ -50,7 +54,9 @@ public class ObjectManager
             else
             {
                 // 다른 플레이어 생성
-                GameObject player = Managers.Resource.Instantiate("Creature/Player");
+                string prefab = "Player" + (info.ObjectId & 0xf).ToString("000");   // 00# 형태의 string으로 변경
+                GameObject player = Managers.Resource.Instantiate($"Creature/{prefab}");
+                player.transform.position = Vector3.zero;
                 player.name = info.Name;
                 _objects.Add(info.ObjectId, player);
 

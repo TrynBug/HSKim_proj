@@ -124,6 +124,7 @@ message PositionInfo {
     float posY = 4;
     float destX = 5;
     float destY = 6;
+    bool moveKeyDown = 7;
 }
 
 message StatInfo {

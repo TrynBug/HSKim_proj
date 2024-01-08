@@ -21,6 +21,15 @@ public class TestScene : BaseScene
     void Start()
     {
         base.Init();
+
+        // UI 생성
+        Managers.UI.ShowSceneUI<UI_DebugInfo>("DebugInfo");
+
+        // packet delay 설정
+        Managers.Network.PacketDelay = 50;
+        Managers.Network.IsDelayedPacket = false;
+        
+
     }
 
     // Update is called once per frame

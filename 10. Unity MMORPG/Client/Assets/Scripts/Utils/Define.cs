@@ -57,4 +57,16 @@ public class Define
         Stat,
         All,
     }
+
+
+
+
+
+
+
+    /* UI */
+    public enum UIDebugInfo
+    {
+        Text
+    }
 }

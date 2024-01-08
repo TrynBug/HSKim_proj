@@ -89,9 +89,9 @@ namespace Server.Game
             _sleepMilliseconds = _calcSleepTime();
             //Logger.WriteLog(LogLevel.Debug, $"room:{RoomId}, DT:{Time.DeltaTime}, FPS:{Time.AvgFPS1m}, sleep:{_sleepMilliseconds}, thread:{Thread.CurrentThread.ManagedThreadId}");
 
-            _timer.Interval = _sleepMilliseconds;
-            _timer.AutoReset = false;
-            _timer.Enabled = true;     // timer를 실행한다.
+            _timer.Interval = Math.Max(1, _sleepMilliseconds);
+            _timer.AutoReset = false;  // event가 주기적으로 호출되도록 하는것이 아니라 다음 호출시간을 매번 정해줄 것이기 때문에 AutoReset을 false로 한다.
+            _timer.Enabled = true;     // timer를 재활성화 한다.
 
         }
 
@@ -137,8 +137,7 @@ namespace Server.Game
             long oneFrameTime = TimeSpan.TicksPerSecond / Config.FPS;
             _calcFrame.logicEndTime = DateTime.Now.Ticks;
             long spentTime = Math.Max(0, _calcFrame.logicEndTime - _calcFrame.logicStartTime);
-            long sleepTime = oneFrameTime - spentTime;
-
+            long sleepTime = Math.Max(0, oneFrameTime - spentTime);
             int sleepMilliseconds = 0;
             // sleep 해야할 시간이 있는 경우
             if (sleepTime > 0)
@@ -330,7 +329,7 @@ namespace Server.Game
             // TBD
 
 
-            // 목적지에 도착가능한지 확인
+            // 목적지에 도착가능한지 확인하고 최종 목적지를 계산한다.
             Vector2 pos = player.Pos;
             Vector2 dest = new Vector2(movePosInfo.DestX, movePosInfo.DestY);
             Vector2 dir = (dest - pos).normalized;
@@ -342,7 +341,7 @@ namespace Server.Game
                 Debug.Assert(loopCount < 1000, $"GameRoom._handleMove loopCount:{loopCount}");
 
                 // 목적지에 도착했으면 break
-                if((dest - pos).magnitude <= Time.DeltaTime * player.Speed)
+                if ((dest - pos).magnitude <= Time.DeltaTime * player.Speed)
                 {
                     if (player.Room.Map.IsMovable(player, dest))
                         finalDest = dest;
@@ -354,7 +353,7 @@ namespace Server.Game
 
                 // 1 frame 이동을 시도한다.
                 pos += dir * Time.DeltaTime * player.Speed;
-                if(player.Room.Map.IsMovable(player, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
+                if (player.Room.Map.IsMovable(player, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
                 {
                     continue;
                 }
@@ -365,20 +364,23 @@ namespace Server.Game
                 }
             }
 
-            // 위치 설정
-            // Pos는 변경하지 않는다? 목적지만 설정??
+            // 목적지 설정
             player.Dest = finalDest;
-            //player.Pos = new Vector2(movePosInfo.PosX, movePosInfo.PosY);
             player.Dir = movePosInfo.MoveDir;
-            //player.State = movePosInfo.State;
-            player.ClientState = movePosInfo.State;
-            player.ClientDir = movePosInfo.MoveDir;
+            player.RemoteState = movePosInfo.State;
+            player.RemoteDir = movePosInfo.MoveDir;
+            player.MoveKeyDown = movePosInfo.MoveKeyDown;
+
 
 
             // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
             S_Move resMovePacket = new S_Move();
             resMovePacket.ObjectId = info.ObjectId;
-            resMovePacket.PosInfo = info.PosInfo.Clone();
+            resMovePacket.PosInfo = movePacket.PosInfo.Clone();
+            resMovePacket.PosInfo.PosX = player.Pos.x;
+            resMovePacket.PosInfo.PosY = player.Pos.y;
+            resMovePacket.PosInfo.DestX = player.Dest.x;
+            resMovePacket.PosInfo.DestY = player.Dest.y;
             resMovePacket.MoveTime = movePacket.MoveTime;
             _broadcast(resMovePacket);
         }

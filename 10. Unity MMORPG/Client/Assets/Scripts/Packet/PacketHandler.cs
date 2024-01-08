@@ -83,20 +83,24 @@ class PacketHandler
 
         
         GameObject unitRoot = Util.FindChild(go, "UnitRoot");
-        BaseController bc = unitRoot.GetComponent<BaseController>();
-        if (bc == null)
+        PlayerController pc = unitRoot.GetComponent<PlayerController>();
+        if (pc == null)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_MoveHandler. Object has no BaseController component. objectId:{movePacket.ObjectId}");
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_MoveHandler. Object has no PlayerController component. objectId:{movePacket.ObjectId}");
             return;
         }
 
         // 목적지만 교체해준다.
-        bc.Dest = new Vector3(movePacket.PosInfo.DestX, movePacket.PosInfo.DestY, 0);
-        bc.Dir = movePacket.PosInfo.MoveDir;
-        //player.State = movePosInfo.State;
+        PositionInfo info = movePacket.PosInfo;
+        pc.Dest = new Vector3(info.DestX, info.DestY, 0);
+        pc.Dir = info.MoveDir;
+        pc.RemoteState = info.State;
+        pc.RemoteDir = info.MoveDir;
+        pc.MoveKeyDown = info.MoveKeyDown;
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_MoveHandler. " +
-            $"objectId:{movePacket.ObjectId}, state:{movePacket.PosInfo.State}, dir:{movePacket.PosInfo.MoveDir}, pos:({movePacket.PosInfo.PosX},{movePacket.PosInfo.PosY})");
+            $"objectId:{movePacket.ObjectId}, state:{info.State}, dir:{info.MoveDir}" +
+            $", pos:({info.PosX:f2},{info.PosY:f2}), dest:({info.DestX:f2},{info.DestY:f2}), move:{info.MoveKeyDown}");
     }
 
 

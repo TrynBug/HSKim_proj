@@ -6,27 +6,50 @@ using ServerCore;
 using static Define;
 using Data;
 using System;
+using TMPro;
 
 
 public class MyPlayerController : PlayerController
 { 
-    bool _isMoveKeyPressed = false;   // 키보드 이동키가 눌려짐
     bool _isSkillKeyPressed = false;  // 스킬 키가 눌려짐
 
     C_Move _lastCMove = null;       // 마지막으로 보낸 C_Move 패킷
     int _lastCMoveSendTime = 0;  // 마지막으로 C_Move 패킷 보낸 시간
 
+    float _speedRateForStop = 1f;  // 움직임을 멈출 때 속도를 감소시킬 비율
+
     protected override void Init()
     {
         base.Init();
-        //Pos = new Vector3(10, 10);
+        //Pos = new Vector2(10, 10);
         //Dest = Pos;
         //Speed = 5.0f;
     }
 
+
+    GameObject goDebug = null;
     protected override void UpdateController()
     {
         base.UpdateController();
+
+
+
+        // debug
+        //if (goDebug == null)
+        //{
+        //    goDebug = Managers.Resource.Instantiate("DummyText");
+        //    goDebug.name = "TextDebug";
+        //}
+        //TextMeshPro text = goDebug.GetComponent<TextMeshPro>();
+        //Vector2 intersection;
+        //bool collision = Managers.Map.CollisionDetection(Pos, Dest, out intersection);
+        //if(collision)
+        //{
+        //    goDebug.transform.position = Managers.Map.ServerPosToClientPos(new Vector3(intersection.x, intersection.y, 20));
+        //    text.text = $"[{intersection.x:f1},{intersection.y:f1}]";
+        //    text.color = Color.black;
+        //}
+
     }
 
     void LateUpdate()
@@ -44,7 +67,7 @@ public class MyPlayerController : PlayerController
         bool keyD = Input.GetKey(KeyCode.D);
         bool KeyZ = Input.GetKeyDown(KeyCode.Z);
 
-        _isMoveKeyPressed = true;
+        MoveKeyDown = true;
         if (keyW)
         {
             if (keyA)
@@ -83,7 +106,7 @@ public class MyPlayerController : PlayerController
         }
         else
         {
-            _isMoveKeyPressed = false;
+            MoveKeyDown = false;
         }
 
 
@@ -133,20 +156,18 @@ public class MyPlayerController : PlayerController
 
     protected override void UpdateIdle()
     {
-        //Vector3 s = Managers.Map.ClientPosToServerPos(transform.position);
-        //Vector3 c = Managers.Map.ServerPosToClientPos(s);
-        //Debug.Log($"t:{transform.position}, s:{s}, c:{c}");
-
         GetKeyInput();
 
         // 방향키 눌림
-        if (_isMoveKeyPressed == true)
+        if (MoveKeyDown == true)
         {
+            _speedRateForStop = 1f; // 초기화
+
             // 목적지 계산
-            Vector3 pos = Pos;
-            Vector3 dir = GetDirectionVector();
-            Vector3 dest = Pos + dir * Config.MyPlayerMinimumMove * Speed;   // 원하는 목적지
-            Vector3 finalDest;    // 최종 목적지
+            Vector2 pos = Pos;
+            Vector2 dir = GetDirectionVector(Dir);
+            Vector2 dest = Pos + dir * Config.MyPlayerMinimumMove * Speed;   // 처음 움직일 때는 dest를 MyPlayerMinimumMove 만큼 이동시킨다.
+            Vector2 finalDest;    // 최종 목적지
             int loopCount = 0;
             while (true)
             {
@@ -191,21 +212,33 @@ public class MyPlayerController : PlayerController
         GetKeyInput();
 
         // 키보드 방향키가 눌려있는 동안은 Dest를 계속해서 이동시킨다.
-        if (_isMoveKeyPressed == true)
+        if (MoveKeyDown == true)
         {
-            Vector3 direction = GetDirectionVector();
-            Vector3 dest = Dest + direction * Time.deltaTime * Speed;
+            _speedRateForStop = 1f; // 초기화
+
+            Vector2 direction = GetDirectionVector(Dir);
+            Vector2 dest = Dest + direction * Time.deltaTime * Speed;
 
             if (Managers.Map.IsMovable(this, dest))
             {
                 Dest = dest;
-                SendMovePacket();
             }
         }
-        // 키보드 방향키를 누르고있지 않다면 Dest에 도착시 상태를 Idle로 바꾼다.
+        // 키보드 방향키를 누르고있지 않다면 Dest를 이동시키지 않는다.
         else
         {
+            // Dest 까지의 거리가 MyPlayerMinimumMove 내라면 Speed를 점차 감소시킨다.
             float diff = (Dest - Pos).magnitude;
+            if(diff < Config.MyPlayerMinimumMove * Speed)
+            {
+                _speedRateForStop = diff / (Config.MyPlayerMinimumMove * Speed);
+            }
+            else
+            {
+                _speedRateForStop = 1f;
+            }
+
+            // Dest에 도착시 상태를 Idle로 바꾼다.
             if (diff <= Time.deltaTime * Speed)
             {
                 if (Managers.Map.TryMove(this, Dest))
@@ -221,8 +254,8 @@ public class MyPlayerController : PlayerController
 
 
         // 실제 위치 이동
-        Vector3 vecDir = (Dest - Pos).normalized;
-        Vector3 pos = Pos + vecDir * Time.deltaTime * Speed;
+        Vector2 vecDir = (Dest - Pos).normalized;
+        Vector2 pos = Pos + vecDir * Time.deltaTime * Speed * _speedRateForStop;
         if (Managers.Map.TryMove(this, pos))
         {
             Pos = pos;
@@ -230,9 +263,10 @@ public class MyPlayerController : PlayerController
         else
         {
             Dest = Pos;
-            SendMovePacket();
         }
 
+        SendMovePacket();
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.UpdateMoving. {this.ToString(InfoLevel.Position)}");
     }
 
 
@@ -251,6 +285,7 @@ public class MyPlayerController : PlayerController
         }
         else if(PosInfo.MoveDir != _lastCMove.PosInfo.MoveDir
             || PosInfo.State != _lastCMove.PosInfo.State
+            || PosInfo.MoveKeyDown != _lastCMove.PosInfo.MoveKeyDown
             || tick - _lastCMoveSendTime > Config.MovePacketSendInterval)
         {
             bSend = true;
@@ -273,45 +308,6 @@ public class MyPlayerController : PlayerController
 
 
 
-
-
-    // 현재 방향에 해당하는 벡터 얻기
-    Vector3 GetDirectionVector()
-    {
-        Vector3 direction;
-        switch (Dir)
-        {
-            case MoveDir.Up:
-                direction = new Vector3(1, -1, 0).normalized;
-                break;
-            case MoveDir.Down:
-                direction = new Vector3(-1, 1, 0).normalized;
-                break;
-            case MoveDir.Left:
-                direction = new Vector3(-1, -1, 0).normalized;
-                break;
-            case MoveDir.Right:
-                direction = new Vector3(1, 1, 0).normalized;
-                break;
-            case MoveDir.LeftUp:
-                direction = new Vector3(0, -1, 0);
-                break;
-            case MoveDir.LeftDown:
-                direction = new Vector3(-1, 0, 0);
-                break;
-            case MoveDir.RightUp:
-                direction = new Vector3(1, 0, 0);
-                break;
-            case MoveDir.RightDown:
-                direction = new Vector3(0, 1, 0);
-                break;
-            default:
-                direction = new Vector3(0, 0, 0);
-                break;
-        }
-
-        return direction;
-    }
 
     // tile의 position(positionOfTile)을 기준으로 플레이어가 dirDesired 방향에 위치하는지를 확인한다.
     bool IsPlayerAtDirection(Vector3 positionOfTile, MoveDir expectedDirection)

@@ -34,7 +34,9 @@ internal class PacketHandler
             return;
         }
 
-        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_MoveHandler. sessionId:{clientSession.SessionId}, {player.ToString(InfoLevel.Position)}");
+        PositionInfo info = movePacket.PosInfo;
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_MoveHandler. sessionId:{clientSession.SessionId}, " +
+            $"packet pos:({info.PosX:f2}, {info.PosY:f2}), dest:({info.DestX:f2},{info.DestY:f2}), state:{info.State}, dir:{info.MoveDir}, move:{info.MoveKeyDown}");
 
         room.HandleMove(player, movePacket);
     }

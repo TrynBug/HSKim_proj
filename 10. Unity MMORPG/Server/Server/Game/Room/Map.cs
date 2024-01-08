@@ -1,11 +1,15 @@
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
+using System.Drawing;
+using System.IO.Compression;
 using System.Linq;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf.Protocol;
 using Server.Data;
+using Server.Game;
 using ServerCore;
 
 namespace Server.Game
@@ -153,6 +157,9 @@ namespace Server.Game
 
                 }
             }
+
+
+
         }
 
 
@@ -357,6 +364,99 @@ namespace Server.Game
                         break;
                 }
             }
+        }
+
+
+
+
+
+        public bool CollisionDetection(Vector2 pos, Vector2 dest, out Vector2 intersection)
+        {
+            // reference : https://www.youtube.com/watch?v=NbSee-XM7WA
+            const float zeroReplacement = 0.00000001f;
+
+            intersection = new Vector2(0, 0);
+
+            // cell 크기 1 x 1 을 기준으로 pos와 dest를 보정한다.
+            Vector2 srcCellSize = new Vector2(CellWidth, CellHeight);
+            Vector2 posAdj = pos / srcCellSize;
+            Vector2 destAdj = dest / srcCellSize;
+            Vector2 posMax = new Vector2(PosMaxX, PosMaxY) / srcCellSize;
+
+            // 방향 계산
+            Vector2 rayStart = posAdj;
+            Vector2 rayDir = (destAdj - posAdj).normalized;
+            if (rayDir.x == 0) rayDir.x = zeroReplacement;
+            if (rayDir.y == 0) rayDir.y = zeroReplacement;
+
+            // step size 계산
+            Vector2 rayUnitStepSize = new Vector2((float)Math.Sqrt(1f + (rayDir.y / rayDir.x) * (rayDir.y / rayDir.x)), (float)Math.Sqrt(1f + (rayDir.x / rayDir.y) * (rayDir.x / rayDir.y)));
+            Vector2 mapCheck = rayStart;
+            Vector2 rayLength1D;
+            Vector2 step;
+
+            // 초기 조건 설정
+            if (rayDir.x < 0)
+            {
+                step.x = -1;
+                rayLength1D.x = (rayStart.x - mapCheck.x) * rayUnitStepSize.x;
+            }
+            else
+            {
+                step.x = 1;
+                rayLength1D.x = ((mapCheck.x + 1) - rayStart.x) * rayUnitStepSize.x;
+            }
+
+            if (rayDir.y < 0)
+            {
+                step.y = -1;
+                rayLength1D.y = (rayStart.y - mapCheck.y) * rayUnitStepSize.y;
+            }
+            else
+            {
+                step.y = 1;
+                rayLength1D.y = ((mapCheck.y + 1) - rayStart.y) * rayUnitStepSize.y;
+            }
+
+            // collider에 부딪히거나 dest에 도착 시 종료
+            bool bCollision = false;
+            float maxDistance = (destAdj - posAdj).magnitude;
+            float distance = 0;
+            while (!bCollision && distance < maxDistance)
+            {
+                // Walk along shortest path
+                if (rayLength1D.x < rayLength1D.y)
+                {
+                    mapCheck.x += step.x;
+                    distance = rayLength1D.x;
+                    rayLength1D.x += rayUnitStepSize.x;
+                }
+                else
+                {
+                    mapCheck.y += step.y;
+                    distance = rayLength1D.y;
+                    rayLength1D.y += rayUnitStepSize.y;
+                }
+
+                // Test tile at new test point
+                if (mapCheck.x >= 0 && mapCheck.x < posMax.x && mapCheck.y >= 0 && mapCheck.y < posMax.y)
+                {
+                    Vector2Int cell = PosToCell(mapCheck * srcCellSize);
+                    if (_collision[cell.y, cell.x] == true)
+                    {
+                        bCollision = true;
+                    }
+                }
+            }
+
+            // 충돌 지점 계산
+            if (bCollision)
+            {
+                intersection = rayStart + rayDir * distance;
+                intersection *= srcCellSize;
+            }
+
+            return bCollision;
         }
 
 

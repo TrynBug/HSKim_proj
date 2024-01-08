@@ -8,6 +8,7 @@ public class PacketMessage
 {
 	public ushort Id { get; set; }
 	public IMessage Message { get; set; }
+	public long Time { get; set; }
 }
 
 public class PacketQueue
@@ -21,7 +22,7 @@ public class PacketQueue
 	{
 		lock (_lock)
 		{
-			_packetQueue.Enqueue(new PacketMessage() { Id = id, Message = packet });
+			_packetQueue.Enqueue(new PacketMessage() { Id = id, Message = packet, Time=DateTime.Now.Ticks });
 		}
 	}
 
@@ -35,6 +36,17 @@ public class PacketQueue
 			return _packetQueue.Dequeue();
 		}
 	}
+
+	public PacketMessage Peek()
+	{
+        lock (_lock)
+        {
+            if (_packetQueue.Count == 0)
+                return null;
+
+            return _packetQueue.Peek();
+        }
+    }
 
 	public List<PacketMessage> PopAll()
 	{

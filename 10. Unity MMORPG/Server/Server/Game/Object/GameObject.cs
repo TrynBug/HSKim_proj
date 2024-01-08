@@ -12,6 +12,7 @@ namespace Server.Game
     public class GameObject
     {
         public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
+        // bits : [ Unused(1) | Type(7) | Id(24) ]
         public int Id
         {
             get { return Info.ObjectId; }
@@ -22,6 +23,20 @@ namespace Server.Game
         public ObjectInfo Info { get; private set; } = new ObjectInfo();   // Info.PosInfo 는 PosInfo를 리턴함
         public PositionInfo PosInfo { get; private set; } = new PositionInfo();
         public StatInfo Stat { get; private set; } = new StatInfo();  // Info.StatInfo 는 Stat을 리턴함
+
+
+        public float Speed
+        {
+            get { return Stat.Speed; }
+            set { Stat.Speed = value; }
+        }
+
+        public int Hp
+        {
+            get { return Stat.Hp; }
+            set { Stat.Hp = Math.Clamp(value, 0, Stat.MaxHp); }
+        }
+
 
         public Vector2 Pos
         {
@@ -51,12 +66,6 @@ namespace Server.Game
         }
         public Vector2Int Cell { get; private set; }
 
-        public float Speed
-        {
-            get { return Stat.Speed; }
-            set { Stat.Speed = value; }
-        }
-
         public CreatureState State
         {
             get { return PosInfo.State; }
@@ -69,11 +78,12 @@ namespace Server.Game
             set { PosInfo.MoveDir = value; }
         }
 
-        public int Hp
+        public virtual bool MoveKeyDown
         {
-            get { return Stat.Hp; }
-            set { Stat.Hp = Math.Clamp(value, 0, Stat.MaxHp); }
+            get { return PosInfo.MoveKeyDown; }
+            set { PosInfo.MoveKeyDown = value; }
         }
+
 
 
         public GameObject()
@@ -142,6 +152,52 @@ namespace Server.Game
         protected virtual void UpdateDead()
         {
         }
+
+
+
+
+
+
+
+        // 현재 방향에 해당하는 벡터 얻기
+        public Vector2 GetDirectionVector(MoveDir dir)
+        {
+            Vector2 direction;
+            switch (dir)
+            {
+                case MoveDir.Up:
+                    direction = new Vector2(1, -1).normalized;
+                    break;
+                case MoveDir.Down:
+                    direction = new Vector2(-1, 1).normalized;
+                    break;
+                case MoveDir.Left:
+                    direction = new Vector2(-1, -1).normalized;
+                    break;
+                case MoveDir.Right:
+                    direction = new Vector2(1, 1).normalized;
+                    break;
+                case MoveDir.LeftUp:
+                    direction = new Vector2(0, -1);
+                    break;
+                case MoveDir.LeftDown:
+                    direction = new Vector2(-1, 0);
+                    break;
+                case MoveDir.RightUp:
+                    direction = new Vector2(1, 0);
+                    break;
+                case MoveDir.RightDown:
+                    direction = new Vector2(0, 1);
+                    break;
+                default:
+                    direction = new Vector2(0, 0);
+                    break;
+            }
+
+            return direction;
+        }
+
+
 
 
         //  특정 방향 앞의 Cell 좌표 얻기

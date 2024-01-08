@@ -14,21 +14,14 @@ namespace Server
         static Listener _listenSocket = new Listener();
         static List<System.Timers.Timer> _timers = new List<System.Timers.Timer>();
 
-        // tick 뒤에 room.Update() 를 실행하는 타이머를 등록한다.
-        // AutoReset = true 이기 때문에 tick 마다 계속 실행된다.
-        static void TickRoom(GameRoom room, int tick = 100)
-        {
-            var timer = new System.Timers.Timer();
-            timer.Interval = tick;
-            timer.Elapsed += ((s, e) => room._update());
-            timer.AutoReset = true;
-            timer.Enabled = true;     // timer를 실행한다.
-
-            _timers.Add(timer);  // 추후 관리를 위해 timer를 저장해둠
-        }
-
         static void Main(string[] args)
         {
+            Logger.WriteLog(LogLevel.Debug, $"Run Server. FPS:{Config.FPS}");
+
+            // clock resolution을 1ms로 설정
+            WinApi.TimeBeginPeriod(1);
+
+            // logger 설정
             Logger.Level = LogLevel.Debug;
 
             // 데이터 파일 로드
@@ -37,9 +30,8 @@ namespace Server
 
 
             // 게임룸 생성
-            for(int i=1; i<=10; i++)
+            for(int i=1; i<=1; i++)
                 RoomManager.Instance.Add(i);
-            //TickRoom(room, 50);  // 50 tick 마다 update
             RoomManager.Instance.RunAllRooms();
 
 
@@ -58,8 +50,9 @@ namespace Server
             {
                 //RoomManager.Instance.Find(1).Update();
 
-                Thread.Sleep(1000);
-                //Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}");
+                Thread.Sleep(10000);
+                GameRoom room = RoomManager.Instance.Find(1);
+                Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}, delta:{room.Time.DeltaTime}");
             }
         }
     }

@@ -10,6 +10,8 @@ public class PlayerController : CreatureController
 {
     protected Coroutine _coSkill;  // skill 사용 후 후처리(쿨타임 등)를 위한 코루틴
 
+    public CreatureState RemoteState { get; set; } = CreatureState.Idle;
+    public MoveDir RemoteDir { get; set; } = MoveDir.Down;
 
     protected override void Init()
     {
@@ -25,7 +27,7 @@ public class PlayerController : CreatureController
 
     protected override void UpdateIdle()
     {
-        if (Util.Equals(Dest, Pos) == false)
+        if (RemoteState == CreatureState.Moving || Util.Equals(Pos, Dest) == false)
         {
             State = CreatureState.Moving;
             UpdateMoving();
@@ -34,37 +36,86 @@ public class PlayerController : CreatureController
 
     protected override void UpdateMoving()
     {
-        // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
-        if ((Dest - Pos).magnitude < Time.deltaTime * Speed)
+        // 서버에게 멈춤 패킷을 받음
+        if (MoveKeyDown == false)
         {
-            Vector2Int destCell = Managers.Map.PosToCell(Dest);
-            if (Managers.Map.TryMove(this, destCell))
+            // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
+            if ((Dest - Pos).magnitude < Time.deltaTime * Speed)
             {
-                Pos = Dest;
-                State = CreatureState.Idle;
+                Vector2Int destCell = Managers.Map.PosToCell(Dest);
+                if (Managers.Map.TryMove(this, destCell))
+                {
+                    Pos = Dest;
+                    State = CreatureState.Idle;
+                }
+                else
+                {
+                    Dest = Pos;
+                    State = CreatureState.Idle;
+                }
             }
+            // 이동
             else
             {
-                Dest = Pos;
-                State = CreatureState.Idle;
+                Vector2 dir = (Dest - Pos).normalized;
+                Vector2 pos = Pos + dir * Time.deltaTime * Speed;
+                Vector2Int cell = Managers.Map.PosToCell(pos);
+                if (Managers.Map.TryMove(this, cell))
+                {
+                    Pos = pos;
+                }
+                else
+                {
+                    Dest = Pos;
+                    State = CreatureState.Idle;
+                }
             }
         }
-        // 이동
+        // 서버에게 이전에 이동 패킷을 받았음
         else
         {
-            Vector3 dir = (Dest - Pos).normalized;
-            Vector3 pos = Pos + dir * Time.deltaTime * Speed;
-            Vector2Int cell = Managers.Map.PosToCell(pos);
-            if (Managers.Map.TryMove(this, cell))
+            // Dest를 이전에 이동했던 방향으로 이동시킨다.
+            Vector2 dest = Dest + GetDirectionVector(RemoteDir) * Time.deltaTime * Speed;
+            if (Managers.Map.IsMovable(this, dest))
             {
-                Pos = pos;
+                Dest = dest;
             }
+
+            // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
+            if ((Dest - Pos).magnitude < Time.deltaTime * Speed)
+            {
+                Vector2Int destCell = Managers.Map.PosToCell(Dest);
+                if (Managers.Map.TryMove(this, destCell))
+                {
+                    Pos = Dest;
+                }
+                else
+                {
+                    Dest = Pos;
+                }
+            }
+            // 이동
             else
             {
-                Dest = Pos;
-                State = CreatureState.Idle;
+                Vector2 dir = (Dest - Pos).normalized;
+                Vector2 pos = Pos + dir * Time.deltaTime * Speed;
+                Vector2Int cell = Managers.Map.PosToCell(pos);
+                if (Managers.Map.TryMove(this, cell))
+                {
+                    Pos = pos;
+                }
+                else
+                {
+                    Dest = Pos;
+                }
             }
         }
+
+
+
+
+
+
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"Player.UpdateMoving. {this.ToString(InfoLevel.Position)}");
     }

@@ -9,6 +9,7 @@ using Data;
 // 상태와 이동방향을 정의하고, 상태와 이동방향에 따라 오브젝트를 이동시키고 애니메이션을 재생한다.
 public class BaseController : MonoBehaviour
 {
+    // bits : [ Unused(1) | Type(7) | Id(24) ]
     public int Id { get; set; }
     public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
 
@@ -44,7 +45,7 @@ public class BaseController : MonoBehaviour
 
 
     // 위치 정보
-    PositionInfo _posInfo = new PositionInfo { State = CreatureState.Idle, MoveDir = MoveDir.Down, PosX = 0, PosY = 0, DestX = 0, DestY = 0 };
+    PositionInfo _posInfo = new PositionInfo { State = CreatureState.Idle, MoveDir = MoveDir.Down, PosX = 0, PosY = 0, DestX = 0, DestY = 0, MoveKeyDown = false };
     public PositionInfo PosInfo
     {
         get { return _posInfo; }
@@ -53,18 +54,18 @@ public class BaseController : MonoBehaviour
             if (_posInfo.Equals(value))
                 return;
             
-            Pos = new Vector3(value.PosX, value.PosY, Config.ObjectDefaultZ);
-            Dest = new Vector3(value.DestX, value.DestY, Config.ObjectDefaultZ);
+            Pos = new Vector2(value.PosX, value.PosY);
+            Dest = new Vector2(value.DestX, value.DestY);
             State = value.State;
             Dir = value.MoveDir;
         }
     }
 
-    public Vector3 Pos
+    public Vector2 Pos
     {
         get
         {
-            return new Vector3(PosInfo.PosX, PosInfo.PosY, Config.ObjectDefaultZ);
+            return new Vector2(PosInfo.PosX, PosInfo.PosY);
         }
         set
         {
@@ -74,11 +75,11 @@ public class BaseController : MonoBehaviour
             gameObject.transform.position = Managers.Map.ServerPosToClientPos(Pos);
         }
     }
-    public Vector3 Dest    // 목적지
+    public Vector2 Dest    // 목적지
     {
         get
         {
-            return new Vector3(PosInfo.DestX, PosInfo.DestY, Config.ObjectDefaultZ);
+            return new Vector2(PosInfo.DestX, PosInfo.DestY);
         }
         set
         {
@@ -114,6 +115,56 @@ public class BaseController : MonoBehaviour
             UpdateAnimation();
         }
     }
+
+    // 이동 키 눌림
+    public virtual bool MoveKeyDown
+    {
+        get { return PosInfo.MoveKeyDown; }
+        set { PosInfo.MoveKeyDown = value; }
+    }
+
+
+
+
+
+    // 현재 방향에 해당하는 벡터 얻기
+    public Vector2 GetDirectionVector(MoveDir dir)
+    {
+        Vector2 direction;
+        switch (dir)
+        {
+            case MoveDir.Up:
+                direction = new Vector2(1, -1).normalized;
+                break;
+            case MoveDir.Down:
+                direction = new Vector2(-1, 1).normalized;
+                break;
+            case MoveDir.Left:
+                direction = new Vector2(-1, -1).normalized;
+                break;
+            case MoveDir.Right:
+                direction = new Vector2(1, 1).normalized;
+                break;
+            case MoveDir.LeftUp:
+                direction = new Vector2(0, -1);
+                break;
+            case MoveDir.LeftDown:
+                direction = new Vector2(-1, 0);
+                break;
+            case MoveDir.RightUp:
+                direction = new Vector2(1, 0);
+                break;
+            case MoveDir.RightDown:
+                direction = new Vector2(0, 1);
+                break;
+            default:
+                direction = new Vector2(0, 0);
+                break;
+        }
+
+        return direction;
+    }
+
 
 
     // 바라보는 방향 앞의 Cell 좌표 얻기

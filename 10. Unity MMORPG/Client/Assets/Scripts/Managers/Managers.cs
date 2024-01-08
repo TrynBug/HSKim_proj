@@ -46,13 +46,14 @@ public class Managers : MonoBehaviour
     public static PoolManager Pool { get { return Instance._pool; } }
     public static DataManager Data { get { return Instance._data; } }
     #endregion
+
     static void Init()
     {
         // instance가 null일 경우 게임매니저 생성
-        if(s_instance == null)
+        if (s_instance == null)
         {
             GameObject go = GameObject.Find("@Managers");    // @Managers 이름의 오브젝트를 찾는다.
-            if(go == null)
+            if (go == null)
             {
                 go = new GameObject { name = "@Managers" };  // null일 경우 @Managers 이름의 빈 오브젝트를 생성한다.
                 go.AddComponent<Managers>();                 // Managers 유니티 스크립트를 부착한다.

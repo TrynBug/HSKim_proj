@@ -9,7 +9,7 @@ namespace Server.Data
     public static class Config
     {
         /* room */
-        public const int FPS = 4;
+        public const int FPS = 20;
 
         /* map */
         public const int CellMultiple = 2;
