@@ -153,7 +153,6 @@ public class MyPlayerController : PlayerController
     }
 
 
-
     protected override void UpdateIdle()
     {
         GetKeyInput();
@@ -164,42 +163,18 @@ public class MyPlayerController : PlayerController
             _speedRateForStop = 1f; // 초기화
 
             // 목적지 계산
-            Vector2 pos = Pos;
             Vector2 dir = GetDirectionVector(Dir);
             Vector2 dest = Pos + dir * Config.MyPlayerMinimumMove * Speed;   // 처음 움직일 때는 dest를 MyPlayerMinimumMove 만큼 이동시킨다.
-            Vector2 finalDest;    // 최종 목적지
-            int loopCount = 0;
-            while (true)
+            Vector2 intersection;
+            if(Managers.Map.CollisionDetection(Pos, dest, out intersection))
             {
-                loopCount++;
-                Debug.Assert(loopCount < 1000, $"MyPlayerController.UpdateIdle loopCount:{loopCount}");
-
-                // 목적지에 도착했으면 break
-                if ((dest - pos).magnitude <= Time.deltaTime * Speed)
-                {
-                    if (Managers.Map.IsMovable(this, dest) == false)
-                        finalDest = pos;
-                    else
-                        finalDest = dest;
-                    break;
-                }
-
-                // 1 frame 이동을 시도한다.
-                pos += dir * Time.deltaTime * Speed;
-                if (Managers.Map.IsMovable(this, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
-                {
-                    continue;
-                }
-                else
-                {
-                    finalDest = pos - dir * Time.deltaTime * Speed;
-                    break;
-                }
+                Dest = intersection;
+            }
+            else
+            {
+                Dest = dest;
             }
 
-
-            // 목적지 설정
-            Dest = finalDest;
             State = CreatureState.Moving;
 
             // 서버에 전송
@@ -207,19 +182,75 @@ public class MyPlayerController : PlayerController
         }
     }
 
+    //protected override void UpdateIdle()
+    //{
+    //    GetKeyInput();
+
+    //    // 방향키 눌림
+    //    if (MoveKeyDown == true)
+    //    {
+    //        _speedRateForStop = 1f; // 초기화
+
+    //        // 목적지 계산
+    //        Vector2 pos = Pos;
+    //        Vector2 dir = GetDirectionVector(Dir);
+    //        Vector2 dest = Pos + dir * Config.MyPlayerMinimumMove * Speed;   // 처음 움직일 때는 dest를 MyPlayerMinimumMove 만큼 이동시킨다.
+    //        Vector2 finalDest;    // 최종 목적지
+    //        int loopCount = 0;
+    //        while (true)
+    //        {
+    //            loopCount++;
+    //            Debug.Assert(loopCount < 1000, $"MyPlayerController.UpdateIdle loopCount:{loopCount}");
+
+    //            // 목적지에 도착했으면 break
+    //            if ((dest - pos).magnitude <= Time.deltaTime * Speed)
+    //            {
+    //                if (Managers.Map.IsMovable(this, dest) == false)
+    //                    finalDest = pos;
+    //                else
+    //                    finalDest = dest;
+    //                break;
+    //            }
+
+    //            // 1 frame 이동을 시도한다.
+    //            pos += dir * Time.deltaTime * Speed;
+    //            if (Managers.Map.IsMovable(this, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
+    //            {
+    //                continue;
+    //            }
+    //            else
+    //            {
+    //                finalDest = pos - dir * Time.deltaTime * Speed;
+    //                break;
+    //            }
+    //        }
+
+
+    //        // 목적지 설정
+    //        Dest = finalDest;
+    //        State = CreatureState.Moving;
+
+    //        // 서버에 전송
+    //        SendMovePacket();
+    //    }
+    //}
+
     protected override void UpdateMoving()
     {
         GetKeyInput();
 
         // 키보드 방향키가 눌려있는 동안은 Dest를 계속해서 이동시킨다.
+        Vector2 intersection;
         if (MoveKeyDown == true)
         {
             _speedRateForStop = 1f; // 초기화
 
-            Vector2 direction = GetDirectionVector(Dir);
-            Vector2 dest = Dest + direction * Time.deltaTime * Speed;
-
-            if (Managers.Map.IsMovable(this, dest))
+            Vector2 dest = Dest + GetDirectionVector(Dir) * Time.deltaTime * Speed;
+            if (Managers.Map.CollisionDetection(Dest, dest, out intersection))
+            {
+                Dest = intersection;
+            }
+            else
             {
                 Dest = dest;
             }
@@ -229,7 +260,7 @@ public class MyPlayerController : PlayerController
         {
             // Dest 까지의 거리가 MyPlayerMinimumMove 내라면 Speed를 점차 감소시킨다.
             float diff = (Dest - Pos).magnitude;
-            if(diff < Config.MyPlayerMinimumMove * Speed)
+            if (diff < Config.MyPlayerMinimumMove * Speed)
             {
                 _speedRateForStop = diff / (Config.MyPlayerMinimumMove * Speed);
             }
@@ -254,20 +285,99 @@ public class MyPlayerController : PlayerController
 
 
         // 실제 위치 이동
-        Vector2 vecDir = (Dest - Pos).normalized;
-        Vector2 pos = Pos + vecDir * Time.deltaTime * Speed * _speedRateForStop;
-        if (Managers.Map.TryMove(this, pos))
+        Vector2 dir = (Dest - Pos).normalized;
+        Vector2 pos = Pos + dir * Time.deltaTime * Speed * _speedRateForStop;
+        if (Managers.Map.CollisionDetection(Pos, pos, out intersection))
         {
-            Pos = pos;
+            // 이동중 부딪혔을 경우 더이상 이동할 수 없기 때문에 Dest를 변경한다.
+            if (Managers.Map.TryMove(this, intersection))
+            {
+                Pos = intersection;
+                Dest = intersection;
+            }
+            else
+            {
+                Dest = Pos;
+            }
         }
         else
         {
-            Dest = Pos;
+            if (Managers.Map.TryMove(this, pos))
+            {
+                Pos = pos;
+            }
+            else
+            {
+                Dest = Pos;
+            }
         }
+
 
         SendMovePacket();
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.UpdateMoving. {this.ToString(InfoLevel.Position)}");
     }
+
+    //protected override void UpdateMoving()
+    //{
+    //    GetKeyInput();
+
+    //    // 키보드 방향키가 눌려있는 동안은 Dest를 계속해서 이동시킨다.
+    //    if (MoveKeyDown == true)
+    //    {
+    //        _speedRateForStop = 1f; // 초기화
+
+    //        Vector2 direction = GetDirectionVector(Dir);
+    //        Vector2 dest = Dest + direction * Time.deltaTime * Speed;
+
+    //        if (Managers.Map.IsMovable(this, dest))
+    //        {
+    //            Dest = dest;
+    //        }
+    //    }
+    //    // 키보드 방향키를 누르고있지 않다면 Dest를 이동시키지 않는다.
+    //    else
+    //    {
+    //        // Dest 까지의 거리가 MyPlayerMinimumMove 내라면 Speed를 점차 감소시킨다.
+    //        float diff = (Dest - Pos).magnitude;
+    //        if(diff < Config.MyPlayerMinimumMove * Speed)
+    //        {
+    //            _speedRateForStop = diff / (Config.MyPlayerMinimumMove * Speed);
+    //        }
+    //        else
+    //        {
+    //            _speedRateForStop = 1f;
+    //        }
+
+    //        // Dest에 도착시 상태를 Idle로 바꾼다.
+    //        if (diff <= Time.deltaTime * Speed)
+    //        {
+    //            if (Managers.Map.TryMove(this, Dest))
+    //            {
+    //                Pos = Dest;
+    //            }
+
+    //            State = CreatureState.Idle;
+    //            SendMovePacket();
+    //            return;
+    //        }
+    //    }
+
+
+    //    // 실제 위치 이동
+    //    Vector2 vecDir = (Dest - Pos).normalized;
+    //    Vector2 pos = Pos + vecDir * Time.deltaTime * Speed * _speedRateForStop;
+    //    if (Managers.Map.TryMove(this, pos))
+    //    {
+    //        Pos = pos;
+    //    }
+    //    else
+    //    {
+    //        Dest = Pos;
+    //    }
+
+    //    SendMovePacket();
+    //    ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.UpdateMoving. {this.ToString(InfoLevel.Position)}");
+    //}
 
 
 
@@ -303,7 +413,7 @@ public class MyPlayerController : PlayerController
         _lastCMove = movePacket;
         _lastCMoveSendTime = Environment.TickCount;
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.UpdateIdle. Send C_Move. {this.ToString(InfoLevel.Position)}");
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.SendMovePacket. {this.ToString(InfoLevel.Position)}");
     }
 
 

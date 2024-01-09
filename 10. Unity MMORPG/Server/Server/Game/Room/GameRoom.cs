@@ -329,48 +329,23 @@ namespace Server.Game
             // TBD
 
 
-            // 목적지에 도착가능한지 확인하고 최종 목적지를 계산한다.
-            Vector2 pos = player.Pos;
+            // 목적지에 도착가능한지 확인하고 목적지를 설정한다.
             Vector2 dest = new Vector2(movePosInfo.DestX, movePosInfo.DestY);
-            Vector2 dir = (dest - pos).normalized;
-            Vector2 finalDest;    // 최종 목적지
-            int loopCount = 0;
-            while (true)
+            Vector2 intersection;
+            if (player.Room.Map.CollisionDetection(player.Pos, dest, out intersection))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
             {
-                loopCount++;
-                Debug.Assert(loopCount < 1000, $"GameRoom._handleMove loopCount:{loopCount}");
-
-                // 목적지에 도착했으면 break
-                if ((dest - pos).magnitude <= Time.DeltaTime * player.Speed)
-                {
-                    if (player.Room.Map.IsMovable(player, dest))
-                        finalDest = dest;
-                    else
-                        finalDest = pos;
-
-                    break;
-                }
-
-                // 1 frame 이동을 시도한다.
-                pos += dir * Time.DeltaTime * player.Speed;
-                if (player.Room.Map.IsMovable(player, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
-                {
-                    continue;
-                }
-                else
-                {
-                    finalDest = pos - dir * Time.DeltaTime * player.Speed;
-                    break;
-                }
+                player.Dest = intersection;
+            }
+            else
+            {
+                player.Dest = dest;
             }
 
-            // 목적지 설정
-            player.Dest = finalDest;
+            // info update
             player.Dir = movePosInfo.MoveDir;
             player.RemoteState = movePosInfo.State;
             player.RemoteDir = movePosInfo.MoveDir;
             player.MoveKeyDown = movePosInfo.MoveKeyDown;
-
 
 
             // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
@@ -385,6 +360,78 @@ namespace Server.Game
             _broadcast(resMovePacket);
         }
 
+
+        //public void _handleMove(Player player, C_Move movePacket)
+        //{
+        //    if (player == null)
+        //        return;
+
+        //    PositionInfo movePosInfo = movePacket.PosInfo;
+        //    ObjectInfo info = player.Info;
+
+
+        //    // 클라 pos와 서버 pos가 크게 다를 경우 처리?
+        //    // TBD
+
+        //    // 현재 이동 가능한 상태인지 확인
+        //    // TBD
+
+
+        //    // 목적지에 도착가능한지 확인하고 최종 목적지를 계산한다.
+        //    Vector2 pos = player.Pos;
+        //    Vector2 dest = new Vector2(movePosInfo.DestX, movePosInfo.DestY);
+        //    Vector2 dir = (dest - pos).normalized;
+        //    Vector2 finalDest;    // 최종 목적지
+        //    int loopCount = 0;
+        //    while (true)
+        //    {
+        //        loopCount++;
+        //        Debug.Assert(loopCount < 1000, $"GameRoom._handleMove loopCount:{loopCount}");
+
+        //        // 목적지에 도착했으면 break
+        //        if ((dest - pos).magnitude <= Time.DeltaTime * player.Speed)
+        //        {
+        //            if (player.Room.Map.IsMovable(player, dest))
+        //                finalDest = dest;
+        //            else
+        //                finalDest = pos;
+
+        //            break;
+        //        }
+
+        //        // 1 frame 이동을 시도한다.
+        //        pos += dir * Time.DeltaTime * player.Speed;
+        //        if (player.Room.Map.IsMovable(player, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
+        //        {
+        //            continue;
+        //        }
+        //        else
+        //        {
+        //            finalDest = pos - dir * Time.DeltaTime * player.Speed;
+        //            break;
+        //        }
+        //    }
+
+        //    // 목적지 설정
+        //    player.Dest = finalDest;
+        //    player.Dir = movePosInfo.MoveDir;
+        //    player.RemoteState = movePosInfo.State;
+        //    player.RemoteDir = movePosInfo.MoveDir;
+        //    player.MoveKeyDown = movePosInfo.MoveKeyDown;
+
+
+
+        //    // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
+        //    S_Move resMovePacket = new S_Move();
+        //    resMovePacket.ObjectId = info.ObjectId;
+        //    resMovePacket.PosInfo = movePacket.PosInfo.Clone();
+        //    resMovePacket.PosInfo.PosX = player.Pos.x;
+        //    resMovePacket.PosInfo.PosY = player.Pos.y;
+        //    resMovePacket.PosInfo.DestX = player.Dest.x;
+        //    resMovePacket.PosInfo.DestY = player.Dest.y;
+        //    resMovePacket.MoveTime = movePacket.MoveTime;
+        //    _broadcast(resMovePacket);
+        //}
 
         // 스킬사용요청 처리
         public void _handleSkill(Player player, C_Skill skillPacket)

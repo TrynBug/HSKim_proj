@@ -26,47 +26,83 @@ namespace Server.Game
 
         protected override void UpdateIdle()
         {
-            if(RemoteState == CreatureState.Moving || Util.Equals(Pos, Dest) == false)
+            if(MoveKeyDown == true || Util.Equals(Pos, Dest) == false)
             {
                 State = CreatureState.Moving;
                 UpdateMoving();
             }
         }
 
+
         protected override void UpdateMoving()
         {
+            Vector2 intersection;
+
             // 클라이언트에게 멈춤 패킷을 받음
-            if(MoveKeyDown == false)
+            if (MoveKeyDown == false)
             {
                 // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
                 if ((Dest - Pos).magnitude < Room.Time.DeltaTime * Speed)
                 {
-                    Vector2Int destCell = Room.Map.PosToCell(Dest);
-                    if (Room.Map.TryMove(this, destCell))
+                    if (Room.Map.CollisionDetection(Pos, Dest, out intersection))
                     {
-                        Pos = Dest;
-                        State = CreatureState.Idle;
+                        // Dest까지 갈 수 없는 경우, intersection으로 이동해본다.
+                        if (Room.Map.TryMove(this, Room.Map.PosToCell(intersection)))
+                        {
+                            Pos = intersection;
+                            Dest = intersection;
+                        }
+                        else
+                        {
+                            Dest = Pos;
+                        }
                     }
                     else
                     {
-                        Dest = Pos;
-                        State = CreatureState.Idle;
+                        // Dest까지 갈 수 있는 경우 Dest로 이동한다.
+                        if (Room.Map.TryMove(this, Room.Map.PosToCell(Dest)))
+                        {
+                            Pos = Dest;
+                        }
+                        else
+                        {
+                            Dest = Pos;
+                        }
                     }
+
+                    State = CreatureState.Idle;
                 }
                 // 이동
                 else
                 {
                     Vector2 dir = (Dest - Pos).normalized;
                     Vector2 pos = Pos + dir * Room.Time.DeltaTime * Speed;
-                    Vector2Int cell = Room.Map.PosToCell(pos);
-                    if (Room.Map.TryMove(this, cell))
+                    if (Room.Map.CollisionDetection(Pos, pos, out intersection))
                     {
-                        Pos = pos;
+                        // 이동할 수 없는 경우 Dest를 변경시킨다.
+                        if (Room.Map.TryMove(this, Room.Map.PosToCell(intersection)))
+                        {
+                            Pos = intersection;
+                            Dest = intersection;
+                        }
+                        else
+                        {
+                            Dest = Pos;
+                        }
+                        State = CreatureState.Idle;
                     }
                     else
                     {
-                        Dest = Pos;
-                        State = CreatureState.Idle;
+                        // 이동할 수 있는 경우 이동한다.
+                        if (Room.Map.TryMove(this, Room.Map.PosToCell(pos)))
+                        {
+                            Pos = pos;
+                        }
+                        else
+                        {
+                            Dest = Pos;
+                            State = CreatureState.Idle;
+                        }
                     }
                 }
             }
@@ -75,22 +111,43 @@ namespace Server.Game
             {
                 // Dest를 이동시킨다.
                 Vector2 dest = Dest + GetDirectionVector(RemoteDir) * Room.Time.DeltaTime * Speed;
-                if (Room.Map.IsMovable(this, dest))
+                if (Room.Map.CollisionDetection(Dest, dest, out intersection))
+                {
+                    Dest = intersection;
+                }
+                else
                 {
                     Dest = dest;
                 }
-                
+
                 // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
                 if ((Dest - Pos).magnitude < Room.Time.DeltaTime * Speed)
                 {
-                    Vector2Int destCell = Room.Map.PosToCell(Dest);
-                    if (Room.Map.TryMove(this, destCell))
+                    if (Room.Map.CollisionDetection(Pos, Dest, out intersection))
                     {
-                        Pos = Dest;
+                        // Dest까지 갈 수 없는 경우, intersection으로 이동해본다.
+                        if (Room.Map.TryMove(this, Room.Map.PosToCell(intersection)))
+                        {
+                            Pos = intersection;
+                            Dest = intersection;
+                        }
+                        else
+                        {
+                            Room.Map.CollisionDetection(Pos, Dest, out intersection);
+                            Dest = Pos;
+                        }
                     }
                     else
                     {
-                        Dest = Pos;
+                        // Dest까지 갈 수 있는 경우 Dest로 이동한다.
+                        if (Room.Map.TryMove(this, Room.Map.PosToCell(Dest)))
+                        {
+                            Pos = Dest;
+                        }
+                        else
+                        {
+                            Dest = Pos;
+                        }
                     }
                 }
                 // 이동
@@ -98,14 +155,33 @@ namespace Server.Game
                 {
                     Vector2 dir = (Dest - Pos).normalized;
                     Vector2 pos = Pos + dir * Room.Time.DeltaTime * Speed;
-                    Vector2Int cell = Room.Map.PosToCell(pos);
-                    if (Room.Map.TryMove(this, cell))
+                    if (Room.Map.CollisionDetection(Pos, pos, out intersection))
                     {
-                        Pos = pos;
+                        // 이동할 수 없는 경우 Dest를 변경시킨다.
+                        if (Room.Map.TryMove(this, Room.Map.PosToCell(intersection)))
+                        {
+                            Pos = intersection;
+                            Dest = intersection;
+                        }
+                        else
+                        {
+                            Dest = Pos;
+                        }
+                        State = CreatureState.Idle;
                     }
                     else
                     {
-                        Dest = Pos;
+                        // 이동할 수 있는 경우 이동한다.
+                        if (Room.Map.TryMove(this, Room.Map.PosToCell(pos)))
+                        {
+                            Pos = pos;
+                        }
+                        else
+                        {
+                            Room.Map.CollisionDetection(Pos, pos, out intersection);
+                            Dest = Pos;
+                            State = CreatureState.Idle;
+                        }
                     }
                 }
             }
@@ -114,6 +190,94 @@ namespace Server.Game
 
             Logger.WriteLog(LogLevel.Debug, $"Player.UpdateMoving. {this.ToString(InfoLevel.Position)}");
         }
+
+
+
+
+
+
+
+        //protected override void UpdateMoving()
+        //{
+        //    // 클라이언트에게 멈춤 패킷을 받음
+        //    if(MoveKeyDown == false)
+        //    {
+        //        // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
+        //        if ((Dest - Pos).magnitude < Room.Time.DeltaTime * Speed)
+        //        {
+        //            Vector2Int destCell = Room.Map.PosToCell(Dest);
+        //            if (Room.Map.TryMove(this, destCell))
+        //            {
+        //                Pos = Dest;
+        //                State = CreatureState.Idle;
+        //            }
+        //            else
+        //            {
+        //                Dest = Pos;
+        //                State = CreatureState.Idle;
+        //            }
+        //        }
+        //        // 이동
+        //        else
+        //        {
+        //            Vector2 dir = (Dest - Pos).normalized;
+        //            Vector2 pos = Pos + dir * Room.Time.DeltaTime * Speed;
+        //            Vector2Int cell = Room.Map.PosToCell(pos);
+        //            if (Room.Map.TryMove(this, cell))
+        //            {
+        //                Pos = pos;
+        //            }
+        //            else
+        //            {
+        //                Dest = Pos;
+        //                State = CreatureState.Idle;
+        //            }
+        //        }
+        //    }
+        //    // 클라이언트에게 이전에 이동 패킷을 받았음
+        //    else
+        //    {
+        //        // Dest를 이동시킨다.
+        //        Vector2 dest = Dest + GetDirectionVector(RemoteDir) * Room.Time.DeltaTime * Speed;
+        //        if (Room.Map.IsMovable(this, dest))
+        //        {
+        //            Dest = dest;
+        //        }
+                
+        //        // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
+        //        if ((Dest - Pos).magnitude < Room.Time.DeltaTime * Speed)
+        //        {
+        //            Vector2Int destCell = Room.Map.PosToCell(Dest);
+        //            if (Room.Map.TryMove(this, destCell))
+        //            {
+        //                Pos = Dest;
+        //            }
+        //            else
+        //            {
+        //                Dest = Pos;
+        //            }
+        //        }
+        //        // 이동
+        //        else
+        //        {
+        //            Vector2 dir = (Dest - Pos).normalized;
+        //            Vector2 pos = Pos + dir * Room.Time.DeltaTime * Speed;
+        //            Vector2Int cell = Room.Map.PosToCell(pos);
+        //            if (Room.Map.TryMove(this, cell))
+        //            {
+        //                Pos = pos;
+        //            }
+        //            else
+        //            {
+        //                Dest = Pos;
+        //            }
+        //        }
+        //    }
+
+
+
+        //    Logger.WriteLog(LogLevel.Debug, $"Player.UpdateMoving. {this.ToString(InfoLevel.Position)}");
+        //}
 
         protected override void UpdateSkill()
         {

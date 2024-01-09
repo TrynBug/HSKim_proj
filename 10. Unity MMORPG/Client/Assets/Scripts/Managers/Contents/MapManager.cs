@@ -340,8 +340,9 @@ public class MapManager
 
         if (IsEmptyCell(dest) == false)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Move. Cell already occupied. " +
-                $"cell:{obj.Cell}, collider:{_collision[dest.y, dest.x]}, occupied:[{_objects[dest.y, dest.x]}], me:[{obj}]");
+            if (_objects[dest.y, dest.x] != null)
+                ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Move. Cell already occupied. " +
+                    $"cell:{obj.Cell}, collider:{_collision[dest.y, dest.x]}, occupied:[{_objects[dest.y, dest.x]}], me:[{obj}]");
             return false;
         }
 
@@ -483,7 +484,6 @@ public class MapManager
     {
         // reference : https://www.youtube.com/watch?v=NbSee-XM7WA
         const float zeroReplacement = 0.00000001f;
-
         intersection = new Vector2(0, 0);
 
         // cell 크기 1 x 1 을 기준으로 pos와 dest를 보정한다.
@@ -536,12 +536,18 @@ public class MapManager
             // Walk along shortest path
             if (rayLength1D.x < rayLength1D.y)
             {
+                if (rayLength1D.x > maxDistance)
+                    break;
+
                 mapCheck.x += step.x;
                 distance = rayLength1D.x;
                 rayLength1D.x += rayUnitStepSize.x;
             }
             else
             {
+                if (rayLength1D.y > maxDistance)
+                    break;
+
                 mapCheck.y += step.y;
                 distance = rayLength1D.y;
                 rayLength1D.y += rayUnitStepSize.y;
@@ -551,7 +557,7 @@ public class MapManager
             if (mapCheck.x >= 0 && mapCheck.x < posMax.x && mapCheck.y >= 0 && mapCheck.y < posMax.y)
             {
                 Vector2Int cell = PosToCell(mapCheck * srcCellSize);
-                if (_collision[cell.y, cell.x] == true)
+                if (_collision[cell.y, cell.x] == true || _objects[cell.y, cell.x] != null)
                 {
                     bCollision = true;
                 }
