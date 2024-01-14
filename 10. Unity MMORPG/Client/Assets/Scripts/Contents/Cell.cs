@@ -3,22 +3,50 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using UnityEngine;
 
 
 public class Cell
 {
-    bool _collider;
-    BaseController _object;
-    List<BaseController> _movingObjects = new List<BaseController>();
+    LinkedList<BaseController> _movingObjects = new LinkedList<BaseController>();
 
-    public bool Collider { get { return _collider; } }
-    public BaseController Object { 
-        get { return _object; }
-        set { _object = value; }
+    public bool Collider { get; set; } = false;
+    public BaseController Object { get; set; } = null;
+    public LinkedList<BaseController> MovingObjects { get { return _movingObjects; } }
+
+
+    public bool HasObject(BaseController obj)
+    {
+        return (Object == obj || HasMovingObject(obj));
     }
-    public List<BaseController> MovingObjects { get { return _movingObjects; } }
+
+    public bool RemoveObject(BaseController obj)
+    {
+        if (Object == obj)
+        {
+            Object = null;
+            return true;
+        }
+        else
+        {
+            return RemoveMovingObject(obj);
+        }
+    }
 
 
+    public void AddMovingObject(BaseController obj)
+    {
+        MovingObjects.AddLast(obj);
+    }
 
+    public bool RemoveMovingObject(BaseController obj)
+    {
+        return MovingObjects.Remove(obj);
+    }
+
+    public bool HasMovingObject(BaseController obj)
+    {
+        return MovingObjects.Find(obj) != null;
+    }
 }
 

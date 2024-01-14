@@ -67,9 +67,7 @@ public class MapManager
     public int TotalCellCount { get { return CellMaxX * CellMaxY; } }  // cell 개수
 
     // grid
-    bool[,] _collision;
-    BaseController[,] _objects;
-
+    Cell[,] _cells;
 
     // utils
     public Vector2Int PosToCell(Vector2 pos)
@@ -115,6 +113,14 @@ public class MapManager
     {
         return (cell.x < 0 || cell.x >= CellMaxX || cell.y < 0 || cell.y >= CellMaxY);
     }
+    public Vector2 GetValidPos(Vector2 pos)
+    {
+        return new Vector2(Math.Clamp(pos.x, 0f, PosMaxX), Math.Clamp(pos.y, 0f, PosMaxY));
+    }
+    public Vector2Int GetValidCell(Vector2Int cell)
+    {
+        return new Vector2Int(Math.Clamp(cell.x, 0, CellMaxX), Math.Clamp(cell.y, 0, CellMaxY));
+    }
     // 비어있는 cell인지 확인
     public bool IsEmptyCell(Vector2Int cell, bool checkObjects = true)
     {
@@ -122,28 +128,13 @@ public class MapManager
             return false;
 
         if (checkObjects)
-            return (_collision[cell.y, cell.x] == false) && (_objects[cell.y, cell.x] == null);
+            return (_cells[cell.y, cell.x].Collider == false) && (_cells[cell.y, cell.x].Object == null);
         else
-            return _collision[cell.y, cell.x] == false;
+            return _cells[cell.y, cell.x].Collider == false;
     }
     public bool IsEmptyCell(Vector2 pos, bool checkObjects = true)
     {
         return IsEmptyCell(PosToCell(pos), checkObjects);
-    }
-    // bc가 dest로 이동 가능한지 확인.
-    // bc.Cell 이 dest와 같다면 같은cell에 있기 때문에 리턴값은 true이다.
-    public bool IsMovable(BaseController bc, Vector2Int dest, bool checkObjects = true)
-    {
-        if (bc.Cell == dest)
-            return true;
-        return IsEmptyCell(dest, checkObjects);
-    }
-    public bool IsMovable(BaseController bc, Vector2 dest, bool checkObjects = true)
-    {
-        Vector2Int cell = PosToCell(dest);
-        if (bc.Cell == cell)
-            return true;
-        return IsEmptyCell(cell, checkObjects);
     }
 
 
@@ -191,8 +182,10 @@ public class MapManager
         PosMaxY = CellMaxY * CellHeight;
 
         // grid 생성
-        _collision = new bool[CellMaxY, CellMaxX];
-        _objects = new BaseController[CellMaxY, CellMaxX];
+        _cells = new Cell[CellMaxY, CellMaxX];
+        for (int y = 0; y < CellMaxY; y++)
+            for (int x = 0; x < CellMaxX; x++)
+                _cells[y, x] = new Cell();
 
         // grid 상에서 갈 수 있는 위치 얻기
         int xCount = maxX - minX;
@@ -204,17 +197,17 @@ public class MapManager
             {
                 if (line[x] == '1')
                 {
-                    _collision[y * CellMultiple, x * CellMultiple] = true;
-                    _collision[y * CellMultiple, x * CellMultiple + 1] = true;
-                    _collision[y * CellMultiple + 1, x * CellMultiple] = true;
-                    _collision[y * CellMultiple + 1, x * CellMultiple + 1] = true;
+                    _cells[y * CellMultiple, x * CellMultiple].Collider = true;
+                    _cells[y * CellMultiple, x * CellMultiple + 1].Collider = true;
+                    _cells[y * CellMultiple + 1, x * CellMultiple].Collider = true;
+                    _cells[y * CellMultiple + 1, x * CellMultiple + 1].Collider = true;
                 }
                 else
                 {
-                    _collision[y * CellMultiple, x * CellMultiple] = false;
-                    _collision[y * CellMultiple, x * CellMultiple + 1] = false;
-                    _collision[y * CellMultiple + 1, x * CellMultiple] = false;
-                    _collision[y * CellMultiple + 1, x * CellMultiple + 1] = false;
+                    _cells[y * CellMultiple, x * CellMultiple].Collider = false;
+                    _cells[y * CellMultiple, x * CellMultiple + 1].Collider = false;
+                    _cells[y * CellMultiple + 1, x * CellMultiple].Collider = false;
+                    _cells[y * CellMultiple + 1, x * CellMultiple + 1].Collider = false;
                 }
 
             }
@@ -262,6 +255,51 @@ public class MapManager
         }
     }
 
+    HashSet<BaseController> setObj = new HashSet<BaseController>();
+    volatile bool doCrash = false;
+    public void InspectCell()
+    {
+        void Crash()
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.OnUpdate. Cell integrity failed");
+            while (true)
+            {
+                if (doCrash == false) break;
+            }
+        }
+        // cell 무결성 확인
+        setObj.Clear();
+        for (int y = 0; y < CellMaxY; y++)
+        {
+            for (int x = 0; x < CellMaxX; x++)
+            {
+                Cell cell = _cells[y, x];
+                if (cell.Object != null)
+                {
+                    if (setObj.Add(cell.Object) == false)
+                        Crash();
+                }
+                var list = cell.MovingObjects;
+                foreach (BaseController obj in list)
+                    if (setObj.Add(obj) == false)
+                        Crash();
+            }
+        }
+        //if (setObj.Count != Managers.Object.ObjectCount)
+        //    Crash();
+        //foreach(var v in Managers.Object.Objects)
+        //{
+        //    BaseController bc = v.Value.GetComponent<BaseController>();
+        //    if (bc == null) continue;
+        //    if(_cells[bc.Cell.y, bc.Cell.x].Object != bc && _cells[bc.Cell.y, bc.Cell.x].HasMovingObject(bc) == false)
+        //        Crash();
+        //}
+    }
+
+    public void OnUpdate()
+    {
+    }
+
 
     public void DestroyMap()
     {
@@ -279,7 +317,7 @@ public class MapManager
         if (IsInvalidCell(cell))
             return null;
 
-        return _objects[cell.y, cell.x];
+        return _cells[cell.y, cell.x].Object;
     }
 
     // 맵에 오브젝트 추가
@@ -296,11 +334,11 @@ public class MapManager
         if (IsEmptyCell(obj.Cell) == false)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Add. Cell already occupied " +
-                $"cell:{obj.Cell}, collider:{_collision[y, x]}, occupied:[{_objects[y, x]}], me:[{obj}]");
+                $"cell:{obj.Cell}, collider:{_cells[y, x].Collider}, occupied:[{_cells[y, x].Object}], me:[{obj}]");
             return false;
         }
 
-        _objects[y, x] = obj;
+        _cells[y, x].Object = obj;
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"Map.Add. {obj.ToString(InfoLevel.Position)}");
         return true;
     }
@@ -313,55 +351,197 @@ public class MapManager
 
         int x = obj.Cell.x;
         int y = obj.Cell.y;
-        if (_objects[y, x] != obj)
+        if (_cells[y, x].RemoveObject(obj) == false)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Remove. Object mismatch. cell:{obj.Cell}, resident:{_objects[y, x]} me:{obj}");
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Remove. No object in the cell. {obj.ToString(InfoLevel.Position)}");
             return false;
         }
 
-        _objects[y, x] = null;
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"Map.Remove. {obj.ToString(InfoLevel.Position)}");
         return true;
     }
 
 
-    // object를 위치로 이동
-    // cell 이동에 오류가 없으면 true를 리턴한다.
-    // 현재 cell과 목적지 cell의 위치가 같아도 오류가 없으면 true를 리턴한다.
-    public bool TryMove(BaseController obj, Vector2Int dest)
+    // object를 dest 위치에 MovingObject로 이동시킨다.
+    public bool TryMoving(BaseController obj, Vector2Int dest)
     {
-        int x = obj.Cell.x;
-        int y = obj.Cell.y;
-        if (x == dest.x && y == dest.y)
+        // 오류체크
+        Vector2Int cell = obj.Cell;
+        if (IsInvalidCell(cell))
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.TryMoving. Invalid cell. {obj.ToString(InfoLevel.Position)}");
+            return false;
+        }
+
+        Cell currCell = _cells[cell.y, cell.x];
+        if (currCell.Object != obj && currCell.HasMovingObject(obj) == false)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.TryMoving. No object in the cell. {obj.ToString(InfoLevel.Position)}");
+            return false;
+        }
+
+        dest = GetValidCell(dest);
+        Cell destCell = _cells[dest.y, dest.x];
+
+        // dest에 collider가 있을 경우 실패
+        if (destCell.Collider == true)
+            return false;
+
+        // cell 이동
+        if (currCell.Object == obj)
+        {
+            currCell.Object = null;
+            destCell.AddMovingObject(obj);
+        }
+        else if (cell == dest)
+        {
             return true;
-
-        if (IsInvalidCell(obj.Cell) || IsInvalidCell(dest))
-            return false;
-
-        if (IsEmptyCell(dest) == false)
+        }
+        else
         {
-            if (_objects[dest.y, dest.x] != null)
-                ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Move. Cell already occupied. " +
-                    $"cell:{obj.Cell}, collider:{_collision[dest.y, dest.x]}, occupied:[{_objects[dest.y, dest.x]}], me:[{obj}]");
-            return false;
+            currCell.RemoveMovingObject(obj);
+            destCell.AddMovingObject(obj);
         }
 
-        if (_objects[y, x] != obj)
-        {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Move. Object mismatch. " +
-                $"cell:{obj.Cell}, resident:[{_objects[y, x]}], me:[{obj}]");
-            return false;
-        }
-
-        // grid 이동
-        _objects[y, x] = null;
-        _objects[dest.y, dest.x] = obj;
         return true;
     }
-    public bool TryMove(BaseController obj, Vector2 dest)
+    public bool TryMoving(BaseController obj, Vector2 dest)
     {
-        return TryMove(obj, PosToCell(dest));
+        return TryMoving(obj, PosToCell(dest));
     }
+
+
+
+
+    // object를 dest에 위치시킨다.
+    // dest에 위치할 수 없을 경우 가장 가까운 cell에 위치시킨다.
+    // 현재 cell과 dest의 위치가 같아도 오류가 없으면 true를 리턴한다.
+    // 이동할 수 없을 경우 false를 리턴한다. 이 때는 stopPos 값을 사용하면 안된다.
+    public bool TryStop(BaseController obj, Vector2 targetPos, out Vector2 stopPos)
+    {
+        // 오류체크
+        Vector2Int cell = obj.Cell;
+        Vector2Int dest = PosToCell(targetPos);
+        if (IsInvalidCell(cell))
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Stop. Invalid cell. {obj.ToString(InfoLevel.Position)}");
+            stopPos = obj.Pos;
+            return false;
+        }
+
+        Cell currCell = _cells[cell.y, cell.x];
+        bool isMovingobject = currCell.HasMovingObject(obj);
+        if (currCell.HasObject(obj) == false)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Stop. No object in the cell. {obj.ToString(InfoLevel.Position)}");
+            stopPos = obj.Pos;
+            return false;
+        }
+
+        dest = GetValidCell(dest);
+        Cell destCell = _cells[dest.y, dest.x];
+
+        // dest 위치가 비어있을 경우 성공
+        if (IsEmptyCell(dest))
+        {
+            if (isMovingobject)
+                currCell.RemoveMovingObject(obj);
+            else
+                currCell.Object = null;
+            destCell.Object = obj;
+            stopPos = targetPos;
+            return true;
+        }
+
+        // dest가 비어있지 않지만 dest에 내가 위치해 있을 경우 성공
+        if (dest == cell && destCell.Object == obj)
+        {
+            stopPos = targetPos;
+            return true;
+        }
+
+        // dest 위치가 비어있지 않을 경우 비어있는 가장 가까운 위치를 찾는다.
+        Vector2Int emptyCell;
+        if(FindEmptyCellOfDirection(obj, Util.GetOppositeDirection(obj.Dir), dest, out emptyCell) == false)
+        {
+            stopPos = obj.Pos;
+            return false;
+        }
+
+        // 비어있는 가장 가까운 cell로 이동
+        if (isMovingobject)
+            currCell.RemoveMovingObject(obj);
+        else
+            currCell.Object = null;
+        _cells[emptyCell.y, emptyCell.x].Object = obj;
+        stopPos = CellToCenterPos(emptyCell);
+        return true;
+    }
+
+
+    // origin을 기준으로 dir 방향의 cell을 찾는다.
+    public Vector2Int FindCellOfDirection(MoveDir dir, Vector2Int origin)
+    {
+        Vector2Int cell;
+        switch (dir)
+        {
+            case MoveDir.Up:
+                cell = new Vector2Int(origin.x + 1, origin.y - 1);
+                break;
+            case MoveDir.Down:
+                cell = new Vector2Int(origin.x - 1, origin.y + 1);
+                break;
+            case MoveDir.Left:
+                cell = new Vector2Int(origin.x - 1, origin.y - 1);
+                break;
+            case MoveDir.Right:
+                cell = new Vector2Int(origin.x + 1, origin.y + 1);
+                break;
+            case MoveDir.LeftUp:
+                cell = new Vector2Int(origin.x, origin.y - 1);
+                break;
+            case MoveDir.LeftDown:
+                cell = new Vector2Int(origin.x - 1, origin.y);
+                break;
+            case MoveDir.RightUp:
+                cell = new Vector2Int(origin.x + 1, origin.y);
+                break;
+            case MoveDir.RightDown:
+                cell = new Vector2Int(origin.x, origin.y + 1);
+                break;
+            default:
+                cell = origin;
+                break;
+        }
+        return cell;
+    }
+
+    // origin을 기준으로 dir 방향의 비어있는 cell을 찾는다.
+    public bool FindEmptyCellOfDirection(BaseController me, MoveDir dir, Vector2Int origin, out Vector2Int emptyCell)
+    {
+        Vector2Int cell = origin;
+        while (true)
+        {
+            cell = FindCellOfDirection(dir, cell);
+            if (IsInvalidCell(cell))
+            {
+                emptyCell = cell;
+                return false;
+            }
+            if (IsEmptyCell(cell))
+            {
+                emptyCell = cell;
+                return true;
+            }
+            if (me != null && _cells[cell.y, cell.x].Object == me)
+            {
+                emptyCell = cell;
+                return true;
+            }
+        }
+    }
+
+
 
     // center를 기준으로 가장 가까운 빈 공간을 찾아준다.
     // 찾았으면 true, 찾지 못했으면 false를 리턴함
@@ -394,7 +574,7 @@ public class MapManager
             {
                 if (checkObjects)
                 {
-                    if (!_collision[y, x] && _objects[y, x] == null)
+                    if (!_cells[y, x].Collider && _cells[y, x].Object == null)
                     {
                         emptyCell = new Vector2Int(x, y);
                         return true;
@@ -402,7 +582,7 @@ public class MapManager
                 }
                 else
                 {
-                    if (!_collision[y, x])
+                    if (!_cells[y, x].Collider)
                     {
                         emptyCell = new Vector2Int(x, y);
                         return true;
@@ -479,8 +659,10 @@ public class MapManager
 
 
 
-
-    public bool CollisionDetection(Vector2 pos, Vector2 dest, out Vector2 intersection)
+    // pos에서 dest 위치로 갈 수 있는지 확인한다.
+    // collider와의 충돌만 고려하고 object와의 충돌은 무시한다.
+    // collider와 충돌했을 경우 false를 리턴하고 intersection에 최종 목적지를 입력한다.
+    public bool CanGo(Vector2 pos, Vector2 dest, out Vector2 intersection)
     {
         // reference : https://www.youtube.com/watch?v=NbSee-XM7WA
         const float zeroReplacement = 0.00000001f;
@@ -557,7 +739,7 @@ public class MapManager
             if (mapCheck.x >= 0 && mapCheck.x < posMax.x && mapCheck.y >= 0 && mapCheck.y < posMax.y)
             {
                 Vector2Int cell = PosToCell(mapCheck * srcCellSize);
-                if (_collision[cell.y, cell.x] == true || _objects[cell.y, cell.x] != null)
+                if (_cells[cell.y, cell.x].Collider == true)
                 {
                     bCollision = true;
                 }
@@ -571,11 +753,100 @@ public class MapManager
             intersection *= srcCellSize;
         }
 
-        return bCollision;
+        return !bCollision;
     }
 
 
+    // pos 위치를 기준으로 dir 방향의 사각형 range 범위에 있는 오브젝트를 찾아 리턴한다.
+    public List<BaseController> FindObjectsInRect(Vector2 pos, Vector2 range, LookDir dir)
+    {
+        List<BaseController> objects = new List<BaseController>();
 
+        // 공격범위를 조사할 cell 찾기
+        // 공격범위: pos 위치에서 dir 방향으로 너비 range.x, 높이 range.y 사각형
+        Vector2 targetPosMin;
+        Vector2 targetPosMax;
+        if(dir == LookDir.LookLeft)
+        {
+            targetPosMin.x = pos.x + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).x;
+            targetPosMax.x = pos.x + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).x;
+            targetPosMin.y = pos.y + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).y; 
+            targetPosMax.y = pos.y + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).y;
+        }
+        else
+        {
+            targetPosMin.x = pos.x + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).x;
+            targetPosMax.x = pos.x + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).x;
+            targetPosMin.y = pos.y + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).y;
+            targetPosMax.y = pos.y + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).y;
+        }
+        targetPosMin = GetValidPos(targetPosMin);
+        targetPosMax = GetValidPos(targetPosMax);
+        Vector2Int targetCellMin = PosToCell(targetPosMin);
+        Vector2Int targetCellMax = PosToCell(targetPosMax);
+
+
+        // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
+        Vector2 R;
+        if (dir == LookDir.LookLeft)
+        {
+            R = new Vector2(Mathf.Cos(135f), Mathf.Sin(135f));
+        }
+        else
+        {
+            R = new Vector2(Mathf.Cos(45f), Mathf.Sin(45f));
+        }
+
+        // 범위 내의 object 찾기
+        for(int y = targetCellMin.y; y<= targetCellMax.y; y++)
+        {
+            for(int x = targetCellMin.x; x <= targetCellMax.x; x++)
+            {
+                Cell cell = _cells[y, x];
+                if (cell.Object != null)
+                {
+                    Vector2 objectPos = (cell.Object.Pos - pos) * R;
+                    if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+                        objects.Add(cell.Object);
+                }
+                foreach(BaseController obj in cell.MovingObjects)
+                {
+                    Vector2 objectPos = (obj.Pos - pos) * R;
+                    if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+                        objects.Add(cell.Object);
+                }
+            }
+        }
+
+        // debug 공격범위 표시
+        if (dir == LookDir.LookLeft)
+        {
+            Vector3 _debug1 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f));
+            Vector3 _debug2 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f));
+            Vector3 _debug3 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f));
+            Vector3 _debug4 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f));
+            _debug1.z = _debug2.z = _debug3.z = _debug4.z = 30;
+            Debug.DrawLine(_debug1, _debug2, Color.blue, 1f);
+            Debug.DrawLine(_debug2, _debug3, Color.blue, 1f);
+            Debug.DrawLine(_debug3, _debug4, Color.blue, 1f);
+            Debug.DrawLine(_debug4, _debug1, Color.blue, 1f);
+        }
+        else
+        {
+            Vector3 _debug1 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f));
+            Vector3 _debug2 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f));
+            Vector3 _debug3 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f));
+            Vector3 _debug4 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f));
+            _debug1.z = _debug2.z = _debug3.z = _debug4.z = 30;
+            Debug.DrawLine(_debug1, _debug2, Color.blue, 1f);
+            Debug.DrawLine(_debug2, _debug3, Color.blue, 1f);
+            Debug.DrawLine(_debug3, _debug4, Color.blue, 1f);
+            Debug.DrawLine(_debug4, _debug1, Color.blue, 1f);
+        }
+
+
+        return objects;
+    }
 
 
 

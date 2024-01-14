@@ -45,8 +45,4 @@ public class ArrowController : BaseController
         base.UpdateController();
     }
 
-    protected override void UpdateAnimation()
-    {
-    }
-
 }

@@ -11,47 +11,96 @@ public abstract class CreatureController : BaseController
     protected Animator _animator;
 
     HpBar _hpBar;
+    DebugText _debugText;
 
     public override int Hp
     {
         get { return base.Hp; }
-        set 
+        set
         {
             base.Hp = value;
             UpdateHpBar();
         }
     }
 
-    protected override void Init()
+
+    // 현재상태. 애니메이션 업데이트 추가.
+    public override CreatureState State
+    {
+        get { return base.State; }
+        set
+        {
+            if (base.State == value)
+                return;
+            base.State = value;
+            UpdateAnimation();
+        }
+    }
+
+    // 이동방향. 애니메이션 업데이트 추가.
+    public override MoveDir Dir
+    {
+        get { return base.Dir; }
+        set
+        {
+            if (base.Dir == value)
+                return;
+            base.Dir = value;
+            UpdateAnimation();
+        }
+    }
+
+
+    public void Awake()
     {
         _animator = GetComponent<Animator>();
+    }
 
+
+    protected override void Init()
+    {
         base.Init();
-        AddHpBar();
+
+        //AddHpBar();
+        AddDebugText();
+        UpdateAnimation();
+    }
+
+    // 상태에 따라 애니메이션 업데이트
+    protected virtual void UpdateAnimation()
+    {
+    }
+
+    protected virtual void UpdateSkillAnimation()
+    {
+    }
+
+
+    // 스킬 사용됨
+    public virtual void OnSkill(int skillId)
+    {
+
     }
 
     // 피격됨
-    public virtual void OnDamaged()
+    public virtual void OnDamaged(CreatureController attacker, int damage)
     {
-
+        Managers.Number.Spawn(NumberType.Damage, transform.position + Vector3.up, damage);
+        ServerCore.Logger.WriteLog(ServerCore.LogLevel.Debug, $"CreatureController.OnDamaged. me:[{this}] attacker:[{attacker}]");
     }
 
     // 사망함
     public virtual void OnDead()
     {
-        State = CreatureState.Dead;
+        //State = CreatureState.Dead;
 
-        // effect 생성
-        GameObject effect = Managers.Resource.Instantiate("Effect/DieEffect");
-        effect.transform.position = transform.position;
-        effect.GetComponent<Animator>().Play("START");
-        GameObject.Destroy(effect, 0.5f);
+        //// effect 생성
+        //GameObject effect = Managers.Resource.Instantiate("Effect/DieEffect");
+        //effect.transform.position = transform.position;
+        //effect.GetComponent<Animator>().Play("START");
+        //GameObject.Destroy(effect, 0.5f);
     }
 
-    public virtual void UseSkill(int skillId)
-    {
-
-    }
 
     // HP Bar 추가
     protected void AddHpBar()
@@ -64,7 +113,7 @@ public abstract class CreatureController : BaseController
     }
 
     // HP Bar 업데이트
-    void UpdateHpBar()
+    protected void UpdateHpBar()
     {
         if (_hpBar == null)
             return;
@@ -74,5 +123,23 @@ public abstract class CreatureController : BaseController
             ratio = (float)Hp / (float)Stat.MaxHp;
         }
         _hpBar.SetHpBar(ratio);
+    }
+
+    // Debug Text 추가
+    protected void AddDebugText()
+    {
+        GameObject go = Managers.Resource.Instantiate("UI/DebugText", transform);
+        go.transform.localPosition = new Vector3(0, 1.0f, 0);
+        go.name = "DebugText";
+        _debugText = go.GetComponent<DebugText>();
+        UpdateHpBar();
+    }
+
+    protected void UpdateDebugText()
+    {
+        if (_debugText == null)
+            return;
+        _debugText.SetText($"({Pos.x:f1},{Pos.y:f1}) ({Cell.x},{Cell.y})");
+        _debugText.transform.localScale = gameObject.transform.localScale;
     }
 }

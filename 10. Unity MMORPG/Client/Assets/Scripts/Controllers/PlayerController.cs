@@ -19,9 +19,12 @@ public class PlayerController : CreatureController
         base.Init();
     }
 
+
     protected override void UpdateController()
     {
         base.UpdateController();
+
+        UpdateDebugText();
     }
 
 
@@ -36,156 +39,84 @@ public class PlayerController : CreatureController
 
     protected override void UpdateMoving()
     {
+        // 키보드 방향키가 눌려있는 동안은 Dest를 계속해서 이동시킨다.
         Vector2 intersection;
-
-        // 클라이언트에게 멈춤 패킷을 받음
-        if (MoveKeyDown == false)
+        if (MoveKeyDown == true)
         {
-            // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
-            if ((Dest - Pos).magnitude < Time.deltaTime * Speed)
+            Vector2 dest = Dest + GetDirectionVector(RemoteDir) * Time.deltaTime * Speed;
+            if (Managers.Map.CanGo(Dest, dest, out intersection))
             {
-                if (Managers.Map.CollisionDetection(Pos, Dest, out intersection))
-                {
-                    // Dest까지 갈 수 없는 경우, intersection으로 이동해본다.
-                    if (Managers.Map.TryMove(this, Managers.Map.PosToCell(intersection)))
-                    {
-                        Pos = intersection;
-                        Dest = intersection;
-                    }
-                    else
-                    {
-                        Dest = Pos;
-                    }
-                }
-                else
-                {
-                    // Dest까지 갈 수 있는 경우 Dest로 이동한다.
-                    if (Managers.Map.TryMove(this, Managers.Map.PosToCell(Dest)))
-                    {
-                        Pos = Dest;
-                    }
-                    else
-                    {
-                        Dest = Pos;
-                    }
-                }
-
-                State = CreatureState.Idle;
+                Dest = dest;
             }
-            // 이동
             else
             {
-                Vector2 dir = (Dest - Pos).normalized;
-                Vector2 pos = Pos + dir * Time.deltaTime * Speed;
-                if (Managers.Map.CollisionDetection(Pos, pos, out intersection))
+                Dest = intersection;
+            }
+        }
+        // 키보드 방향키를 누르고있지 않다면 멈출 것이기 때문에 Dest를 이동시키지 않는다.
+
+
+
+        // 위치 이동
+        Vector2 diff = (Dest - Pos);
+        Vector2 dir = diff.normalized;
+        Vector2 pos = Pos + dir * Time.deltaTime * Speed;
+
+        // Dest에 도착시 현재위치를 Dest로 변경한다.
+        // 만약 이동키가 눌려져있지 않다면 현재 위치에 stop 하고 상태를 idle로 바꾼다.
+        if (diff.magnitude <= Time.deltaTime * Speed)
+        {
+            if (MoveKeyDown)
+            {
+                if (Managers.Map.TryMoving(this, Dest))
                 {
-                    // 이동할 수 없는 경우 Dest를 변경시킨다.
-                    if (Managers.Map.TryMove(this, Managers.Map.PosToCell(intersection)))
-                    {
-                        Pos = intersection;
-                        Dest = intersection;
-                    }
-                    else
-                    {
-                        Dest = Pos;
-                    }
-                    State = CreatureState.Idle;
+                    Pos = Dest;
                 }
                 else
                 {
-                    // 이동할 수 있는 경우 이동한다.
-                    if (Managers.Map.TryMove(this, Managers.Map.PosToCell(pos)))
-                    {
-                        Pos = pos;
-                    }
-                    else
-                    {
-                        Dest = Pos;
-                        State = CreatureState.Idle;
-                    }
+                    Dest = Pos;
                 }
             }
+            else
+            {
+                Vector2 stopPos;
+                if (Managers.Map.TryStop(this, Dest, out stopPos))
+                {
+                    Pos = stopPos;
+                    Dest = stopPos;
+                }
+                else
+                {
+                    Dest = Pos;
+                }
+                State = CreatureState.Idle;
+            }
         }
-        // 클라이언트에게 이전에 이동 패킷을 받았음
+        // 위치 이동
+        else if (Managers.Map.CanGo(Pos, pos, out intersection))
+        {
+            if (Managers.Map.TryMoving(this, pos))
+            {
+                Pos = pos;
+            }
+            else
+            {
+                Dest = Pos;
+            }
+        }
+        // 이동중 부딪혔을 경우 더이상 이동할 수 없기 때문에 Dest를 변경한다.
         else
         {
-            // Dest를 이동시킨다.
-            Vector2 dest = Dest + GetDirectionVector(RemoteDir) * Time.deltaTime * Speed;
-            if (Managers.Map.CollisionDetection(Dest, dest, out intersection))
+            if (Managers.Map.TryMoving(this, intersection))
             {
+                Pos = intersection;
                 Dest = intersection;
             }
             else
             {
-                Dest = dest;
-            }
-
-            // 현재 Dest와의 거리가 이동거리 내라면 현재위치를 Dest로 세팅
-            if ((Dest - Pos).magnitude < Time.deltaTime * Speed)
-            {
-                if (Managers.Map.CollisionDetection(Pos, Dest, out intersection))
-                {
-                    // Dest까지 갈 수 없는 경우, intersection으로 이동해본다.
-                    if (Managers.Map.TryMove(this, Managers.Map.PosToCell(intersection)))
-                    {
-                        Pos = intersection;
-                        Dest = intersection;
-                    }
-                    else
-                    {
-                        Managers.Map.CollisionDetection(Pos, Dest, out intersection);
-                        Dest = Pos;
-                    }
-                }
-                else
-                {
-                    // Dest까지 갈 수 있는 경우 Dest로 이동한다.
-                    if (Managers.Map.TryMove(this, Managers.Map.PosToCell(Dest)))
-                    {
-                        Pos = Dest;
-                    }
-                    else
-                    {
-                        Dest = Pos;
-                    }
-                }
-            }
-            // 이동
-            else
-            {
-                Vector2 dir = (Dest - Pos).normalized;
-                Vector2 pos = Pos + dir * Time.deltaTime * Speed;
-                if (Managers.Map.CollisionDetection(Pos, pos, out intersection))
-                {
-                    // 이동할 수 없는 경우 Dest를 변경시킨다.
-                    if (Managers.Map.TryMove(this, Managers.Map.PosToCell(intersection)))
-                    {
-                        Pos = intersection;
-                        Dest = intersection;
-                    }
-                    else
-                    {
-                        Dest = Pos;
-                    }
-                    State = CreatureState.Idle;
-                }
-                else
-                {
-                    // 이동할 수 있는 경우 이동한다.
-                    if (Managers.Map.TryMove(this, Managers.Map.PosToCell(pos)))
-                    {
-                        Pos = pos;
-                    }
-                    else
-                    {
-                        Managers.Map.CollisionDetection(Pos, pos, out intersection);
-                        Dest = Pos;
-                        State = CreatureState.Idle;
-                    }
-                }
+                Dest = Pos;
             }
         }
-
 
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"Player.UpdateMoving. {this.ToString(InfoLevel.Position)}");
@@ -202,16 +133,12 @@ public class PlayerController : CreatureController
                 break;
             case CreatureState.Moving:
                 _animator.SetFloat("RunState", 0.5f);
-                switch (Dir)
+                switch (LookDir)
                 {
-                    case MoveDir.Left:
-                    case MoveDir.LeftUp:
-                    case MoveDir.LeftDown:
+                    case LookDir.LookLeft:
                         gameObject.transform.localScale = new Vector3(1, 1, 1);
                         break;
-                    case MoveDir.Right:
-                    case MoveDir.RightUp:
-                    case MoveDir.RightDown:
+                    case LookDir.LookRight:
                         gameObject.transform.localScale = new Vector3(-1, 1, 1);
                         break;
                 }
@@ -222,36 +149,24 @@ public class PlayerController : CreatureController
         }
     }
 
-
-
-
-
-
-    // 피격됨
-    public override void OnDamaged()
+    protected override void UpdateSkillAnimation()
     {
-        //Debug.Log("Player HIT !");
+        _animator.SetTrigger("Attack"); 
     }
 
 
 
-    // 스킬사용
-    public override void UseSkill(int skillId)
+
+
+    // 스킬 사용됨
+    public override void OnSkill(int skillId)
     {
-        if(skillId == 1)
-        {
-            _coSkill = StartCoroutine("CoStartPunch");
-        }
-        else if (skillId == 2)
-        {
-            _coSkill = StartCoroutine("CoStartShootArrow");
-        }
+        UpdateSkillAnimation();
     }
 
 
-    protected virtual void CheckUpdatedFlag()
-    {
-    }
+
+
 
     // Punch 사용에 대한 코루틴
     protected IEnumerator CoStartPunch()
@@ -262,7 +177,7 @@ public class PlayerController : CreatureController
         yield return new WaitForSeconds(0.5f);
         State = CreatureState.Idle;
         _coSkill = null;
-        CheckUpdatedFlag();
+
     }
 
     // 화살 사용에 대한 코루틴
@@ -274,7 +189,7 @@ public class PlayerController : CreatureController
         yield return new WaitForSeconds(0.3f);
         State = CreatureState.Idle;
         _coSkill = null;
-        CheckUpdatedFlag();
+
     }
 
 

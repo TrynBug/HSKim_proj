@@ -62,7 +62,7 @@ internal class PacketHandler
             return;
         }
 
-        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SkillHandler. sessionId:{clientSession.SessionId}, skillId:{skillPacket.Info.SkillId}, {player}");
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SkillHandler. sessionId:{clientSession.SessionId}, skillId:{skillPacket.SkillId}, {player}");
 
 
         room.HandleSkill(player, skillPacket);

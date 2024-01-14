@@ -34,18 +34,27 @@ namespace Data
     {
         public int id;
         public string name;
-        public float cooldown;
+        public int cooldown;
         public int damage;
         public SkillType skillType;
+        public MeleeInfo melee;
         public ProjectileInfo projectile;
     }
 
+    [Serializable]
     public class ProjectileInfo
     {
         public string name;
         public float speed;
         public int range;
         public string prefab;
+    }
+
+    [Serializable]
+    public class MeleeInfo
+    {
+        public float rangeX;
+        public float rangeY;
     }
 
     [Serializable]

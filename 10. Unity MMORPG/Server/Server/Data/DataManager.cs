@@ -23,12 +23,19 @@ namespace Server.Data
         public static Dictionary<int, StatInfo> StatDict { get; private set; } = new Dictionary<int, StatInfo>();
         // Skill 데이터 dictionary. key=skillId, data=Skill
         public static Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+        public static Data.Skill DefaultSkill { get; private set; }
+
 
         public static void LoadData()
         {
             // StatData.json 파일 읽어서 데이터 추출
             StatDict = LoadJson<Data.StatData, int, StatInfo>("StatData").MakeDict();
             SkillDict = LoadJson<Data.SkillData, int, Data.Skill>("SkillData").MakeDict();
+
+            // default data
+            Data.Skill defaultSkill;
+            SkillDict.TryGetValue(1, out defaultSkill);
+            DefaultSkill = defaultSkill;
         }
 
         static Loader LoadJson<Loader, key, Value>(string path) where Loader : ILoader<key, Value>

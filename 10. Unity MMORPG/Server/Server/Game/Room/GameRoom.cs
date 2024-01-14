@@ -129,6 +129,10 @@ namespace Server.Game
             {
                 projectile.Update();
             }
+
+
+            // debug
+            InspectCell();
         }
 
         // FPS를 유지하기 위해 sleep 해야하는 시간을 계산한다.
@@ -180,6 +184,8 @@ namespace Server.Game
                     // 내 정보 전송
                     S_EnterGame enterPacket = new S_EnterGame();
                     enterPacket.Player = newPlayer.Info;
+                    foreach (int skillId in newPlayer.Skillset.Keys)
+                        enterPacket.SkillIds.Add(skillId);
                     newPlayer.Session.Send(enterPacket);
 
                     // 나에게 다른 플레이어, 몬스터, 화살 정보 전송
@@ -332,13 +338,13 @@ namespace Server.Game
             // 목적지에 도착가능한지 확인하고 목적지를 설정한다.
             Vector2 dest = new Vector2(movePosInfo.DestX, movePosInfo.DestY);
             Vector2 intersection;
-            if (player.Room.Map.CollisionDetection(player.Pos, dest, out intersection))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
+            if (player.Room.Map.CanGo(player.Pos, dest, out intersection))
             {
-                player.Dest = intersection;
+                player.Dest = dest; 
             }
             else
             {
-                player.Dest = dest;
+                player.Dest = intersection;
             }
 
             // info update
@@ -361,77 +367,6 @@ namespace Server.Game
         }
 
 
-        //public void _handleMove(Player player, C_Move movePacket)
-        //{
-        //    if (player == null)
-        //        return;
-
-        //    PositionInfo movePosInfo = movePacket.PosInfo;
-        //    ObjectInfo info = player.Info;
-
-
-        //    // 클라 pos와 서버 pos가 크게 다를 경우 처리?
-        //    // TBD
-
-        //    // 현재 이동 가능한 상태인지 확인
-        //    // TBD
-
-
-        //    // 목적지에 도착가능한지 확인하고 최종 목적지를 계산한다.
-        //    Vector2 pos = player.Pos;
-        //    Vector2 dest = new Vector2(movePosInfo.DestX, movePosInfo.DestY);
-        //    Vector2 dir = (dest - pos).normalized;
-        //    Vector2 finalDest;    // 최종 목적지
-        //    int loopCount = 0;
-        //    while (true)
-        //    {
-        //        loopCount++;
-        //        Debug.Assert(loopCount < 1000, $"GameRoom._handleMove loopCount:{loopCount}");
-
-        //        // 목적지에 도착했으면 break
-        //        if ((dest - pos).magnitude <= Time.DeltaTime * player.Speed)
-        //        {
-        //            if (player.Room.Map.IsMovable(player, dest))
-        //                finalDest = dest;
-        //            else
-        //                finalDest = pos;
-
-        //            break;
-        //        }
-
-        //        // 1 frame 이동을 시도한다.
-        //        pos += dir * Time.DeltaTime * player.Speed;
-        //        if (player.Room.Map.IsMovable(player, pos))  // TBD: 이동할 때 object 충돌을 고려할지 생각해봐야함
-        //        {
-        //            continue;
-        //        }
-        //        else
-        //        {
-        //            finalDest = pos - dir * Time.DeltaTime * player.Speed;
-        //            break;
-        //        }
-        //    }
-
-        //    // 목적지 설정
-        //    player.Dest = finalDest;
-        //    player.Dir = movePosInfo.MoveDir;
-        //    player.RemoteState = movePosInfo.State;
-        //    player.RemoteDir = movePosInfo.MoveDir;
-        //    player.MoveKeyDown = movePosInfo.MoveKeyDown;
-
-
-
-        //    // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
-        //    S_Move resMovePacket = new S_Move();
-        //    resMovePacket.ObjectId = info.ObjectId;
-        //    resMovePacket.PosInfo = movePacket.PosInfo.Clone();
-        //    resMovePacket.PosInfo.PosX = player.Pos.x;
-        //    resMovePacket.PosInfo.PosY = player.Pos.y;
-        //    resMovePacket.PosInfo.DestX = player.Dest.x;
-        //    resMovePacket.PosInfo.DestY = player.Dest.y;
-        //    resMovePacket.MoveTime = movePacket.MoveTime;
-        //    _broadcast(resMovePacket);
-        //}
 
         // 스킬사용요청 처리
         public void _handleSkill(Player player, C_Skill skillPacket)
@@ -440,66 +375,119 @@ namespace Server.Game
                 return;
 
             ObjectInfo info = player.Info;
-            if (info.PosInfo.State != CreatureState.Idle)
-            {
-                Logger.WriteLog(LogLevel.Error, $"GameRoom.HandleSkill. Player state is not in Idle. " +
-                    $"objectId:{info.ObjectId}, state:{info.PosInfo.State}, SkillId:{skillPacket.Info.SkillId}");
+
+            // 스킬 사용이 가능한지 확인
+            Skill skill;
+            if (player.CanUseSkill(skillPacket.SkillId, out skill) == false)
                 return;
-            }
-
-            // 플레이어 상태변경
-            //info.PosInfo.State = CreatureState.Skill;
-
-            // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
-            S_Skill resSkillPacket = new S_Skill() { Info = new SkillInfo() };
-            resSkillPacket.ObjectId = info.ObjectId;
-            resSkillPacket.Info.SkillId = skillPacket.Info.SkillId;
-            _broadcast(resSkillPacket);
-
-            // 스킬데이터 가져오기
-            Data.Skill skillData = null;
-            if(DataManager.SkillDict.TryGetValue(skillPacket.Info.SkillId, out skillData) == false)
-            {
-                Logger.WriteLog(LogLevel.Error, $"GameRoom.HandleSkill. Can't find skill data. objectId:{info.ObjectId}, skillId:{skillPacket.Info.SkillId}");
-                return;
-            }
 
 
             // 타입별 스킬사용
-            switch(skillData.skillType)
+            S_Skill resSkillPacket = new S_Skill();
+            resSkillPacket.ObjectId = info.ObjectId;
+            resSkillPacket.SkillId = skillPacket.SkillId;
+            switch (skill.skillType)
             {
-                case SkillType.SkillAuto:
+                case SkillType.SkillMelee:
                     {
-                        // 펀치 스킬
-                        Vector2Int skillPos = player.GetFrontCellPos(info.PosInfo.MoveDir);
-                        GameObject target = Map.Find(skillPos);
-                        if (target != null)
+                        // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
+                        Vector2 R;
+                        if (player.LookDir == LookDir.LookLeft)
                         {
-                            Console.WriteLine("Hit !");
+                            R = new Vector2((float)Math.Cos(135f), (float)Math.Sin(135f));
+                        }
+                        else
+                        {
+                            R = new Vector2((float)Math.Cos(45f), (float)Math.Sin(45f));
+                        }
+
+                        // 대상이 공격범위 내에 있다면 피격판정
+                        Player target = null;
+                        foreach (int objectId in skillPacket.HitObjectIds)
+                        {
+                            if (_players.TryGetValue(objectId, out target) == false)
+                                continue;
+                            Vector2 objectPos = (target.Pos - player.Pos) * R;
+                            if (objectPos.x > 0 && objectPos.x < skill.melee.rangeX && objectPos.y > -skill.melee.rangeY / 2 && objectPos.y < skill.melee.rangeY / 2)
+                            {
+                                // 피격됨
+                                target.OnDamaged(player, player.Stat.Attack);
+                                resSkillPacket.HitObjectIds.Add(objectId);
+                            }
                         }
                     }
                     break;
 
                 case SkillType.SkillProjectile:
                     {
-                        // 화살 스킬
-                        Arrow arrow = ObjectManager.Instance.Add<Arrow>();
-                        if (arrow == null)
-                        {
-                            Logger.WriteLog(LogLevel.Error, $"GameRoom.HandleSkill. Failed to create arrow. objectId:{info.ObjectId}");
-                            return;
-                        }
+                        //// 화살 스킬
+                        //Arrow arrow = ObjectManager.Instance.Add<Arrow>();
+                        //if (arrow == null)
+                        //{
+                        //    Logger.WriteLog(LogLevel.Error, $"GameRoom.HandleSkill. Failed to create arrow. objectId:{info.ObjectId}");
+                        //    return;
+                        //}
 
-                        arrow.Owner = player;
-                        arrow.Data = skillData;
-                        arrow.PosInfo.State = CreatureState.Moving;
-                        arrow.PosInfo.MoveDir = player.PosInfo.MoveDir;
-                        arrow.PosInfo.PosX = player.PosInfo.PosX;
-                        arrow.PosInfo.PosY = player.PosInfo.PosY;
-                        arrow.Speed = skillData.projectile.speed;
-                        _enterGame(arrow);
+                        //arrow.Owner = player;
+                        //arrow.Data = skillData;
+                        //arrow.PosInfo.State = CreatureState.Moving;
+                        //arrow.PosInfo.MoveDir = player.PosInfo.MoveDir;
+                        //arrow.PosInfo.PosX = player.PosInfo.PosX;
+                        //arrow.PosInfo.PosY = player.PosInfo.PosY;
+                        //arrow.Speed = skillData.projectile.speed;
+                        //_enterGame(arrow);
                     }
                     break;
+            }
+
+
+
+
+            // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
+            _broadcast(resSkillPacket);
+
+
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"GameRoom._handleSkill. {player}, skill:{skillPacket.SkillId}, hits:{skillPacket.HitObjectIds.Count}");
+        }
+
+
+        // debug : cell 무결성 확인
+        HashSet<GameObject> setObj = new HashSet<GameObject>();
+        volatile bool doCrash = false;
+        public void InspectCell()
+        {
+            void Crash()
+            {
+                ServerCore.Logger.WriteLog(LogLevel.Error, $"GameRoom.InspectCell. Cell integrity failed");
+                while (true)
+                {
+                    if (doCrash == false) break;
+                }
+            }
+            // cell 무결성 확인
+            setObj.Clear();
+            for (int y = 0; y < Map.CellMaxY; y++)
+            {
+                for (int x = 0; x < Map.CellMaxX; x++)
+                {
+                    Cell cell = Map._cells[y, x];
+                    if (cell.Object != null)
+                    {
+                        if (setObj.Add(cell.Object) == false)
+                            Crash();
+                    }
+                    var list = cell.MovingObjects;
+                    foreach (GameObject obj in list)
+                        if (setObj.Add(obj) == false)
+                            Crash();
+                }
+            }
+            if (setObj.Count != _players.Count)
+                Crash();
+            foreach (GameObject go in _players.Values)
+            {
+                if (Map._cells[go.Cell.y, go.Cell.x].Object != go && Map._cells[go.Cell.y, go.Cell.x].HasMovingObject(go) == false)
+                    Crash();
             }
         }
     }

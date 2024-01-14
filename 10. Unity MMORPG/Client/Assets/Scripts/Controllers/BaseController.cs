@@ -6,14 +6,14 @@ using static Define;
 using Data;
 
 // 모든 컨트롤러의 부모 컨트롤러
-// 상태와 이동방향을 정의하고, 상태와 이동방향에 따라 오브젝트를 이동시키고 애니메이션을 재생한다.
+// 상태와 이동방향을 정의한다.
 public class BaseController : MonoBehaviour
 {
     // bits : [ Unused(1) | Type(7) | Id(24) ]
     public int Id { get; set; }
     public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
 
-    // 스탯 정보
+    /* 스탯 */
     StatInfo _stat = new StatInfo();
     public StatInfo Stat
     {
@@ -44,8 +44,8 @@ public class BaseController : MonoBehaviour
     }
 
 
-    // 위치 정보
-    PositionInfo _posInfo = new PositionInfo { State = CreatureState.Idle, MoveDir = MoveDir.Down, PosX = 0, PosY = 0, DestX = 0, DestY = 0, MoveKeyDown = false };
+    /* 위치 */
+    PositionInfo _posInfo = new PositionInfo { State = CreatureState.Idle, MoveDir = MoveDir.Left, LookDir=LookDir.LookLeft, PosX = 0, PosY = 0, DestX = 0, DestY = 0, MoveKeyDown = false };
     public PositionInfo PosInfo
     {
         get { return _posInfo; }
@@ -58,6 +58,7 @@ public class BaseController : MonoBehaviour
             Dest = new Vector2(value.DestX, value.DestY);
             State = value.State;
             Dir = value.MoveDir;
+            LookDir = value.LookDir;
         }
     }
 
@@ -99,7 +100,6 @@ public class BaseController : MonoBehaviour
             if (PosInfo.State == value)
                 return;
             PosInfo.State = value;
-            UpdateAnimation();
         }
     }
 
@@ -112,8 +112,27 @@ public class BaseController : MonoBehaviour
             if (PosInfo.MoveDir == value)
                 return;
             PosInfo.MoveDir = value;
-            UpdateAnimation();
+            switch(PosInfo.MoveDir)
+            {
+                case MoveDir.Left:
+                case MoveDir.LeftUp:
+                case MoveDir.LeftDown:
+                    LookDir = LookDir.LookLeft;
+                    break;
+                case MoveDir.Right:
+                case MoveDir.RightUp:
+                case MoveDir.RightDown:
+                    LookDir = LookDir.LookRight;
+                    break;
+            }
         }
+    }
+
+    // 보는 방향
+    public virtual LookDir LookDir
+    {
+        get { return PosInfo.LookDir; }
+        set { PosInfo.LookDir = value; }
     }
 
     // 이동 키 눌림
@@ -125,87 +144,23 @@ public class BaseController : MonoBehaviour
 
 
 
+    /* 스킬 */
+    // 사용가능한 스킬정보
+    Dictionary<int, SkillInfo> _skillset = new Dictionary<int, SkillInfo>();
+    public Dictionary<int, SkillInfo> Skillset { get { return _skillset; } }
+
+    // 스킬 키 눌림
+    public virtual bool SkillKeyDown { get; set; } = false;
+    
 
 
     // 현재 방향에 해당하는 벡터 얻기
     public Vector2 GetDirectionVector(MoveDir dir)
     {
-        Vector2 direction;
-        switch (dir)
-        {
-            case MoveDir.Up:
-                direction = new Vector2(1, -1).normalized;
-                break;
-            case MoveDir.Down:
-                direction = new Vector2(-1, 1).normalized;
-                break;
-            case MoveDir.Left:
-                direction = new Vector2(-1, -1).normalized;
-                break;
-            case MoveDir.Right:
-                direction = new Vector2(1, 1).normalized;
-                break;
-            case MoveDir.LeftUp:
-                direction = new Vector2(0, -1);
-                break;
-            case MoveDir.LeftDown:
-                direction = new Vector2(-1, 0);
-                break;
-            case MoveDir.RightUp:
-                direction = new Vector2(1, 0);
-                break;
-            case MoveDir.RightDown:
-                direction = new Vector2(0, 1);
-                break;
-            default:
-                direction = new Vector2(0, 0);
-                break;
-        }
-
-        return direction;
+        return Util.GetDirectionVector(dir);
     }
 
 
-
-    // 바라보는 방향 앞의 Cell 좌표 얻기
-    public Vector2Int GetFrontCell()
-    {
-        Vector2Int cell = Cell;
-
-        switch (Dir)
-        {
-            case MoveDir.Up:
-                cell += Vector2Int.up;
-                break;
-            case MoveDir.Down:
-                cell += Vector2Int.down;
-                break;
-            case MoveDir.Left:
-                cell += Vector2Int.left;
-                break;
-            case MoveDir.Right:
-                cell += Vector2Int.right;
-                break;
-        }
-
-        return cell;
-    }
-
-    // 내 위치를 기준으로 했을 때 dir이 어느 방향에 있는지 알아냄
-    public MoveDir GetDirFromVec(Vector2Int dir)
-    {
-        Vector2Int diff = dir - Cell;
-        if (diff.x > 0)
-            return MoveDir.Right;
-        else if (diff.x < 0)
-            return MoveDir.Left;
-        else if (diff.y > 0)
-            return MoveDir.Up;
-        else if (diff.y < 0)
-            return MoveDir.Down;
-        else
-            return MoveDir.Down;
-    }
 
 
 
@@ -222,7 +177,6 @@ public class BaseController : MonoBehaviour
 
     protected virtual void Init()
     {
-        UpdateAnimation();
     }
 
     protected virtual void UpdateController()
@@ -255,32 +209,10 @@ public class BaseController : MonoBehaviour
 
     }
 
-    protected virtual void MoveToNextPos()
-    {
-    }
-
-
-    protected virtual void UpdateSkill()
-    {
-
-    }
-
     protected virtual void UpdateDead()
     {
 
     }
-
-
-
-    // 상태에 따라 애니메이션 업데이트
-    protected virtual void UpdateAnimation()
-    {
-    }
-
-
-
-
-
 
 
 

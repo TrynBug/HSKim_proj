@@ -4,6 +4,7 @@ using System.ComponentModel;
 using UnityEngine;
 using ServerCore;
 using Data;
+using Google.Protobuf.Protocol;
 
 public static class Util
 {
@@ -66,9 +67,87 @@ public static class Util
     }
 
 
-
-    public static bool Equals(Vector3 a, Vector3 b)
+    // float vector 비교
+    public static bool Equals(Vector2 a, Vector2 b)
     {
         return (Mathf.Abs(a.x - b.x) + Mathf.Abs(a.y - b.y) < Config.DifferenceTolerance);
     }
+
+
+    // 반대방향 얻기
+    public static MoveDir GetOppositeDirection(MoveDir dir)
+    {
+        MoveDir opposite;
+        switch (dir)
+        {
+            case MoveDir.Up:
+                opposite = MoveDir.Down;
+                break;
+            case MoveDir.Down:
+                opposite = MoveDir.Up;
+                break;
+            case MoveDir.Left:
+                opposite = MoveDir.Right;
+                break;
+            case MoveDir.Right:
+                opposite = MoveDir.Left;
+                break;
+            case MoveDir.LeftUp:
+                opposite = MoveDir.RightDown;
+                break;
+            case MoveDir.LeftDown:
+                opposite = MoveDir.RightUp;
+                break;
+            case MoveDir.RightUp:
+                opposite = MoveDir.LeftDown;
+                break;
+            case MoveDir.RightDown:
+                opposite = MoveDir.LeftUp;
+                break;
+            default:
+                opposite = dir;
+                break;
+        }
+
+        return opposite;
+    }
+
+    // 현재 방향에 해당하는 벡터 얻기
+    public static Vector2 GetDirectionVector(MoveDir dir)
+    {
+        Vector2 direction;
+        switch (dir)
+        {
+            case MoveDir.Up:
+                direction = new Vector2(1, -1).normalized;
+                break;
+            case MoveDir.Down:
+                direction = new Vector2(-1, 1).normalized;
+                break;
+            case MoveDir.Left:
+                direction = new Vector2(-1, -1).normalized;
+                break;
+            case MoveDir.Right:
+                direction = new Vector2(1, 1).normalized;
+                break;
+            case MoveDir.LeftUp:
+                direction = new Vector2(0, -1);
+                break;
+            case MoveDir.LeftDown:
+                direction = new Vector2(-1, 0);
+                break;
+            case MoveDir.RightUp:
+                direction = new Vector2(1, 0);
+                break;
+            case MoveDir.RightDown:
+                direction = new Vector2(0, 1);
+                break;
+            default:
+                direction = new Vector2(0, 0);
+                break;
+        }
+
+        return direction;
+    }
+
 }

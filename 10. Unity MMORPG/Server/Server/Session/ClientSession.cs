@@ -42,20 +42,7 @@ namespace Server
             // 플레이어 생성
             GameRoom room = RoomManager.Instance.Find(1);
             MyPlayer = ObjectManager.Instance.Add<Player>();
-            {
-                MyPlayer.Room = room;
-                MyPlayer.Info.Name = $"Player_{MyPlayer.Id}";
-                MyPlayer.State = CreatureState.Idle;
-                MyPlayer.Dir = MoveDir.Down;
-                MyPlayer.Pos = room.PosCenter;
-                MyPlayer.Dest = MyPlayer.Pos;
-
-                StatInfo stat = null;
-                DataManager.StatDict.TryGetValue(1, out stat);
-                MyPlayer.Stat.MergeFrom(stat);
-
-                MyPlayer.Session = this;
-            }
+            MyPlayer.Init(this, room);
             Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnConnected. sessionId:{SessionId}, playerId:{MyPlayer.Info.ObjectId}, endPoint:{endPoint}");
 
             // 1번 게임룸에 플레이어 추가

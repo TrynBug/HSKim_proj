@@ -6,6 +6,7 @@ using System.Text;
 using System.Threading.Tasks;
 using ServerCore;
 using System.Numerics;
+using Server.Data;
 
 namespace Server.Game
 {
@@ -24,7 +25,7 @@ namespace Server.Game
         public PositionInfo PosInfo { get; private set; } = new PositionInfo();
         public StatInfo Stat { get; private set; } = new StatInfo();  // Info.StatInfo 는 Stat을 리턴함
 
-
+        /* 스탯 */
         public float Speed
         {
             get { return Stat.Speed; }
@@ -37,7 +38,7 @@ namespace Server.Game
             set { Stat.Hp = Math.Clamp(value, 0, Stat.MaxHp); }
         }
 
-
+        /* 위치 */
         public Vector2 Pos
         {
             get
@@ -72,10 +73,34 @@ namespace Server.Game
             set { PosInfo.State = value; }
         }
 
-        public MoveDir Dir
+        public virtual MoveDir Dir
         {
             get { return PosInfo.MoveDir; }
-            set { PosInfo.MoveDir = value; }
+            set
+            {
+                if (PosInfo.MoveDir == value)
+                    return;
+                PosInfo.MoveDir = value;
+                switch (PosInfo.MoveDir)
+                {
+                    case MoveDir.Left:
+                    case MoveDir.LeftUp:
+                    case MoveDir.LeftDown:
+                        LookDir = LookDir.LookLeft;
+                        break;
+                    case MoveDir.Right:
+                    case MoveDir.RightUp:
+                    case MoveDir.RightDown:
+                        LookDir = LookDir.LookRight;
+                        break;
+                }
+            }
+        }
+
+        public virtual LookDir LookDir
+        {
+            get { return PosInfo.LookDir; }
+            set { PosInfo.LookDir = value; }
         }
 
         public virtual bool MoveKeyDown
@@ -83,6 +108,17 @@ namespace Server.Game
             get { return PosInfo.MoveKeyDown; }
             set { PosInfo.MoveKeyDown = value; }
         }
+
+
+
+        /* 스킬 */
+        // 사용가능한 스킬정보
+        Dictionary<int, SkillInfo> _skillset = new Dictionary<int, SkillInfo>();
+        public Dictionary<int, SkillInfo> Skillset { get { return _skillset; } }
+
+        // 스킬 키 눌림
+        public virtual bool SkillKeyDown { get; set; } = false;
+
 
 
 
@@ -145,15 +181,13 @@ namespace Server.Game
         {
         }
 
-        protected virtual void UpdateSkill()
-        {
-        }
-
         protected virtual void UpdateDead()
         {
         }
 
-
+        protected virtual void UpdateSkill()
+        {
+        }
 
 
 
@@ -198,53 +232,24 @@ namespace Server.Game
         }
 
 
-
-
-        //  특정 방향 앞의 Cell 좌표 얻기
-        public Vector2Int GetFrontCellPos(MoveDir dir)
+        // 스킬 사용이 가능한지 검사함
+        public virtual bool CanUseSkill(int skillId, out Skill skill)
         {
-            Vector2Int cellPos = Cell;
+            skill = null;
+            SkillInfo skillInfo;
+            if (Skillset.TryGetValue(skillId, out skillInfo) == false)
+                return false;
 
-            switch (dir)
-            {
-                case MoveDir.Up:
-                    cellPos += Vector2Int.up;
-                    break;
-                case MoveDir.Down:
-                    cellPos += Vector2Int.down;
-                    break;
-                case MoveDir.Left:
-                    cellPos += Vector2Int.left;
-                    break;
-                case MoveDir.Right:
-                    cellPos += Vector2Int.right;
-                    break;
-            }
+            int tick = Environment.TickCount;
+            if (tick - skillInfo.lastUseTime < skillInfo.skill.cooldown)
+                return false;
 
-            return cellPos;
+            Skillset[skillId] = new SkillInfo() { lastUseTime = tick, skill = skillInfo.skill };
+            skill = skillInfo.skill;
+
+            return true;
         }
 
-        // 바라보는 방향의 Cell 좌표 얻기
-        public Vector2Int GetFrontCellPos()
-        {
-            return GetFrontCellPos(PosInfo.MoveDir);
-        }
-
-        // 내 위치를 기준으로 했을 때 target이 어느 방향에 있는지 알아냄
-        public MoveDir GetDirFromVec(Vector2Int target)
-        {
-            Vector2Int diff = target - Cell;
-            if (diff.x > 0)
-                return MoveDir.Right;
-            else if (diff.x < 0)
-                return MoveDir.Left;
-            else if (diff.y > 0)
-                return MoveDir.Up;
-            else if (diff.y < 0)
-                return MoveDir.Down;
-            else
-                return MoveDir.Down;
-        }
 
         // 피격됨
         public virtual void OnDamaged(GameObject attacker, int damage)
@@ -260,7 +265,7 @@ namespace Server.Game
             if (Stat.Hp <= 0)
                 Stat.Hp = 0;
 
-            Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDamaged. objectId:{Id}, damage:{damage}, HP:{Stat.Hp}");
+            Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDamaged. damage:{damage}, me:[{this.ToString(InfoLevel.Stat)}], attacker:[{attacker.ToString(InfoLevel.Stat)}]");
 
             // HP 변경 패킷 전송
             S_ChangeHp changePacket = new S_ChangeHp();
@@ -278,7 +283,6 @@ namespace Server.Game
         // 사망함
         public virtual void OnDead(GameObject attacker)
         {
-            Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDead. objectId:{Id}, attackerId:{attacker.Id}");
 
             // 사망 패킷 전송
             S_Die diePacket = new S_Die();
@@ -286,18 +290,7 @@ namespace Server.Game
             diePacket.AttackerId = attacker.Id;
             Room._broadcast(diePacket);
 
-            // 게임룸에서 내보냄
-            GameRoom room = Room;
-            room._leaveGame(Id);
-
-            // 스탯 초기화후 게임룸에 재입장
-            Stat.Hp = Stat.MaxHp;
-            PosInfo.State = CreatureState.Idle;
-            PosInfo.MoveDir = MoveDir.Down;
-            PosInfo.PosX = 0;
-            PosInfo.PosY = 0;
-            room._enterGame(this);
-
+            Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDead. me:[{this.ToString(InfoLevel.Stat)}], attacker:[{attacker.ToString(InfoLevel.Stat)}]");
         }
     }
 }

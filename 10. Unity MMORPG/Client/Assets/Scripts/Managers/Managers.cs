@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using Unity.VisualScripting;
 using UnityEngine;
 
 // 모든 매니저에 쉽게 접근할 수 있게 해주는 매니저 클래스
@@ -21,11 +22,13 @@ public class Managers : MonoBehaviour
     ObjectManager _object = new ObjectManager();
     NetworkManager _network = new NetworkManager();
     TimeManager _time = new TimeManager();
+    NumberManager _number = new NumberManager();
 
     public static MapManager Map { get { return Instance._map; } }
     public static ObjectManager Object { get { return Instance._object; } }
     public static NetworkManager Network { get { return Instance._network; } }
     public static TimeManager Time { get { return Instance._time; } }
+    public static NumberManager Number { get { return Instance._number; } }
     #endregion
 
 
@@ -67,6 +70,7 @@ public class Managers : MonoBehaviour
             s_instance._pool.Init();   // PoolManager 초기화
             s_instance._network.Init();
             s_instance._time.Init();
+            s_instance._number.Init();
         }
     }
 
@@ -93,5 +97,6 @@ public class Managers : MonoBehaviour
         _network.OnUpdate();
         _input.OnUpdate();
         _time.OnUpdate();
+        _map.OnUpdate();
     }
 }

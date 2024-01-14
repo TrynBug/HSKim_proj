@@ -1,4 +1,5 @@
-﻿using Server.Data;
+﻿using Google.Protobuf.Protocol;
+using Server.Data;
 using Server.Game;
 using System;
 using System.Collections.Generic;
@@ -17,6 +18,45 @@ namespace Server
         {
             return (Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y) < Config.DifferenceTolerance);
         }
+
+        // 반대방향 얻기
+        public static MoveDir GetOppositeDirection(MoveDir dir)
+        {
+            MoveDir opposite;
+            switch (dir)
+            {
+                case MoveDir.Up:
+                    opposite = MoveDir.Down;
+                    break;
+                case MoveDir.Down:
+                    opposite = MoveDir.Up;
+                    break;
+                case MoveDir.Left:
+                    opposite = MoveDir.Right;
+                    break;
+                case MoveDir.Right:
+                    opposite = MoveDir.Left;
+                    break;
+                case MoveDir.LeftUp:
+                    opposite = MoveDir.RightDown;
+                    break;
+                case MoveDir.LeftDown:
+                    opposite = MoveDir.RightUp;
+                    break;
+                case MoveDir.RightUp:
+                    opposite = MoveDir.LeftDown;
+                    break;
+                case MoveDir.RightDown:
+                    opposite = MoveDir.LeftUp;
+                    break;
+                default:
+                    opposite = dir;
+                    break;
+            }
+
+            return opposite;
+        }
+
     }
 
 
@@ -36,4 +76,6 @@ namespace Server
 
         public static extern uint TimeEndPeriod(uint uMilliseconds);
     }
+
+
 }

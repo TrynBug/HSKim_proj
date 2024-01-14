@@ -3,16 +3,20 @@
     {
       "id": "1",
       "name": "평타",
-      "cooldown": "0.5",
+      "cooldown": "500",
 	  "damage": "10",
-	  "skillType": "SkillAuto"
+	  "skillType": "1",
+	  "melee": {
+		  "rangeX": "1.0",
+		  "rangeY": "2.0"
+	  }
     },
     {
       "id": "2",
-      "name": "화살 공격",
-      "cooldown": "0.5",
+      "name": "화살",
+      "cooldown": "500",
 	  "damage": "5",
-	  "skillType": "SkillProjectile",
+	  "skillType": "2",
 	  "projectile": {
 		  "name": "화살",
 		  "speed": "10.0",

@@ -38,6 +38,12 @@ enum MoveDir
     RIGHT_DOWN = 7;
 }
 
+enum LookDir
+{
+    LOOK_LEFT = 0;
+    LOOK_RIGHT = 1;
+}
+
 enum GameObjectType {
     NONE = 0;
     PLAYER = 1;
@@ -47,12 +53,13 @@ enum GameObjectType {
 
 enum SkillType {
     SKILL_NONE = 0;
-    SKILL_AUTO = 1;
+    SKILL_MELEE = 1;
     SKILL_PROJECTILE = 2;
 }
 
 message S_EnterGame {
   ObjectInfo player = 1;
+  repeated int32 skillIds = 5;
 }
 
 
@@ -80,12 +87,14 @@ message S_Move {
 }
 
 message C_Skill {
-    SkillInfo info = 1;
+    int32 skillId = 1;
+    repeated int32 hitObjectIds = 2;
 }
 
 message S_Skill {
     int32 objectId = 1;
-    SkillInfo info = 2;
+    int32 skillId = 2;
+    repeated int32 hitObjectIds = 3;
 }
 
 message S_ChangeHp {
@@ -120,11 +129,12 @@ message ObjectInfo {
 message PositionInfo {
     CreatureState state = 1;
     MoveDir moveDir = 2;
-    float posX = 3;
-    float posY = 4;
-    float destX = 5;
-    float destY = 6;
-    bool moveKeyDown = 7;
+    LookDir lookDir = 3;
+    float posX = 4;
+    float posY = 5;
+    float destX = 6;
+    float destY = 7;
+    bool moveKeyDown = 8;
 }
 
 message StatInfo {
@@ -134,8 +144,4 @@ message StatInfo {
     int32 attack = 4;
     float speed = 5;
     int32 totalExp = 6;
-}
-
-message SkillInfo {
-    int32 skillId = 1;
 }

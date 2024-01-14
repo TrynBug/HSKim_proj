@@ -143,4 +143,14 @@ namespace Server
     }
 
 
+
+
+
+
+
+    public struct SkillInfo
+    {
+        public int lastUseTime;
+        public Data.Skill skill;
+    }
 }

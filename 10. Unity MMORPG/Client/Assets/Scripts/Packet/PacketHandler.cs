@@ -1,6 +1,7 @@
 using Google.Protobuf;
 using Google.Protobuf.Protocol;
 using ServerCore;
+using System;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -15,7 +16,7 @@ class PacketHandler
         ServerSession serverSession = session as ServerSession;
 
         // 내 플레이어 생성
-        BaseController bc = Managers.Object.Add(enterGamePacket.Player, myPlayer: true);
+        BaseController bc = Managers.Object.Add(enterGamePacket);
         if (bc == null)
             return;
 
@@ -43,7 +44,7 @@ class PacketHandler
         // 오브젝트 생성
         foreach(ObjectInfo info in spawnPacket.Objects)
         {
-            Managers.Object.Add(info, myPlayer:false);
+            Managers.Object.Add(info);
         }
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SpawnHandler. objects:{spawnPacket.Objects}");
@@ -70,20 +71,18 @@ class PacketHandler
         S_Move movePacket = packet as S_Move;
         ServerSession serverSession = session as ServerSession;
 
-        GameObject go = Managers.Object.FindById(movePacket.ObjectId);
-        if (go == null)
-        {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_MoveHandler. Can't find object. objectId:{movePacket.ObjectId}");
-            return;
-        }
-
         // 내 캐릭터에 대한 이동패킷은 무시한다. 클라에서 서버보다 먼저 캐릭터를 이동시키기 때문이다.
         if (Managers.Object.MyPlayer.Id == movePacket.ObjectId)
             return;
 
+        BaseController obj = Managers.Object.FindById(movePacket.ObjectId);
+        if (obj == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_MoveHandler. Can't find object. objectId:{movePacket.ObjectId}");
+            return;
+        }
         
-        GameObject unitRoot = Util.FindChild(go, "UnitRoot");
-        PlayerController pc = unitRoot.GetComponent<PlayerController>();
+        PlayerController pc = obj as PlayerController;
         if (pc == null)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_MoveHandler. Object has no PlayerController component. objectId:{movePacket.ObjectId}");
@@ -92,7 +91,7 @@ class PacketHandler
 
         // 목적지만 교체해준다.
         PositionInfo info = movePacket.PosInfo;
-        pc.Dest = new Vector3(info.DestX, info.DestY, 0);
+        pc.Dest = new Vector2(info.DestX, info.DestY);
         pc.Dir = info.MoveDir;
         pc.RemoteState = info.State;
         pc.RemoteDir = info.MoveDir;
@@ -109,23 +108,26 @@ class PacketHandler
         S_Skill skillPacket = packet as S_Skill;
         ServerSession serverSession = session as ServerSession;
 
-        GameObject go = Managers.Object.FindById(skillPacket.ObjectId);
-        if (go == null)
+        CreatureController attacker = Managers.Object.FindById(skillPacket.ObjectId) as CreatureController;
+        if (attacker == null)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_SkillHandler. Can't find object. objectId:{skillPacket.ObjectId}");
             return;
         }
 
-        CreatureController cc = go.GetComponent<CreatureController>();
-        if (cc == null)
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHandler. objectId:{skillPacket.ObjectId}, skillId:{skillPacket.SkillId}");
+
+        // 스킬 사용
+        if(attacker != Managers.Object.MyPlayer)
+            attacker.OnSkill(skillPacket.SkillId);
+
+        // 피격됨
+        foreach(int objectId in skillPacket.HitObjectIds)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_SkillHandler. Object has no CreatureController component. objectId:{skillPacket.ObjectId}");
-            return;
+            CreatureController taker = Managers.Object.FindById<CreatureController>(objectId);
+            if(taker != null)
+                taker.OnDamaged(attacker, attacker.Stat.Attack);
         }
-
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHandler. objectId:{skillPacket.ObjectId}, skillId:{skillPacket.Info.SkillId}");
-
-        cc.UseSkill(skillPacket.Info.SkillId);
     }
 
 
@@ -134,14 +136,14 @@ class PacketHandler
         S_ChangeHp changePacket = packet as S_ChangeHp;
         ServerSession serverSession = session as ServerSession;
 
-        GameObject go = Managers.Object.FindById(changePacket.ObjectId);
-        if (go == null)
+        BaseController obj = Managers.Object.FindById(changePacket.ObjectId);
+        if (obj == null)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_ChangeHpHandler. Can't find object. objectId:{changePacket.ObjectId}");
             return;
         }
 
-        CreatureController cc = go.GetComponent<CreatureController>();
+        CreatureController cc = obj as CreatureController;
         if (cc == null)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_ChangeHpHandler. Object has no CreatureController component. objectId:{changePacket.ObjectId}");
@@ -158,14 +160,14 @@ class PacketHandler
         S_Die diePacket = packet as S_Die;
         ServerSession serverSession = session as ServerSession;
 
-        GameObject go = Managers.Object.FindById(diePacket.ObjectId);
-        if (go == null)
+        BaseController obj = Managers.Object.FindById(diePacket.ObjectId);
+        if (obj == null)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_DieHandler. Can't find object. objectId:{diePacket.ObjectId}");
             return;
         }
 
-        CreatureController cc = go.GetComponent<CreatureController>();
+        CreatureController cc = obj as CreatureController;
         if (cc == null)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_DieHandler. Object has no CreatureController component. objectId:{diePacket.ObjectId}");

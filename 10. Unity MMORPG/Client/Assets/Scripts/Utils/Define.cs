@@ -69,4 +69,14 @@ public class Define
     {
         Text
     }
+
+
+    /* Number Prefab */
+    public enum NumberType
+    {
+        Damage,
+        Heal,
+        Exp,
+    }
+
 }
