@@ -1,0 +1,164 @@
+{
+"spums": [
+  {
+    "id": 0,
+    "prefabName": "SPUM000",
+    "back": 0,
+    "cloth": 0,
+    "armor": 30006,
+    "helmet": 20003,
+    "weaponLeft": 40040,
+    "weaponRight": 0
+  },
+  {
+    "id": 1,
+    "prefabName": "SPUM001",
+    "back": 50003,
+    "cloth": 10002,
+    "armor": 30005,
+    "helmet": 0,
+    "weaponLeft": 40007,
+    "weaponRight": 0
+  },
+  {
+    "id": 2,
+    "prefabName": "SPUM002",
+    "back": 50001,
+    "cloth": 10004,
+    "armor": 30005,
+    "helmet": 20003,
+    "weaponLeft": 40041,
+    "weaponRight": 0
+  },
+  {
+    "id": 3,
+    "prefabName": "SPUM003",
+    "back": 0,
+    "cloth": 10010,
+    "armor": 30002,
+    "helmet": 0,
+    "weaponLeft": 40000,
+    "weaponRight": 40003
+  },
+  {
+    "id": 4,
+    "prefabName": "SPUM004",
+    "back": 50003,
+    "cloth": 10011,
+    "armor": 30004,
+    "helmet": 20003,
+    "weaponLeft": 0,
+    "weaponRight": 0
+  },
+  {
+    "id": 5,
+    "prefabName": "SPUM005",
+    "back": 0,
+    "cloth": 10000,
+    "armor": 30005,
+    "helmet": 0,
+    "weaponLeft": 40004,
+    "weaponRight": 40004
+  },
+  {
+    "id": 6,
+    "prefabName": "SPUM006",
+    "back": 0,
+    "cloth": 10001,
+    "armor": 0,
+    "helmet": 20008,
+    "weaponLeft": 40000,
+    "weaponRight": 0
+  },
+  {
+    "id": 7,
+    "prefabName": "SPUM007",
+    "back": 50000,
+    "cloth": 10007,
+    "armor": 30004,
+    "helmet": 20002,
+    "weaponLeft": 40006,
+    "weaponRight": 0
+  },
+  {
+    "id": 8,
+    "prefabName": "SPUM008",
+    "back": 0,
+    "cloth": 0,
+    "armor": 30006,
+    "helmet": 20003,
+    "weaponLeft": 40040,
+    "weaponRight": 0
+  },
+  {
+    "id": 9,
+    "prefabName": "SPUM009",
+    "back": 0,
+    "cloth": 10019,
+    "armor": 0,
+    "helmet": 20007,
+    "weaponLeft": 40017,
+    "weaponRight": 40013
+  },
+  {
+    "id": 10,
+    "prefabName": "SPUM010",
+    "back": 0,
+    "cloth": 10007,
+    "armor": 30000,
+    "helmet": 20001,
+    "weaponLeft": 40027,
+    "weaponRight": 40027
+  },
+  {
+    "id": 11,
+    "prefabName": "SPUM011",
+    "back": 0,
+    "cloth": 10009,
+    "armor": 30003,
+    "helmet": 0,
+    "weaponLeft": 0,
+    "weaponRight": 40024
+  },
+  {
+    "id": 12,
+    "prefabName": "SPUM012",
+    "back": 50003,
+    "cloth": 10001,
+    "armor": 30004,
+    "helmet": 0,
+    "weaponLeft": 40001,
+    "weaponRight": 0
+  },
+  {
+    "id": 13,
+    "prefabName": "SPUM013",
+    "back": 50000,
+    "cloth": 10009,
+    "armor": 30004,
+    "helmet": 0,
+    "weaponLeft": 40044,
+    "weaponRight": 40016
+  },
+  {
+    "id": 14,
+    "prefabName": "SPUM014",
+    "back": 50005,
+    "cloth": 10000,
+    "armor": 0,
+    "helmet": 0,
+    "weaponLeft": 40043,
+    "weaponRight": 40043
+  },
+  {
+    "id": 15,
+    "prefabName": "SPUM015",
+    "back": 0,
+    "cloth": 10010,
+    "armor": 30007,
+    "helmet": 20000,
+    "weaponLeft": 40035,
+    "weaponRight": 40017
+  }
+]
+}

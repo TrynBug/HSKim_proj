@@ -2,7 +2,9 @@ using Google.Protobuf.Protocol;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Data;
 using UnityEngine;
+using static Define;
 
 namespace Data
 {
@@ -11,7 +13,7 @@ namespace Data
 
     #region Stat
     [Serializable]
-    public class StatData : ILoader<int, StatInfo>
+    public class StatData : IJsonLoader<int, StatInfo>
     {
         public List<StatInfo> stats = new List<StatInfo>();
 
@@ -58,7 +60,7 @@ namespace Data
     }
 
     [Serializable]
-    public class SkillData : ILoader<int, Skill>
+    public class SkillData : IJsonLoader<int, Skill>
     {
         public List<Skill> skills = new List<Skill>();
 
@@ -73,4 +75,115 @@ namespace Data
         }
     }
     #endregion
+
+
+
+
+
+    #region Item
+    public class ItemDataLoader : IExcelLoader<int, Item>
+    {
+        // 엑셀 데이터를 전달받아 key=id, value=Item 인 dictionary를 만들어 리턴함
+        public Dictionary<int, Item> LoadExcelData(DataSet dataset)
+        {
+            Dictionary<int, Item> dict = new Dictionary<int, Item>();
+
+            //시트 개수만큼 반복
+            for (int i = 0; i < dataset.Tables.Count; i++)
+            {
+                DataTable table = dataset.Tables[i];
+
+                //해당 시트의 행데이터(한줄씩)로 반복
+                for (int j = 1; j < table.Rows.Count; j++)
+                {
+                    DataRow row = table.Rows[j];
+
+                    // item 생성
+                    Item item = new Item();
+                    item.id = int.Parse(row[0].ToString());
+                    item.type = (EquipmentType)Enum.Parse(typeof(EquipmentType), row[1].ToString());
+                    item.subType = (EquipmentSubType)Enum.Parse(typeof(EquipmentSubType), row[2].ToString());
+                    item.spriteName = row[3].ToString();
+                    item.damage = int.Parse(row[4].ToString());
+                    item.rangeX = float.Parse(row[5].ToString());
+                    item.rangeY = float.Parse(row[6].ToString());
+                    item.attackSpeed = float.Parse(row[7].ToString());
+                    item.hp = int.Parse(row[8].ToString());
+                    item.armor = int.Parse(row[9].ToString());
+                    item.speed = float.Parse(row[10].ToString());
+
+                    // dict에 삽입
+                    dict.Add(item.id, item);
+                }
+            }
+
+            return dict;
+        }
+
+        // key가 id인 dictionary를 통해 key가 spriteName인 dictionary를 만들어 리턴함
+        public static Dictionary<string, Item> MakeSpriteItemDict(Dictionary<int, Item> itemDict)
+        {
+            Dictionary<string, Item> dict = new Dictionary<string, Item>();
+            foreach (Item item in itemDict.Values)
+            {
+                dict.Add(item.spriteName, item);
+            }
+            return dict;
+        }
+    }
+
+    [Serializable]
+    public class Item
+    {
+        public int id;
+        public EquipmentType type;
+        public EquipmentSubType subType;
+        public string spriteName;
+        public int damage;
+        public float rangeX;
+        public float rangeY;
+        public float attackSpeed;
+        public int hp;
+        public int armor;
+        public float speed;
+    }
+
+
+    #endregion
+
+
+
+    #region SPUM
+    public class SPUMDataLoader : IJsonLoader<int, SPUMData>
+    {
+        public List<SPUMData> spums = new List<SPUMData>();
+
+        // 읽은 데이터를 Dictionary로 변환하여 리턴하는 함수
+        public Dictionary<int, SPUMData> MakeDict()
+        {
+            Dictionary<int, SPUMData> dict = new Dictionary<int, SPUMData>();
+
+            foreach (SPUMData spum in spums)
+            {
+                dict.Add(spum.id, spum);
+            }
+
+            return dict;
+        }
+    }
+
+    [Serializable]
+    public class SPUMData
+    {
+        public int id;
+        public string prefabName;
+        public int back;
+        public int cloth;
+        public int armor;
+        public int helmet;
+        public int weaponLeft;
+        public int weaponRight;
+    }
+    #endregion
+
 }

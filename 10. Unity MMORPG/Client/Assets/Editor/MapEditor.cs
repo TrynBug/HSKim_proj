@@ -16,7 +16,7 @@ public class MapEditor
     // Prefabs/Map 아래의 각각의 grid 내의 Tilemap_Collision 타일맵에서 갈수없는 cell 정보를 추출하여 파일로 생성하는 함수
     // Tools 메뉴 아래에 GenerateMap 메뉴를 만들고, 해당 메뉴 선택시 아래 함수를 호출한다.
     // 단축키는 Ctrl + Shift + m 으로 한다. attribute에서의 단축키 예약어는 %(Ctrl), #(Shift), &(Alt) 로 지정되어 있다.
-    [MenuItem("Tools/GenerateMap %#m")]
+    [MenuItem("Tools/Generate Map Data %#m")]
     private static void GenerateMap()
     {
         GenerateByPath("Assets/Resources/Map");

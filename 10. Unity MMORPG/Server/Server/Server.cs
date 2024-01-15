@@ -1,6 +1,9 @@
+using System;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
 using System.Text;
+using System.Threading;
 using Google.Protobuf;
 using Google.Protobuf.Protocol;
 using Server.Data;
@@ -52,7 +55,8 @@ namespace Server
 
                 Thread.Sleep(10000);
                 GameRoom room = RoomManager.Instance.Find(1);
-                Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}, delta:{room.Time.DeltaTime}");
+                
+                //Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}, delta:{room.Time.DeltaTime}");
             }
         }
     }
