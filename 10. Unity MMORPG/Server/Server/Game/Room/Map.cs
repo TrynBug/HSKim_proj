@@ -21,6 +21,8 @@ namespace Server.Game
     // map collision 데이터를 참조하여 grid 상에서 특정 좌표가 이동 가능한 좌표인지를 판단해준다.
     public class Map
     {
+        public int Id { get; private set; }
+
         // cell 개수를 몇배수로 할지 결정함
         public int CellMultiple { get { return Config.CellMultiple; } }
 
@@ -35,8 +37,14 @@ namespace Server.Game
         public int CellMaxY { get; private set; }  // cell index y 최대값
         public int TotalCellCount { get { return CellMaxX * CellMaxY; } }  // cell 개수
 
+        public Vector2 PosCenter { get { return CellToCenterPos(CellCenter); } }
+        public Vector2Int CellCenter { get { return new Vector2Int(CellMaxX / 2, CellMaxY / 2); } }
+
         // grid
         public Cell[,] _cells;
+
+        // map data
+        MapData _mapData;
 
 
         // utils
@@ -55,8 +63,6 @@ namespace Server.Game
             Vector2 pos = CellToPos(cell);
             return new Vector2(pos.x + CellWidth / 2f, pos.y + CellHeight / 2f);
         }
-
-
 
 
 
@@ -95,30 +101,33 @@ namespace Server.Game
 
 
         // 맵 데이터 로드
-        public void LoadMap(int mapId, string path)
+        public void LoadMap(int mapId)
         {
-            // map 파일 읽기
-            string mapName = "Map_" + mapId.ToString("000");   // mapId를 00# 형태의 string으로 변경
-            string text = File.ReadAllText($"{path}/{mapName}.txt");         // map 파일 읽기
-
-            // map collision 텍스트 데이터로 StringReader 생성
-            StringReader reader = new StringReader(text);
+            // 맵 데이터 가져오기
+            MapData mapData;
+            if(DataManager.MapDict.TryGetValue(mapId, out mapData) == false)
+            {
+                Logger.WriteLog(LogLevel.Error, $"Map.LoadMap. Invalid mapId. {this}");
+                return;
+            }
+            _mapData = mapData;
+            Id = mapData.id;
 
             // cell 크기 얻기
-            float cellWidth = float.Parse(reader.ReadLine());
-            float cellHeight = float.Parse(reader.ReadLine());
+            float cellWidth = mapData.cellWidth;
+            float cellHeight = mapData.cellHeight;
             CellWidth = 1f / (float)CellMultiple;   // Cell 크기는 1/CellMultiple 로 고정
             CellHeight = 1f / (float)CellMultiple;
 
             // grid의 min, max 위치 얻기
-            int minX = int.Parse(reader.ReadLine());
-            int maxX = int.Parse(reader.ReadLine()) + 1;
-            int minY = int.Parse(reader.ReadLine());
-            int maxY = int.Parse(reader.ReadLine()) + 1;
+            int minX = mapData.cellBoundMinX;
+            int maxX = mapData.cellBoundMaxX + 1;
+            int minY = mapData.cellBoundMinY;
+            int maxY = mapData.cellBoundMaxY + 1;
             CellMaxX = (maxX - minX) * CellMultiple;
             CellMaxY = (maxY - minY) * CellMultiple;
-            PosMaxX = CellMaxX * CellWidth;
-            PosMaxY = CellMaxY * CellHeight;
+            PosMaxX = CellMaxX * CellWidth - 0.01f; ;
+            PosMaxY = CellMaxY * CellHeight - 0.01f; ;
 
 
             // grid 생성
@@ -132,7 +141,7 @@ namespace Server.Game
             int yCount = maxY - minY;
             for (int y = 0; y < yCount; y++)
             {
-                string line = reader.ReadLine();
+                string line = mapData.collisions[y];
                 for (int x = 0; x < xCount; x++)
                 {
                     if (line[x] == '1')
@@ -152,9 +161,6 @@ namespace Server.Game
 
                 }
             }
-
-
-
         }
 
 
@@ -172,13 +178,34 @@ namespace Server.Game
         }
 
 
+        // 오브젝트가 위치한 텔레포트 얻기
+        public TeleportData GetTeleportUnderObject(GameObject obj)
+        {
+            foreach (TeleportData teleport in _mapData.teleports)
+            {
+                Vector2 pos = new Vector2(obj.Pos.x - teleport.posX, obj.Pos.y - teleport.posY);
+                if (pos.x > -teleport.width / 2 && pos.x < teleport.width / 2 && pos.y > -teleport.height / 2 && pos.y < teleport.height / 2)
+                    return teleport;
+            }
+            return null;
+        }
+
+        // enter zone 위치 얻기
+        public Vector2 GetPosEnterZone(int zoneNumber)
+        {
+            if (zoneNumber < 0 || zoneNumber >= _mapData.enterZones.Count)
+                return PosCenter;
+            return new Vector2(_mapData.enterZones[zoneNumber].posX, _mapData.enterZones[zoneNumber].posY);
+        }
+
+
 
         // 맵에 오브젝트 추가
         public bool Add(GameObject gameObject)
         {
             if (IsInvalidCell(gameObject.Cell))
             {
-                Logger.WriteLog(LogLevel.Error, $"Map.Add. Invalid Cell. {gameObject.ToString(InfoLevel.Position)}");
+                Logger.WriteLog(LogLevel.Error, $"Map.Add. Invalid Cell. {this}, {gameObject.ToString(InfoLevel.Position)}");
                 return false;
             }
 
@@ -186,8 +213,8 @@ namespace Server.Game
             int y = gameObject.Cell.y;
             if (IsEmptyCell(gameObject.Cell) == false)
             {
-                Logger.WriteLog(LogLevel.Error, $"Map.Add. Cell already occupied " +
-                    $"cell:{gameObject.Cell}, collider:{_cells[y, x].Collider}, occupied:[{_cells[y, x].Object}], me:[{gameObject}]");
+                Logger.WriteLog(LogLevel.Error, $"Map.Add. Cell already occupied. " +
+                    $"{this}, cell:{gameObject.Cell}, collider:{_cells[y, x].Collider}, occupied:[{_cells[y, x].Object}], me:[{gameObject}]");
                 return false;
             }
 
@@ -405,11 +432,7 @@ namespace Server.Game
         // 찾았으면 true, 찾지 못했으면 false를 리턴함
         public bool FindEmptyCell(Vector2Int center, bool checkObjects, out Vector2Int emptyCell)
         {
-            if (IsInvalidCell(center))
-            {
-                emptyCell = Vector2Int.zero;
-                return false;
-            }
+            center = GetValidCell(center);
 
             int x = center.x;
             int y = center.y;
@@ -620,7 +643,11 @@ namespace Server.Game
 
 
 
-
+        // ToString
+        public override string ToString()
+        {
+            return $"map:{Id}";
+        }
 
 
 

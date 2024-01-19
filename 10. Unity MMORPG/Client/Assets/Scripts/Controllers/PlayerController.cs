@@ -159,7 +159,7 @@ public class PlayerController : CreatureController
 
 
     // 스킬 사용됨
-    public override void OnSkill(int skillId)
+    public override void OnSkill(SkillId skillId)
     {
         UpdateSkillAnimation();
     }

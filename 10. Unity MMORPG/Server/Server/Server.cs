@@ -33,8 +33,10 @@ namespace Server
 
 
             // 게임룸 생성
-            for(int i=1; i<=1; i++)
-                RoomManager.Instance.Add(i);
+            foreach (MapData map in DataManager.MapDict.Values)
+            {
+                RoomManager.Instance.Add(map.id);
+            }
             RoomManager.Instance.RunAllRooms();
 
 
@@ -54,9 +56,19 @@ namespace Server
                 //RoomManager.Instance.Find(1).Update();
 
                 Thread.Sleep(10000);
-                GameRoom room = RoomManager.Instance.Find(1);
-                
                 //Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}, delta:{room.Time.DeltaTime}");
+                Logger.WriteLog(LogLevel.Debug, $"object players:{ObjectManager.Instance.PlayerCount}");
+                for (int i=0; i<RoomManager.Instance.RoomCount; i++)
+                {
+                    GameRoom room = RoomManager.Instance.Find(i);
+                    if (room == null)
+                        continue;
+                    Logger.WriteLog(LogLevel.Debug, $"{room}, players:{room.PlayerCount}, proj:{room.ProjectileCount}, delta:{room.Time.DeltaTime}");
+                }
+
+
+
+
             }
         }
     }

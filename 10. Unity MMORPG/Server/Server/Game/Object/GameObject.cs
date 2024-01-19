@@ -7,23 +7,32 @@ using System.Threading.Tasks;
 using ServerCore;
 using System.Numerics;
 using Server.Data;
+using System.Threading;
 
 namespace Server.Game
 {
     public class GameObject
     {
-        public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
         // bits : [ Unused(1) | Type(7) | Id(24) ]
-        public int Id
+        static int _counter = 1;
+
+        // id 생성
+        static int GenerateId(GameObjectType type)
         {
-            get { return Info.ObjectId; }
-            set { Info.ObjectId = value; }
+            return ((int)type << 24) | (Interlocked.Increment(ref _counter));
         }
 
+
+
+        public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
+        // bits : [ Unused(1) | Type(7) | Id(24) ]
+        public int Id { get { return Info.ObjectId; } }
+
         public GameRoom Room { get; set; } = null;
-        public ObjectInfo Info { get; private set; } = new ObjectInfo();   // Info.PosInfo 는 PosInfo를 리턴함
-        public PositionInfo PosInfo { get; private set; } = new PositionInfo();
-        public StatInfo Stat { get; private set; } = new StatInfo();  // Info.StatInfo 는 Stat을 리턴함
+        public ObjectInfo Info { get; private set; } = new ObjectInfo();   
+        public PositionInfo PosInfo { get; private set; } = new PositionInfo();  // Info.PosInfo 는 PosInfo를 리턴함
+        public StatInfo StatOrigin { get; private set; } = new StatInfo();   // 초기 스탯 데이터
+        public StatInfo Stat { get; private set; } = new StatInfo();       // Info.StatInfo 는 Stat을 리턴함
 
         /* 스탯 */
         public float Speed
@@ -37,6 +46,17 @@ namespace Server.Game
             get { return Stat.Hp; }
             set { Stat.Hp = Math.Clamp(value, 0, Stat.MaxHp); }
         }
+
+        public Vector2 Range
+        {
+            get { return new Vector2(Stat.RangeX, Stat.RangeY); }
+            set 
+            { 
+                Stat.RangeX = value.x;
+                Stat.RangeY = value.y;
+            }
+        }
+
 
         /* 위치 */
         public Vector2 Pos
@@ -111,32 +131,34 @@ namespace Server.Game
 
 
 
-        /* 스킬 */
-        // 사용가능한 스킬정보
-        Dictionary<int, SkillInfo> _skillset = new Dictionary<int, SkillInfo>();
-        public Dictionary<int, SkillInfo> Skillset { get { return _skillset; } }
-
-        // 스킬 키 눌림
-        public virtual bool SkillKeyDown { get; set; } = false;
 
 
 
 
+        // 생성자
         public GameObject()
         {
             Info.PosInfo = PosInfo;
             Info.StatInfo = Stat;
         }
 
+        // init
+        public virtual void Init()
+        {
+            Info.ObjectId = GenerateId(ObjectType);
+        }
+
+
+
 
 
 
         // ToString
-        public override string? ToString()
+        public override string ToString()
         {
             return ToString(InfoLevel.Identity);
         }
-        public virtual string? ToString(InfoLevel infoType)
+        public virtual string ToString(InfoLevel infoType)
         {
             switch (infoType)
             {
@@ -196,76 +218,28 @@ namespace Server.Game
         // 현재 방향에 해당하는 벡터 얻기
         public Vector2 GetDirectionVector(MoveDir dir)
         {
-            Vector2 direction;
-            switch (dir)
-            {
-                case MoveDir.Up:
-                    direction = new Vector2(1, -1).normalized;
-                    break;
-                case MoveDir.Down:
-                    direction = new Vector2(-1, 1).normalized;
-                    break;
-                case MoveDir.Left:
-                    direction = new Vector2(-1, -1).normalized;
-                    break;
-                case MoveDir.Right:
-                    direction = new Vector2(1, 1).normalized;
-                    break;
-                case MoveDir.LeftUp:
-                    direction = new Vector2(0, -1);
-                    break;
-                case MoveDir.LeftDown:
-                    direction = new Vector2(-1, 0);
-                    break;
-                case MoveDir.RightUp:
-                    direction = new Vector2(1, 0);
-                    break;
-                case MoveDir.RightDown:
-                    direction = new Vector2(0, 1);
-                    break;
-                default:
-                    direction = new Vector2(0, 0);
-                    break;
-            }
-
-            return direction;
+            return Util.GetDirectionVector(dir);
         }
 
 
-        // 스킬 사용이 가능한지 검사함
-        public virtual bool CanUseSkill(int skillId, out Skill skill)
-        {
-            skill = null;
-            SkillInfo skillInfo;
-            if (Skillset.TryGetValue(skillId, out skillInfo) == false)
-                return false;
 
-            int tick = Environment.TickCount;
-            if (tick - skillInfo.lastUseTime < skillInfo.skill.cooldown)
-                return false;
-
-            Skillset[skillId] = new SkillInfo() { lastUseTime = tick, skill = skillInfo.skill };
-            skill = skillInfo.skill;
-
-            return true;
-        }
 
 
         // 피격됨
-        public virtual void OnDamaged(GameObject attacker, int damage)
+        // 리턴값 : 실제로 받은 데미지
+        public virtual int OnDamaged(GameObject attacker, int damage)
         {
             if (Room == null)
             {
                 Logger.WriteLog(LogLevel.Error, $"GameObject.OnDamaged. Room is null. objectId:{Id}");
-                return;
+                return 0;
             }
 
             // HP 감소
-            Stat.Hp -= damage;
-            if (Stat.Hp <= 0)
-                Stat.Hp = 0;
+            int finalDamage = Math.Max(damage - Stat.Defence, 1);
+            Stat.Hp = Math.Max(Stat.Hp - finalDamage, 0);
 
-            Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDamaged. damage:{damage}, me:[{this.ToString(InfoLevel.Stat)}], attacker:[{attacker.ToString(InfoLevel.Stat)}]");
+            Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDamaged. damage:{finalDamage}, me:[{this.ToString(InfoLevel.Stat)}], attacker:[{attacker.ToString(InfoLevel.Stat)}]");
 
             // HP 변경 패킷 전송
             S_ChangeHp changePacket = new S_ChangeHp();
@@ -274,15 +248,20 @@ namespace Server.Game
             Room._broadcast(changePacket);
 
             // 사망처리
-            if(Stat.Hp <= 0)
+            if(Stat.Hp <= 0 && State != CreatureState.Dead)
             {
                 OnDead(attacker);
             }
+
+            return finalDamage;
         }
 
         // 사망함
         public virtual void OnDead(GameObject attacker)
         {
+            // 상태 변경
+            State = CreatureState.Dead;
+
 
             // 사망 패킷 전송
             S_Die diePacket = new S_Die();

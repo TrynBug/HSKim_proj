@@ -18,6 +18,25 @@ namespace Server.Game
         public CreatureState RemoteState { get; set; } = CreatureState.Idle;
         public MoveDir RemoteDir { get; set; } = MoveDir.Down;
 
+        SPUMData _SPUM = null;
+        public SPUMData SPUM {
+            get { return _SPUM; }
+            set { 
+                _SPUM = value;
+                Info.SPUMId = _SPUM.id;
+            }
+        }
+
+        public Equipment Equip { get; set; } = new Equipment();
+
+        /* 스킬 */
+        // 사용가능한 스킬정보
+        Dictionary<SkillId, SkillInfo> _skillset = new Dictionary<SkillId, SkillInfo>();
+        public Dictionary<SkillId, SkillInfo> Skillset { get { return _skillset; } }
+
+        // 스킬 키 눌림
+        public virtual bool SkillKeyDown { get; set; } = false;
+
 
         public Player()
         {
@@ -27,8 +46,11 @@ namespace Server.Game
 
         public void Init(ClientSession session, GameRoom room)
         {
+            base.Init();
+
             Session = session;
 
+            // 위치 초기화
             Room = room;
             Info.Name = $"Player_{Id}";
             State = CreatureState.Idle;
@@ -36,14 +58,32 @@ namespace Server.Game
             Pos = room.PosCenter;
             Dest = Pos;
 
-            StatInfo stat = null;
-            DataManager.StatDict.TryGetValue(1, out stat);
-            Stat.MergeFrom(stat);
+            // 초기스탯 가져오기
+            StatInfo stat = DataManager.StatDict.GetValueOrDefault(1, DataManager.DefaultStat);
+            StatOrigin.MergeFrom(stat);
 
-            Skillset.Add(DataManager.DefaultSkill.id, new SkillInfo() { lastUseTime = 0, skill = DataManager.DefaultSkill });
-            Skill skill;
-            if (DataManager.SkillDict.TryGetValue(2, out skill))
+            // SPUM 데이터 가져오기
+            int spumId = (Id & 0xf) % DataManager.SPUMDict.Count;
+            SPUM = DataManager.SPUMDict.GetValueOrDefault(spumId, DataManager.DefaultSPUM);
+
+            // 장비아이템 초기화
+            Equip.SetEquipment(SPUM);
+
+            // 스탯 계산
+            RecalculateStat();
+
+
+            // 스킬 초기화
+            SkillData skill;
+            if (DataManager.SkillDict.TryGetValue(SkillId.SkillAttack, out skill))
                 Skillset.Add(skill.id, new SkillInfo() { lastUseTime = 0, skill = skill });
+            if (DataManager.SkillDict.TryGetValue(SkillId.SkillFireball, out skill))
+                Skillset.Add(skill.id, new SkillInfo() { lastUseTime = 0, skill = skill });
+            if (DataManager.SkillDict.TryGetValue(SkillId.SkillLightning, out skill))
+                Skillset.Add(skill.id, new SkillInfo() { lastUseTime = 0, skill = skill });
+            if (DataManager.SkillDict.TryGetValue(SkillId.SkillArrow, out skill))
+                Skillset.Add(skill.id, new SkillInfo() { lastUseTime = 0, skill = skill });
+
         }
     
 
@@ -151,15 +191,61 @@ namespace Server.Game
 
 
         // 피격됨
-        public override void OnDamaged(GameObject attacker, int damage)
+        public override int OnDamaged(GameObject attacker, int damage)
         {
-            base.OnDamaged(attacker, damage);
+            return base.OnDamaged(attacker, damage);
         }
 
         // 사망함
         public override void OnDead(GameObject attacker)
         {
             base.OnDead(attacker);
+        }
+
+
+
+
+
+
+
+        // 스킬 사용이 가능한지 검사함
+        public virtual bool CanUseSkill(SkillId skillId, out SkillData skill)
+        {
+            skill = null;
+
+            if (State == CreatureState.Dead)
+                return false;
+
+            SkillInfo skillInfo;
+            if (Skillset.TryGetValue(skillId, out skillInfo) == false)
+                return false;
+
+            int tick = Environment.TickCount;
+            if (tick - skillInfo.lastUseTime < skillInfo.skill.cooldown)
+                return false;
+
+            Skillset[skillId] = new SkillInfo() { lastUseTime = tick, skill = skillInfo.skill };
+            skill = skillInfo.skill;
+
+            return true;
+        }
+
+
+        // 장비 데이터를 참고하여 Stat을 재계산한다.
+        private void RecalculateStat()
+        {
+            if (StatOrigin == null || SPUM == null || Stat == null)
+                return;
+
+            Stat.MergeFrom(StatOrigin);
+            Stat.MaxHp += Equip.Hp;
+            Stat.Hp = Stat.MaxHp;
+            Stat.Damage += Equip.Damage;
+            Stat.Defence += Equip.Defence;
+            Stat.RangeX += Equip.RangeX;
+            Stat.RangeY += Equip.RangeY;
+            Stat.AttackSpeed += Equip.AttackSpeed;
+            Stat.Speed += Equip.Speed;
         }
 
     }

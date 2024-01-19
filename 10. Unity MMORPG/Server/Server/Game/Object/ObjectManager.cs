@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf.Protocol;
@@ -13,20 +14,13 @@ namespace Server.Game
 
         public static ObjectManager Instance { get; } = new ObjectManager();
 
+        public int PlayerCount { get { return _players.Count; } }
+
+
         object _lock = new object();
         Dictionary<int, Player> _players = new Dictionary<int, Player>();
 
-        // bits : [ Unused(1) | Type(7) | Id(24) ]
-        int _counter = 1;
 
-        // id 생성
-        int GenerateId(GameObjectType type)
-        {
-            lock (_lock)
-            {
-                return ((int)type << 24) | (_counter++);
-            }
-        }
 
         // id에 해당하는 오브젝트의 타입 얻기
         public static GameObjectType GetObjectTypeById(int id)
@@ -40,11 +34,10 @@ namespace Server.Game
         public T Add<T>() where T : GameObject, new()
         {
             T gameObject = new T();
+            gameObject.Init();
 
             lock(_lock)
             {
-                gameObject.Id = GenerateId(gameObject.ObjectType);
-
                 if(gameObject.ObjectType == GameObjectType.Player)
                 {
                     Player player = gameObject as Player;

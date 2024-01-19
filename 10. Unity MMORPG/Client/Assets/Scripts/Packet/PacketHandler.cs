@@ -15,12 +15,15 @@ class PacketHandler
         S_EnterGame enterGamePacket = packet as S_EnterGame;
         ServerSession serverSession = session as ServerSession;
 
+        // 맵 초기화
+        Managers.Map.LoadMap(enterGamePacket.RoomId);
+
         // 내 플레이어 생성
-        BaseController bc = Managers.Object.Add(enterGamePacket);
+        BaseController bc = Managers.Object.AddMyPlayer(enterGamePacket);
         if (bc == null)
             return;
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_EnterGameHandler. name:{enterGamePacket.Player.Name}, {bc.ToString(Define.InfoLevel.All)}");
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_EnterGameHandler. room:{enterGamePacket.RoomId} name:{enterGamePacket.Object.Name}, {bc.ToString(Define.InfoLevel.All)}");
     }
 
 
@@ -29,10 +32,22 @@ class PacketHandler
         S_LeaveGame leaveGamePacket = packet as S_LeaveGame;
         ServerSession serverSession = session as ServerSession;
 
-        // 내 플레이어 제거
+        // 현재 map에서 오브젝트를 제거
+        Managers.Map.Clear();
+
+        // 모든 오브젝트를 파괴
         Managers.Object.Clear();
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_LeaveGameHandler");
+    }
+
+
+    public static void S_EnterRoomHandler(PacketSession session, IMessage packet)
+    {
+    }
+
+    public static void S_LeaveRoomHandler(PacketSession session, IMessage packet)
+    {
     }
 
 
@@ -44,7 +59,7 @@ class PacketHandler
         // 오브젝트 생성
         foreach(ObjectInfo info in spawnPacket.Objects)
         {
-            Managers.Object.Add(info);
+            Managers.Object.AddOtherPlayer(info);
         }
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SpawnHandler. objects:{spawnPacket.Objects}");
@@ -63,6 +78,17 @@ class PacketHandler
         }
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_DespawnHandler. objectIds:{despawnPacket.ObjectIds}");
+    }
+
+    public static void S_SpawnSkillHandler(PacketSession session, IMessage packet)
+    {
+        S_SpawnSkill spawnPacket = packet as S_SpawnSkill;
+        ServerSession serverSession = session as ServerSession;
+
+        // 스킬 오브젝트 생성
+        Managers.Object.AddProjectile(spawnPacket);
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SpawnSkillHandler. id:{spawnPacket.ObjectId}, skill:{spawnPacket.SkillId}");
     }
 
 
@@ -118,15 +144,16 @@ class PacketHandler
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHandler. objectId:{skillPacket.ObjectId}, skillId:{skillPacket.SkillId}");
 
         // 스킬 사용
-        if(attacker != Managers.Object.MyPlayer)
-            attacker.OnSkill(skillPacket.SkillId);
+        //if(attacker != Managers.Object.MyPlayer)
+        //    attacker.OnSkill(skillPacket.SkillId);
+        attacker.OnSkill(skillPacket);
 
         // 피격됨
-        foreach(int objectId in skillPacket.HitObjectIds)
+        foreach(HitInfo hitInfo in skillPacket.Hits)
         {
-            CreatureController taker = Managers.Object.FindById<CreatureController>(objectId);
+            CreatureController taker = Managers.Object.FindById<CreatureController>(hitInfo.HitObjectId);
             if(taker != null)
-                taker.OnDamaged(attacker, attacker.Stat.Attack);
+                taker.OnDamaged(attacker, hitInfo.Damage);
         }
     }
 

@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Server.Game;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -151,6 +152,14 @@ namespace Server
     public struct SkillInfo
     {
         public int lastUseTime;
-        public Data.Skill skill;
+        public Data.SkillData skill;
+    }
+
+    public struct RoomTransferInfo
+    {
+        public Player player;
+        public int prevRoomId;
+        public int prevTeleportId;
+        public int nextRoomId;
     }
 }

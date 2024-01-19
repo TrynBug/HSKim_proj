@@ -39,10 +39,16 @@ class PacketManager
 		_handler.Add((ushort)MsgId.SEnterGame, PacketHandler.S_EnterGameHandler);		
 		_makeFunc.Add((ushort)MsgId.SLeaveGame, MakePacket<S_LeaveGame>);
 		_handler.Add((ushort)MsgId.SLeaveGame, PacketHandler.S_LeaveGameHandler);		
+		_makeFunc.Add((ushort)MsgId.SEnterRoom, MakePacket<S_EnterRoom>);
+		_handler.Add((ushort)MsgId.SEnterRoom, PacketHandler.S_EnterRoomHandler);		
+		_makeFunc.Add((ushort)MsgId.SLeaveRoom, MakePacket<S_LeaveRoom>);
+		_handler.Add((ushort)MsgId.SLeaveRoom, PacketHandler.S_LeaveRoomHandler);		
 		_makeFunc.Add((ushort)MsgId.SSpawn, MakePacket<S_Spawn>);
 		_handler.Add((ushort)MsgId.SSpawn, PacketHandler.S_SpawnHandler);		
 		_makeFunc.Add((ushort)MsgId.SDespawn, MakePacket<S_Despawn>);
 		_handler.Add((ushort)MsgId.SDespawn, PacketHandler.S_DespawnHandler);		
+		_makeFunc.Add((ushort)MsgId.SSpawnSkill, MakePacket<S_SpawnSkill>);
+		_handler.Add((ushort)MsgId.SSpawnSkill, PacketHandler.S_SpawnSkillHandler);		
 		_makeFunc.Add((ushort)MsgId.SMove, MakePacket<S_Move>);
 		_handler.Add((ushort)MsgId.SMove, PacketHandler.S_MoveHandler);		
 		_makeFunc.Add((ushort)MsgId.SSkill, MakePacket<S_Skill>);

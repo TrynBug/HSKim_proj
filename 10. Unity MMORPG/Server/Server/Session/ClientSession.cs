@@ -40,7 +40,7 @@ namespace Server
         public override void OnConnected(EndPoint endPoint)
         {
             // 플레이어 생성
-            GameRoom room = RoomManager.Instance.Find(1);
+            GameRoom room = RoomManager.Instance.Find(0);
             MyPlayer = ObjectManager.Instance.Add<Player>();
             MyPlayer.Init(this, room);
             Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnConnected. sessionId:{SessionId}, playerId:{MyPlayer.Info.ObjectId}, endPoint:{endPoint}");

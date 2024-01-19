@@ -196,7 +196,8 @@ namespace ServerCore
             }
             else
             {
-                Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Error. remote:{_socket.RemoteEndPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
+                if(!(args.BytesTransferred == 0 && args.SocketError == SocketError.Success))
+                    Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Error. remote:{_socket.RemoteEndPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
                 Disconnect();
             }
         }

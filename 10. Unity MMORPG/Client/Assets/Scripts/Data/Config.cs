@@ -18,7 +18,7 @@ namespace Data
         public const float DifferenceTolerance = 0.001f;
 
         // move
-        public const float MyPlayerMinimumMove = 0.075f;
+        public const float MyPlayerMinimumMove = 0.05f;
         public const int MovePacketSendInterval = 200;
     }
 

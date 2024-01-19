@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using UnityEngine;
 using Google.Protobuf.Protocol;
 using static Define;
+using Data;
 
 // 움직이고 HP가 있는 오브젝트에 대한 기본 컨트롤러
 // HP Bar, 피격 함수, 사망 함수가 있다.
@@ -61,7 +62,7 @@ public abstract class CreatureController : BaseController
     {
         base.Init();
 
-        //AddHpBar();
+        AddHpBar();
         AddDebugText();
         UpdateAnimation();
     }
@@ -77,22 +78,54 @@ public abstract class CreatureController : BaseController
 
 
     // 스킬 사용됨
-    public virtual void OnSkill(int skillId)
+    public virtual void OnSkill(SkillId skillId)
     {
 
     }
+
+    public virtual void OnSkill(S_Skill packet)
+    {
+        SkillData skill = Managers.Data.SkillDict.GetValueOrDefault(packet.SkillId);
+        if (skill == null)
+            return;
+
+        UpdateSkillAnimation();
+
+        switch (packet.SkillId)
+        {
+            case SkillId.SkillAttack:
+                break;
+
+            case SkillId.SkillArrow:
+                break;
+
+            case SkillId.SkillFireball:
+                break;
+
+            case SkillId.SkillLightning:
+                foreach (HitInfo hitInfo in packet.Hits)
+                {
+                    CreatureController target = Managers.Object.FindById<CreatureController>(hitInfo.HitObjectId);
+                    if (target != null)
+                        Managers.Object.AddEffect(skill.instant.effect, target.Pos);
+                }
+
+                break;
+        }
+    }
+
 
     // 피격됨
     public virtual void OnDamaged(CreatureController attacker, int damage)
     {
         Managers.Number.Spawn(NumberType.Damage, transform.position + Vector3.up, damage);
-        ServerCore.Logger.WriteLog(ServerCore.LogLevel.Debug, $"CreatureController.OnDamaged. me:[{this}] attacker:[{attacker}]");
+        ServerCore.Logger.WriteLog(ServerCore.LogLevel.Debug, $"CreatureController.OnDamaged. damage:{damage}, me:[{this}], attacker:[{attacker}]");
     }
 
     // 사망함
     public virtual void OnDead()
     {
-        //State = CreatureState.Dead;
+        State = CreatureState.Dead;
 
         //// effect 생성
         //GameObject effect = Managers.Resource.Instantiate("Effect/DieEffect");
@@ -123,16 +156,17 @@ public abstract class CreatureController : BaseController
             ratio = (float)Hp / (float)Stat.MaxHp;
         }
         _hpBar.SetHpBar(ratio);
+        _hpBar.transform.localScale = gameObject.transform.localScale;
     }
 
     // Debug Text 추가
     protected void AddDebugText()
     {
         GameObject go = Managers.Resource.Instantiate("UI/DebugText", transform);
-        go.transform.localPosition = new Vector3(0, 1.0f, 0);
+        go.transform.localPosition = new Vector3(0, 1.2f, 0);
         go.name = "DebugText";
         _debugText = go.GetComponent<DebugText>();
-        UpdateHpBar();
+        UpdateDebugText();
     }
 
     protected void UpdateDebugText()

@@ -16,6 +16,8 @@ public class MyPlayerController : PlayerController
 
     float _speedRateForStop = 1f;  // 움직임을 멈출 때 속도를 감소시킬 비율
 
+    KeyInput _keyInput = new KeyInput();
+
     protected override void Init()
     {
         base.Init();
@@ -56,45 +58,48 @@ public class MyPlayerController : PlayerController
     // 현재 키보드 입력 얻기
     void GetKeyInput()
     {
-        bool keyW = Input.GetKey(KeyCode.W);
-        bool keyA = Input.GetKey(KeyCode.A);
-        bool keyS = Input.GetKey(KeyCode.S);
-        bool keyD = Input.GetKey(KeyCode.D);
-        bool KeySkill = Input.GetKeyDown(KeyCode.Space);
+        _keyInput.Up = Input.GetKey(KeyCode.W);
+        _keyInput.Left = Input.GetKey(KeyCode.A);
+        _keyInput.Down = Input.GetKey(KeyCode.S);
+        _keyInput.Right = Input.GetKey(KeyCode.D);
+        _keyInput.Attack = Input.GetKeyDown(KeyCode.Space);
+        _keyInput.SkillA = Input.GetKeyDown(KeyCode.Q);
+        _keyInput.SkillB = Input.GetKeyDown(KeyCode.E);
+        _keyInput.SkillC = Input.GetKeyDown(KeyCode.R);
 
         MoveKeyDown = true;
-        if (keyW)
+        if (_keyInput.Up)
         {
-            if (keyA)
+            if (_keyInput.Left)
                 Dir = MoveDir.LeftUp;
-            else if (keyD)
+            else if (_keyInput.Right)
                 Dir = MoveDir.RightUp;
             else
                 Dir = MoveDir.Up;
         }
-        else if (keyA)
+        else if (_keyInput.Left)
         {
-            if (keyW)
+            if (_keyInput.Up)
                 Dir = MoveDir.LeftUp;
-            else if (keyS)
+            else if (_keyInput.Down)
                 Dir = MoveDir.LeftDown;
             else
                 Dir = MoveDir.Left;
         }
-        else if (keyS)
+        else if (_keyInput.Down)
         {
-            if (keyA)
+            if (_keyInput.Left)
                 Dir = MoveDir.LeftDown;
-            else if (keyD)
+            else if (_keyInput.Right)
                 Dir = MoveDir.RightDown;
             else
                 Dir = MoveDir.Down;
         }
-        else if (keyD)
+        else if (_keyInput.Right)
         {
-            if (keyW)
+            if (_keyInput.Up)
                 Dir = MoveDir.RightUp;
-            else if (keyS)
+            else if (_keyInput.Down)
                 Dir = MoveDir.RightDown;
             else
                 Dir = MoveDir.Right;
@@ -107,7 +112,7 @@ public class MyPlayerController : PlayerController
 
 
         SkillKeyDown = false;
-        if (KeySkill)
+        if (_keyInput.Attack || _keyInput.SkillA || _keyInput.SkillB || _keyInput.SkillC)
         {
             SkillKeyDown = true;
         }
@@ -115,8 +120,11 @@ public class MyPlayerController : PlayerController
 
 
     // 스킬 사용이 가능한지 검사함
-    public bool CanUseSkill(int skillId)
+    public bool CanUseSkill(SkillId skillId)
     {
+        if (State == CreatureState.Dead)
+            return false;
+
         SkillInfo skillInfo;
         if (Skillset.TryGetValue(skillId, out skillInfo) == false)
             return false;
@@ -165,8 +173,17 @@ public class MyPlayerController : PlayerController
         // 스킬키 눌림
         if(SkillKeyDown == true)
         {
-            if (CanUseSkill(1))
-                OnSkill(1);
+            SkillId skillId = SkillId.SkillAttack;
+            if (_keyInput.Attack)
+                skillId = SkillId.SkillAttack;
+            else if (_keyInput.SkillA)
+                skillId = SkillId.SkillFireball;
+            else if (_keyInput.SkillB)
+                skillId = SkillId.SkillLightning;
+            else if (_keyInput.SkillC)
+                skillId = SkillId.SkillArrow;
+            if (CanUseSkill(skillId))
+                OnSkill(skillId);
         }
     }
 
@@ -280,8 +297,17 @@ public class MyPlayerController : PlayerController
         // 스킬키 눌림
         if (SkillKeyDown == true)
         {
-            if (CanUseSkill(1))
-                OnSkill(1);
+            SkillId skillId = SkillId.SkillAttack;
+            if (_keyInput.Attack)
+                skillId = SkillId.SkillAttack;
+            else if (_keyInput.SkillA)
+                skillId = SkillId.SkillFireball;
+            else if (_keyInput.SkillB)
+                skillId = SkillId.SkillLightning;
+            else if (_keyInput.SkillC)
+                skillId = SkillId.SkillArrow;
+            if (CanUseSkill(skillId))
+                OnSkill(skillId);
         }
     }
 
@@ -326,7 +352,7 @@ public class MyPlayerController : PlayerController
 
 
     // 스킬 사용됨
-    public override void OnSkill(int skillId)
+    public override void OnSkill(SkillId skillId)
     {
         base.OnSkill(skillId);
 
@@ -335,22 +361,40 @@ public class MyPlayerController : PlayerController
             return;
         
         // 피격대상 찾기
-        Skill skill = skillInfo.skill;
-        List<BaseController> hitObjects = null;
+        SkillData skill = skillInfo.skill;
+        List<BaseController> hitObjects = new List<BaseController>();
         switch (skill.skillType)
         {
             case SkillType.SkillMelee:
-                hitObjects = Managers.Map.FindObjectsInRect(Pos, new Vector2(skill.melee.rangeX, skill.melee.rangeY), LookDir);
-                break;
+                {
+                    hitObjects = Managers.Map.FindObjectsInRect(Pos, new Vector2(skill.melee.rangeX, skill.melee.rangeY), LookDir);
+                    break;
+                }
+            case SkillType.SkillProjectile:
+                {
+                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.projectile.rangeX, skill.projectile.rangeY), LookDir);
+                    if (hitObj != null)
+                        hitObjects.Add(hitObj);
+                    break;
+                }
+            case SkillType.SkillInstant:
+                {
+                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.instant.rangeX, skill.instant.rangeY), LookDir);
+                    if (hitObj != null)
+                        hitObjects.Add(hitObj);
+                    break;
+                }
         }
-        if (hitObjects == null || hitObjects.Count == 0)
-            return;
 
         // 스킬패킷 전송
         C_Skill skillPacket = new C_Skill();
         skillPacket.SkillId = skillId;
         foreach (BaseController obj in hitObjects)
+        {
+            if (obj.State == CreatureState.Dead)
+                continue;
             skillPacket.HitObjectIds.Add(obj.Id);
+        }
         Managers.Network.Send(skillPacket);
 
 

@@ -1,27 +1,56 @@
 {
   "skills": [
     {
-      "id": "1",
+      "id": "SkillAttack",
       "name": "평타",
       "cooldown": "500",
 	  "damage": "10",
-	  "skillType": "1",
+	  "skillType": "SkillMelee",
 	  "melee": {
 		  "rangeX": "1.0",
 		  "rangeY": "2.0"
 	  }
     },
     {
-      "id": "2",
+      "id": "SkillArrow",
       "name": "화살",
       "cooldown": "500",
 	  "damage": "5",
-	  "skillType": "2",
+	  "skillType": "SkillProjectile",
 	  "projectile": {
-		  "name": "화살",
+		  "name": "Arrow",
 		  "speed": "10.0",
-		  "range": "10",
+		  "rangeX": "5.0",
+		  "rangeY": "4.0",
 		  "prefab": "Creature/Arrow"
+	  }
+    },
+    {
+      "id": "SkillFireball",
+      "name": "파이어볼",
+      "cooldown": "1000",
+	  "damage": "15",
+	  "skillType": "SkillProjectile",
+	  "projectile": {
+		  "name": "Fireball",
+		  "speed": "10.0",
+		  "rangeX": "7.0",
+		  "rangeY": "7.0",
+		  "prefab": "Projectile/Fireball",
+		  "effect": "Effect/Explosion"
+	  }
+    },
+    {
+      "id": "SkillLightning",
+      "name": "전격",
+      "cooldown": "1000",
+	  "damage": "15",
+	  "skillType": "SkillInstant",
+	  "instant": {
+		  "name": "Lightning",
+		  "rangeX": "10.0",
+		  "rangeY": "10.0",
+		  "effect": "Effect/Lightning"
 	  }
     }
   ]

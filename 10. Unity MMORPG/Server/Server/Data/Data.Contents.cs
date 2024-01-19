@@ -36,44 +36,56 @@ namespace Server.Data
 
     #region Skill
     [Serializable]
-    public class Skill
+    public class SkillData
     {
-        public int id;
+        public SkillId id;
         public string name;
         public int cooldown;
         public int damage;
         public SkillType skillType;
-        public MeleeInfo melee;
-        public ProjectileInfo projectile;
+        public MeleeData melee;
+        public ProjectileData projectile;
+        public InstantData instant;
     }
 
     [Serializable]
-    public class ProjectileInfo
+    public class ProjectileData
     {
         public string name;
         public float speed;
-        public int range;
+        public float rangeX;
+        public float rangeY;
         public string prefab;
+        public string effect;
     }
 
     [Serializable]
-    public class MeleeInfo
+    public class MeleeData
     {
         public float rangeX;
         public float rangeY;
     }
 
     [Serializable]
-    public class SkillDataLoader : IJsonLoader<int, Skill>
+    public class InstantData
     {
-        public List<Skill> skills = new List<Skill>();
+        public string name;
+        public float rangeX;
+        public float rangeY;
+        public string effect;
+    }
+
+    [Serializable]
+    public class SkillDataLoader : IJsonLoader<SkillId, SkillData>
+    {
+        public List<SkillData> skills = new List<SkillData>();
 
         // 읽은 데이터를 Dictionary로 변환하여 리턴하는 함수
-        public Dictionary<int, Skill> MakeDict()
+        public Dictionary<SkillId, SkillData> MakeDict()
         {
-            Dictionary<int, Skill> dict = new Dictionary<int, Skill>();
+            Dictionary<SkillId, SkillData> dict = new Dictionary<SkillId, SkillData>();
 
-            foreach (Skill skill in skills)
+            foreach (SkillData skill in skills)
                 dict.Add(skill.id, skill);
             return dict;
         }
@@ -82,10 +94,10 @@ namespace Server.Data
 
 
     #region Item
-    public class ItemDataLoader : IExcelLoader<int, Item>
+    public class ItemDataLoader : ICSVLoader<int, Item>
     {
         // 엑셀 데이터를 전달받아 key=id, value=Item 인 dictionary를 만들어 리턴함
-        public Dictionary<int, Item> LoadExcelData(DataSet dataset)
+        public Dictionary<int, Item> LoadCSVData(DataSet dataset)
         {
             Dictionary<int, Item> dict = new Dictionary<int, Item>();
 
@@ -110,7 +122,7 @@ namespace Server.Data
                     item.rangeY= float.Parse(row[6].ToString());
                     item.attackSpeed = float.Parse(row[7].ToString());
                     item.hp = int.Parse(row[8].ToString());
-                    item.armor = int.Parse(row[9].ToString());
+                    item.defence = int.Parse(row[9].ToString());
                     item.speed = float.Parse(row[10].ToString());
 
                     // dict에 삽입
@@ -145,7 +157,7 @@ namespace Server.Data
         public float rangeY;
         public float attackSpeed;
         public int hp;
-        public int armor;
+        public int defence;
         public float speed;
     }
 
@@ -183,6 +195,59 @@ namespace Server.Data
         public int helmet;
         public int weaponLeft;
         public int weaponRight;
+    }
+    #endregion
+
+
+
+    #region Map
+    [Serializable]
+    public class MapData
+    {
+        public int id;
+        public float cellWidth;
+        public float cellHeight;
+        public int cellBoundMinX;
+        public int cellBoundMaxX;
+        public int cellBoundMinY;
+        public int cellBoundMaxY;
+        public List<string> collisions = new List<string>();
+        public List<TeleportData> teleports = new List<TeleportData>();
+        public List<EnterZoneData> enterZones = new List<EnterZoneData>();
+    }
+
+    [Serializable]
+    public class TeleportData
+    {
+        public int number;
+        public float posX;
+        public float posY;
+        public float width;
+        public float height;
+    }
+
+    [Serializable]
+    public class EnterZoneData
+    {
+        public int number;
+        public float posX;
+        public float posY;
+    }
+
+    [Serializable]
+    public class MapDataLoader : IJsonLoader<int, MapData>
+    {
+        public List<MapData> maps = new List<MapData>();
+
+        // 읽은 데이터를 Dictionary로 변환하여 리턴하는 함수
+        public Dictionary<int, MapData> MakeDict()
+        {
+            Dictionary<int, MapData> dict = new Dictionary<int, MapData>();
+
+            foreach (MapData map in maps)
+                dict.Add(map.id, map);
+            return dict;
+        }
     }
     #endregion
 }

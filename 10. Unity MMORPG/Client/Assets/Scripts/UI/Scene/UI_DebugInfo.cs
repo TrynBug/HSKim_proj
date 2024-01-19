@@ -16,6 +16,7 @@ public class UI_DebugInfo : UI_Scene
     void Update()
     {
         TextMeshProUGUI text = GetText((int)UIDebugInfo.Text);
-        text.text = $"RTT : {Managers.Time.RTTms :f0} ms";
+        text.text = $"RTT : {Managers.Time.RTTms :f0} ms\n" +
+            $"Map : {Managers.Map.MapId}";
     }
 }

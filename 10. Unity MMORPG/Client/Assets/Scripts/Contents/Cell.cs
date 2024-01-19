@@ -48,5 +48,12 @@ public class Cell
     {
         return MovingObjects.Find(obj) != null;
     }
+
+    public void Clear()
+    {
+        Collider = false;
+        Object = null;
+        MovingObjects.Clear();
+    }
 }
 

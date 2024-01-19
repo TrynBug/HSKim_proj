@@ -85,6 +85,7 @@ public class Define
     #region Equipment
     public enum EquipmentType
     {
+        Empty,
         Armor,
         Back,
         Cloth,
@@ -95,6 +96,7 @@ public class Define
 
     public enum EquipmentSubType
     {
+        Empty,
         Armor_Leather,
         Armor_Steel,
         Back_Cape,

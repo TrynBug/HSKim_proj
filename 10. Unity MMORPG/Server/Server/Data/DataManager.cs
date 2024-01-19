@@ -24,6 +24,13 @@ namespace Server.Data
         Dictionary<Key, DataClass> LoadExcelData(DataSet dataset);
     }
 
+    // csv 데이터 클래스가 상속받아야 하는 인터페이스.
+    // Load 함수는 excel 데이터 1줄을 받아 자신 클래스를 초기화하는 함수이다.
+    public interface ICSVLoader<Key, DataClass>
+    {
+        Dictionary<Key, DataClass> LoadCSVData(DataSet dataset);
+    }
+
     // 게임 데이터 파일들을 관리하는 매니저
     // 서버와 클라이언트의 DataManager 코드가 다른데, 그 이유는 양쪽에서 공통으로 사용하는 데이터와 그렇지 않은 데이터가 있기 때문이다.
     // 예를들면 강화성공확률 같은 경우는 서버쪽에서만 가지고 있어야 할 수가 있다.
@@ -32,15 +39,21 @@ namespace Server.Data
         // Stat 데이터 dictionary. key=level, data=StatInfo
         public static Dictionary<int, StatInfo> StatDict { get; private set; } = new Dictionary<int, StatInfo>();
         // Skill 데이터 dictionary. key=skillId, data=Skill
-        public static Dictionary<int, Data.Skill> SkillDict { get; private set; } = new Dictionary<int, Data.Skill>();
+        public static Dictionary<SkillId, Data.SkillData> SkillDict { get; private set; } = new Dictionary<SkillId, Data.SkillData>();
         // Item 데이터 dictionary. key=itemId, data=Item
         public static Dictionary<int, Data.Item> ItemDict { get; private set; } = new Dictionary<int, Item>();
         public static Dictionary<string, Data.Item> SpriteItemDict { get; private set; } = new Dictionary<string, Data.Item>();
         // SPUM 데이터
         public static Dictionary<int, Data.SPUMData> SPUMDict { get; private set; } = new Dictionary<int, Data.SPUMData>();
+        // Map 데이터
+        public static Dictionary<int, Data.MapData> MapDict { get; private set; } = new Dictionary<int, Data.MapData>();
 
         // default data
-        public static Data.Skill DefaultSkill { get; private set; }
+        public static StatInfo DefaultStat { get; private set; }
+        public static Data.SkillData DefaultSkill { get; private set; }
+        public static Data.Item DefaultItem { get; private set; }
+        public static Data.SPUMData DefaultSPUM { get; private set; }
+        
 
 
         static bool _isFirstCall = true;
@@ -57,16 +70,19 @@ namespace Server.Data
 
             // 데이터 로드
             StatDict = LoadJson<StatDataLoader, int, StatInfo>("StatData").MakeDict();
-            SkillDict = LoadJson<SkillDataLoader, int, Skill>("SkillData").MakeDict();
-            ItemDict = LoadExcel<ItemDataLoader, int, Item>("ItemData");
+            SkillDict = LoadJson<SkillDataLoader, SkillId, SkillData>("SkillData").MakeDict();
+            ItemDict = LoadCSV<ItemDataLoader, int, Item>("ItemData");
             SpriteItemDict = ItemDataLoader.MakeSpriteItemDict(ItemDict);
             SPUMDict = LoadJson<SPUMDataLoader, int, SPUMData>("SPUMData").MakeDict();
-
+            MapDict = LoadJson<MapDataLoader, int, MapData>("MapData").MakeDict();
 
             // default data
-            Data.Skill defaultSkill;
-            SkillDict.TryGetValue(1, out defaultSkill);
-            DefaultSkill = defaultSkill;
+            DefaultStat = StatDict.GetValueOrDefault(1, null);
+            DefaultSkill = SkillDict.GetValueOrDefault(SkillId.SkillAttack, null);
+            DefaultItem = ItemDict.GetValueOrDefault(0, null);
+            DefaultSPUM = SPUMDict.GetValueOrDefault(0, null);
+
+
         }
 
         static Loader LoadJson<Loader, key, DataClass>(string path) where Loader : IJsonLoader<key, DataClass>
@@ -88,7 +104,22 @@ namespace Server.Data
                 }
             }
         }
-        
+
+
+        static Dictionary<Key, DataClass> LoadCSV<Loader, Key, DataClass>(string path) where Loader : ICSVLoader<Key, DataClass>, new()
+        {
+            using (var stream = File.Open($"{ConfigManager.Config.dataPath}/{path}.csv", FileMode.Open, FileAccess.Read, FileShare.Read))
+            {
+                using (var reader = ExcelReaderFactory.CreateCsvReader(stream))
+                {
+                    DataSet result = reader.AsDataSet();
+
+                    Loader loader = new Loader();
+                    return loader.LoadCSVData(result);
+                }
+            }
+        }
+
     }
 
 }

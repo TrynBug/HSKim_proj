@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Google.Protobuf.WellKnownTypes;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -17,6 +18,7 @@ namespace Server
     #region Equipment
     public enum EquipmentType
     {
+        Empty,
         Armor,
         Back,
         Cloth,
@@ -26,7 +28,8 @@ namespace Server
     }
 
     public enum EquipmentSubType
-    {
+    { 
+        Empty,
         Armor_Leather,
         Armor_Steel,
         Back_Cape,

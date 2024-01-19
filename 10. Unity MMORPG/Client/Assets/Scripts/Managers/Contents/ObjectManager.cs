@@ -1,3 +1,4 @@
+using Data;
 using Google.Protobuf.Protocol;
 using Google.Protobuf.WellKnownTypes;
 using ServerCore;
@@ -7,30 +8,31 @@ using System.Collections.Generic;
 using System.Threading;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.Rendering;
 
 // 맵 상의 오브젝트를 관리하는 매니저
 public class ObjectManager
 {
-    public MyPlayerController MyPlayer { get; set; }
-    Dictionary<int, BaseController> _objects = new Dictionary<int, BaseController>();
+    public MyPlayerController MyPlayer { get; private set; }
+    Dictionary<int, BaseController> _players = new Dictionary<int, BaseController>();
+    Dictionary<int, BaseController> _projectiles = new Dictionary<int, BaseController>();
+    Dictionary<int, BaseController> _effects = new Dictionary<int, BaseController>();
+    
+    public ICollection<KeyValuePair<int, BaseController>> Players { get { return _players.AsReadOnlyCollection(); } }
+    public ICollection<KeyValuePair<int, BaseController>> Projectiles { get { return _projectiles.AsReadOnlyCollection(); } }
+    public ICollection<KeyValuePair<int, BaseController>> Effects { get { return _effects.AsReadOnlyCollection(); } }
 
-    public int ObjectCount { get { return _objects.Count; } }
-    public ICollection<KeyValuePair<int, BaseController>> Objects { get { return _objects.AsReadOnlyCollection(); } }
+    public int PlayerCount { get { return _players.Count; } }
+    public int ProjectileCount { get { return _projectiles.Count; } }
+    public int EffectCount { get { return _effects.Count; } }
 
 
-    // id 에서 타입 얻기
-    public static GameObjectType GetObjectTypeById(int id)
+
+    // 내 플레이어 추가
+    public MyPlayerController AddMyPlayer(S_EnterGame packet)
     {
-        // bits : [ Unused(1) | Type(7) | Id(24) ]
-        int type = (id >> 24) & 0x7F;
-        return (GameObjectType)type;
-    }
-
-
-    public BaseController Add(S_EnterGame packet)
-    {
-        ObjectInfo info = packet.Player;
-        GameObjectType objType = GetObjectTypeById(info.ObjectId);
+        ObjectInfo info = packet.Object;
+        GameObjectType objType = Util.GetObjectTypeById(info.ObjectId);
         if (objType != GameObjectType.Player)
         {
             ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. Object type is not Player. id:{info.ObjectId}, type:{objType}");
@@ -44,51 +46,61 @@ public class ObjectManager
         }
 
         // 내 플레이어 생성
-        string prefab = "Player" + (info.ObjectId & 0xf).ToString("000");   // 00# 형태의 string으로 변경
-        GameObject go = Managers.Resource.Instantiate($"Creature/{prefab}");
+        int spumId = info.SPUMId;
+        SPUMData spum = Managers.Data.SPUMDict.GetValueOrDefault(spumId, Managers.Data.DefaultSPUM);
+        GameObject go = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
         go.transform.position = Vector3.zero;
         go.name = "MyPlayer";
 
+        // 데이터 초기화
         MyPlayerController player = Util.FindChild(go, "UnitRoot").GetOrAddComponent<MyPlayerController>();
         MyPlayer = player;
-        MyPlayer.Id = info.ObjectId;
-        MyPlayer.PosInfo = info.PosInfo;
-        MyPlayer.Stat = info.StatInfo;
-
-        _objects.Add(info.ObjectId, player);
+        SortingGroup sort = player.GetOrAddComponent<SortingGroup>();
+        sort.sortingOrder = 2;
+        player.Info = packet.Object;
+        player.PosInfo = info.PosInfo;
+        player.Stat = info.StatInfo;
 
         // 스킬 등록
-        foreach (int skillId in packet.SkillIds)
+        foreach (SkillId skillId in packet.SkillIds)
         {
-            Data.Skill skill;
+            Data.SkillData skill;
             if (Managers.Data.SkillDict.TryGetValue(skillId, out skill))
-                MyPlayer.Skillset.Add(skillId, new SkillInfo() { lastUseTime = 0, skill = skill });
+                player.Skillset.Add(skillId, new SkillInfo() { lastUseTime = 0, skill = skill });
         }
 
-        // map에 추가
-        Managers.Map.Add(MyPlayer);
+        // object 추가
+        _players.Add(info.ObjectId, player);
 
-        return MyPlayer;
+        // map에 추가
+        Managers.Map.Add(player);
+
+        return player;
     }
 
 
-    public BaseController Add(ObjectInfo info)
+    // 다른 플레이어 추가
+    public PlayerController AddOtherPlayer(ObjectInfo info)
     {
-        GameObjectType objType = GetObjectTypeById(info.ObjectId);
+        GameObjectType objType = Util.GetObjectTypeById(info.ObjectId);
         if (objType == GameObjectType.Player)
         {
             // 다른 플레이어 생성
-            string prefab = "Player" + (info.ObjectId & 0xf).ToString("000");   // 00# 형태의 string으로 변경
-            GameObject go = Managers.Resource.Instantiate($"Creature/{prefab}");
+            int spumId = info.SPUMId;
+            SPUMData spum = Managers.Data.SPUMDict.GetValueOrDefault(spumId, Managers.Data.DefaultSPUM);
+            GameObject go = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
             go.transform.position = Vector3.zero;
             go.name = info.Name;
 
             PlayerController player = Util.FindChild(go, "UnitRoot").GetOrAddComponent<PlayerController>();
-            player.Id = info.ObjectId;
+            SortingGroup sort = player.GetOrAddComponent<SortingGroup>();
+            sort.sortingOrder = 2;
+            player.Info = info;
             player.PosInfo = info.PosInfo;
             player.Stat = info.StatInfo;
 
-            _objects.Add(info.ObjectId, player);
+            // object 추가
+            _players.Add(info.ObjectId, player);
 
             // map에 추가
             Managers.Map.Add(player);
@@ -96,15 +108,57 @@ public class ObjectManager
             return player;
             
         }
-        else if (objType == GameObjectType.Monster)
+
+        return null;
+    }
+
+    // 투사체 오브젝트 추가
+    public ProjectileController AddProjectile(S_SpawnSkill packet)
+    {
+        GameObjectType objType = Util.GetObjectTypeById(packet.ObjectId);
+        if (objType != GameObjectType.Projectile)
         {
-            // 몬스터 생성
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. Object type is not Projectile. id:{packet.ObjectId}, type:{objType}");
             return null;
         }
-        else if (objType == GameObjectType.Projectile)
+
+        // 스킬정보 찾기
+        SkillData skill;
+        if (Managers.Data.SkillDict.TryGetValue(packet.SkillId, out skill) == false)
         {
-            // 화살 생성
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. Can't find skill. id:{packet.ObjectId}, owner:{packet.OwnerId}, skill:{packet.SkillId}");
             return null;
+        }
+
+
+        // 스킬ID에 따른 오브젝트 생성
+        switch(skill.id)
+        {
+            case SkillId.SkillFireball:
+                {
+                    // fireball 생성
+                    GameObject go = Managers.Resource.Instantiate(skill.projectile.prefab);
+                    if(go == null)
+                    {
+                        ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. Can't find prefab. id:{packet.ObjectId}, owner:{packet.OwnerId}, skill:{packet.SkillId}, prefab:{skill.projectile.prefab}");
+                        return null;
+                    }
+                    go.name = skill.projectile.name;
+
+                    ProjectileController fireball = go.GetOrAddComponent<ProjectileController>();
+                    SpriteRenderer renderer = fireball.GetOrAddComponent<SpriteRenderer>();
+                    renderer.sortingOrder = 2;
+
+                    
+                    BaseController owner = FindById(packet.OwnerId);
+                    BaseController target = FindById(packet.TargetId);
+                    fireball.Init(packet.ObjectId, skill, owner, target);
+
+                    // object 추가
+                    _projectiles.Add(packet.ObjectId, fireball);
+
+                    return fireball;
+                }
         }
 
         return null;
@@ -112,58 +166,120 @@ public class ObjectManager
 
 
 
-
-    public void Add(int id, BaseController obj)
+    // effect 오브젝트 추가
+    public EffectController AddEffect(string prefab, Vector2 pos)
     {
-        _objects.Add(id, obj);
+        if (string.IsNullOrEmpty(prefab))
+            return null;
+
+        // effect 생성
+        GameObject go = Managers.Resource.Instantiate(prefab);
+        if (go == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.AddEffect. Can't find prefab. prefab:{prefab}");
+            return null;
+        }
+        EffectController effect = go.GetOrAddComponent<EffectController>();
+        effect.Init(prefab, pos);
+
+        // order layer 설정
+        SpriteRenderer renderer = effect.GetOrAddComponent<SpriteRenderer>();
+        renderer.sortingOrder = 2;
+
+        // object 추가
+        _effects.Add(effect.Id, effect);
+
+        return effect;
     }
 
+
+
+    // 오브젝트 제거
     public void Remove(int id)
     {
         BaseController obj;
-        if(_objects.Remove(id, out obj) == false)
+        GameObjectType objType = Util.GetObjectTypeById(id);
+        switch (objType)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Remove. Can't find object of id. id:{id}");
-            return;
+            case GameObjectType.Player:
+                {
+                    if (MyPlayer.Id == id)
+                        MyPlayer = null;
+
+                    if (_players.Remove(id, out obj) == false)
+                        ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Remove. Can't find object of id. id:{id}, type:{objType}");
+
+                    // 맵에서 제거
+                    Managers.Map.Remove(obj);
+
+                    // 파괴
+                    Managers.Resource.Destroy(obj.gameObject);
+                }
+                break;
+
+            case GameObjectType.Projectile:
+                {
+                    if (_projectiles.Remove(id, out obj) == false)
+                        ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Remove. Can't find object of id. id:{id}, type:{objType}");
+
+                    Managers.Resource.Destroy(obj.gameObject);
+                }
+                break;
+
+            case GameObjectType.Effect:
+                {
+                    if (_effects.Remove(id, out obj) == false)
+                        ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Remove. Can't find object of id. id:{id}, type:{objType}");
+
+                    Managers.Resource.Destroy(obj.gameObject);
+                }
+                break;
         }
-        Managers.Resource.Destroy(obj.gameObject);
+
     }
 
-    // condition 함수의 결과값이 true가 나오는 오브젝트를 찾는다.
-    public BaseController Find(Func<BaseController, bool> condition)
-    {
-        foreach (BaseController obj in _objects.Values)
-        {
-            if (condition.Invoke(obj))
-                return obj;
-        }
 
-        return null;
-    }
 
     public BaseController FindById(int id)
     {
         BaseController obj = null;
-        _objects.TryGetValue(id, out obj);
+        GameObjectType objType = Util.GetObjectTypeById(id);
+        switch (objType)
+        {
+            case GameObjectType.Player:
+                _players.TryGetValue(id, out obj);
+                break;
+            case GameObjectType.Projectile:
+                _projectiles.TryGetValue(id, out obj);
+                break;
+            case GameObjectType.Effect:
+                _effects.TryGetValue(id, out obj);
+                break;
+        }
+        
         return obj;
     }
 
     public T FindById<T>(int id) where T : BaseController
     {
-        BaseController obj = null;
-        _objects.TryGetValue(id, out obj);
-        if (obj == null)
-            return null;
-
+        BaseController obj = FindById(id);
         return obj as T;
     }
 
 
     public void Clear()
     {
-        foreach (BaseController obj in _objects.Values)
-            Managers.Resource.Destroy(obj.gameObject);
-        _objects.Clear();
         MyPlayer = null;
+        foreach (BaseController obj in _players.Values)
+            Managers.Resource.Destroy(obj.gameObject);
+        foreach (BaseController obj in _projectiles.Values)
+            Managers.Resource.Destroy(obj.gameObject);
+        foreach (BaseController obj in _effects.Values)
+            Managers.Resource.Destroy(obj.gameObject);
+
+        _players.Clear();
+        _projectiles.Clear();
+        _effects.Clear();
+        
     }
 }

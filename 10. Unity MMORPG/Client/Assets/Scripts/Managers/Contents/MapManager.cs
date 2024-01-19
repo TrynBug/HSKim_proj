@@ -10,6 +10,7 @@ using UnityEngine.Diagnostics;
 using UnityEngine.Tilemaps;
 using TMPro;
 using Data;
+using System.Data;
 
 public struct Pos
 {
@@ -38,8 +39,9 @@ public struct PQNode : IComparable<PQNode>
 // map collision 데이터를 참조하여 grid 상에서 특정 좌표가 이동 가능한 좌표인지를 판단해준다.
 public class MapManager
 {
-    // 맵 ID
+    // 맵
     public int MapId {get; private set; }
+    GameObject _mapRoot = null;                   // 현재 맵 오브젝트
 
     // 현재 맵의 grid
     public Grid CurrentGrid { get; private set; }
@@ -68,6 +70,10 @@ public class MapManager
 
     // grid
     Cell[,] _cells;
+
+    // teleport
+    List<TeleportData> teleports = new List<TeleportData>();
+
 
     // utils
     public Vector2Int PosToCell(Vector2 pos)
@@ -141,45 +147,52 @@ public class MapManager
     // 맵 데이터 로드
     public void LoadMap(int mapId)
     {
+        // 기존 맵 제거
         DestroyMap();
+
+        // 맵 데이터 가져오기
+        MapData mapData;
+        if (Managers.Data.MapDict.TryGetValue(mapId, out mapData) == false)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.LoadMap. Invalid mapId. id:{mapId}");
+            return;
+        }
         MapId = mapId;
 
+
+        // 맵 생성
         string mapName = "Map_" + mapId.ToString("000");   // mapId를 00# 형태의 string으로 변경
-        GameObject go = Managers.Resource.Instantiate($"Map/{mapName}");  // mapId에 해당하는 map 생성
-        go.name = "Map";
+        _mapRoot = Managers.Resource.Instantiate($"Map/{mapName}");  // mapId에 해당하는 map 생성
+        _mapRoot.name = "Map";
 
         // Collision 타일맵을 찾은 다음, Active를 false로 하여 화면상에서는 보이지 않도록 만든다.
-        GameObject collision = Util.FindChild(go, "Collision", true);
+        GameObject collision = Util.FindChild(_mapRoot, "Collision", true);
         if (collision != null)
             collision.SetActive(false);
 
         // grid 얻기
-        CurrentGrid = go.GetComponent<Grid>();
-        TileGround = Util.FindChild<Tilemap>(go, "Ground", true);
-
-        // map collision 파일 로드
-        TextAsset txt = Managers.Resource.Load<TextAsset>($"Map/{mapName}");
-        StringReader reader = new StringReader(txt.text);
+        CurrentGrid = _mapRoot.GetComponent<Grid>();
+        TileGround = Util.FindChild<Tilemap>(_mapRoot, "Ground", true);
 
         // cell 크기 얻기
-        _gridCellWidth = float.Parse(reader.ReadLine());
-        _gridCellHeight = float.Parse(reader.ReadLine());
+        _gridCellWidth = mapData.cellWidth;
+        _gridCellHeight = mapData.cellHeight;
         CellWidth = 1f / (float)CellMultiple;     // Cell 크기는 1/CellMultiple 로 고정
         CellHeight = 1f / (float)CellMultiple;
 
         // grid의 min, max 위치 얻기
-        _gridMinX = int.Parse(reader.ReadLine());
-        _gridMaxX = int.Parse(reader.ReadLine());
-        _gridMinY = int.Parse(reader.ReadLine());
-        _gridMaxY = int.Parse(reader.ReadLine());
+        _gridMinX = mapData.cellBoundMinX;
+        _gridMaxX = mapData.cellBoundMaxX;
+        _gridMinY = mapData.cellBoundMinY;
+        _gridMaxY = mapData.cellBoundMaxY;
         int minX = _gridMinX;
         int maxX = _gridMaxX + 1;
         int minY = _gridMinY;
         int maxY = _gridMaxY + 1;
         CellMaxX = (maxX - minX) * CellMultiple;
         CellMaxY = (maxY - minY) * CellMultiple;
-        PosMaxX = CellMaxX * CellWidth;
-        PosMaxY = CellMaxY * CellHeight;
+        PosMaxX = CellMaxX * CellWidth - 0.01f;
+        PosMaxY = CellMaxY * CellHeight - 0.01f;
 
         // grid 생성
         _cells = new Cell[CellMaxY, CellMaxX];
@@ -192,7 +205,7 @@ public class MapManager
         int yCount = maxY - minY;
         for (int y = 0; y < yCount; y++)
         {
-            string line = reader.ReadLine();
+            string line = mapData.collisions[y];
             for (int x = 0; x < xCount; x++)
             {
                 if (line[x] == '1')
@@ -214,7 +227,9 @@ public class MapManager
         }
 
 
-
+        // teleport 데이터 얻기
+        foreach (TeleportData teleport in mapData.teleports)
+            teleports.Add(teleport);
 
 
 
@@ -301,14 +316,24 @@ public class MapManager
     }
 
 
+    public void Clear()
+    {
+        for (int y = 0; y < CellMaxY; y++)
+            for (int x = 0; x < CellMaxX; x++)
+                _cells[y, x].Clear();
+    }
+
     public void DestroyMap()
     {
-        GameObject map = GameObject.Find("Map");
-        if(map != null)
+        if(_mapRoot != null)
         {
-            GameObject.Destroy(map);
-            CurrentGrid = null;
+            GameObject.Destroy(_mapRoot);
+            _mapRoot = null;
         }
+
+        CurrentGrid = null;
+        TileGround = null;
+        _cells = null;
     }
 
     // 특정 위치의 오브젝트 얻기
@@ -789,29 +814,29 @@ public class MapManager
         // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
         Vector2 R;
         if (dir == LookDir.LookLeft)
-        {
-            R = new Vector2(Mathf.Cos(135f), Mathf.Sin(135f));
-        }
+            R = new Vector2(Mathf.Cos(Mathf.PI / 180 * 135), Mathf.Sin(Mathf.PI / 180 * 135));
         else
-        {
-            R = new Vector2(Mathf.Cos(45f), Mathf.Sin(45f));
-        }
+            R = new Vector2(Mathf.Cos(Mathf.PI / 180 * 315), Mathf.Sin(Mathf.PI / 180 * 315));
 
         // 범위 내의 object 찾기
-        for(int y = targetCellMin.y; y<= targetCellMax.y; y++)
+        for (int y = targetCellMin.y; y<= targetCellMax.y; y++)
         {
             for(int x = targetCellMin.x; x <= targetCellMax.x; x++)
             {
                 Cell cell = _cells[y, x];
                 if (cell.Object != null)
                 {
-                    Vector2 objectPos = (cell.Object.Pos - pos) * R;
+                    Vector2 objectPos;
+                    objectPos.x = (cell.Object.Pos.x - pos.x) * R.x - (cell.Object.Pos.y - pos.y) * R.y;
+                    objectPos.y = (cell.Object.Pos.x - pos.x) * R.y + (cell.Object.Pos.y - pos.y) * R.x;
                     if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
                         objects.Add(cell.Object);
                 }
                 foreach(BaseController obj in cell.MovingObjects)
                 {
-                    Vector2 objectPos = (obj.Pos - pos) * R;
+                    Vector2 objectPos;
+                    objectPos.x = (obj.Pos.x - pos.x) * R.x - (obj.Pos.y - pos.y) * R.y;
+                    objectPos.y = (obj.Pos.x - pos.x) * R.y + (obj.Pos.y - pos.y) * R.x;
                     if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
                         objects.Add(cell.Object);
                 }
@@ -846,6 +871,95 @@ public class MapManager
 
 
         return objects;
+    }
+
+
+    // pos 위치를 기준으로 dir 방향의 사각형 range 범위에 있는 오브젝트를 찾아 리턴한다.
+    public BaseController FindObjectInRect(Vector2 pos, Vector2 range, LookDir dir)
+    {
+        // 공격범위를 조사할 cell 찾기
+        // 공격범위: pos 위치에서 dir 방향으로 너비 range.x, 높이 range.y 사각형
+        Vector2 targetPosMin;
+        Vector2 targetPosMax;
+        if (dir == LookDir.LookLeft)
+        {
+            targetPosMin.x = pos.x + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).x;
+            targetPosMax.x = pos.x + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).x;
+            targetPosMin.y = pos.y + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).y;
+            targetPosMax.y = pos.y + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).y;
+        }
+        else
+        {
+            targetPosMin.x = pos.x + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).x;
+            targetPosMax.x = pos.x + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).x;
+            targetPosMin.y = pos.y + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).y;
+            targetPosMax.y = pos.y + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).y;
+        }
+        targetPosMin = GetValidPos(targetPosMin);
+        targetPosMax = GetValidPos(targetPosMax);
+        Vector2Int targetCellMin = PosToCell(targetPosMin);
+        Vector2Int targetCellMax = PosToCell(targetPosMax);
+
+        // debug 공격범위 표시
+        if (dir == LookDir.LookLeft)
+        {
+            Vector3 _debug1 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f));
+            Vector3 _debug2 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f));
+            Vector3 _debug3 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f));
+            Vector3 _debug4 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f));
+            _debug1.z = _debug2.z = _debug3.z = _debug4.z = 30;
+            Debug.DrawLine(_debug1, _debug2, Color.blue, 1f);
+            Debug.DrawLine(_debug2, _debug3, Color.blue, 1f);
+            Debug.DrawLine(_debug3, _debug4, Color.blue, 1f);
+            Debug.DrawLine(_debug4, _debug1, Color.blue, 1f);
+        }
+        else
+        {
+            Vector3 _debug1 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f));
+            Vector3 _debug2 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f));
+            Vector3 _debug3 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f));
+            Vector3 _debug4 = ServerPosToClientPos(pos + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f));
+            _debug1.z = _debug2.z = _debug3.z = _debug4.z = 30;
+            Debug.DrawLine(_debug1, _debug2, Color.blue, 1f);
+            Debug.DrawLine(_debug2, _debug3, Color.blue, 1f);
+            Debug.DrawLine(_debug3, _debug4, Color.blue, 1f);
+            Debug.DrawLine(_debug4, _debug1, Color.blue, 1f);
+        }
+
+
+
+        // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
+        Vector2 R;
+        if (dir == LookDir.LookLeft)
+            R = new Vector2(Mathf.Cos(Mathf.PI / 180 * 135), Mathf.Sin(Mathf.PI / 180 * 135));
+        else
+            R = new Vector2(Mathf.Cos(Mathf.PI / 180 * 315), Mathf.Sin(Mathf.PI / 180 * 315));
+
+        // 범위 내의 object 찾기
+        for (int y = targetCellMin.y; y <= targetCellMax.y; y++)
+        {
+            for (int x = targetCellMin.x; x <= targetCellMax.x; x++)
+            {
+                Cell cell = _cells[y, x];
+                if (cell.Object != null)
+                {
+                    Vector2 objectPos;
+                    objectPos.x = (cell.Object.Pos.x - pos.x) * R.x - (cell.Object.Pos.y - pos.y) * R.y;
+                    objectPos.y = (cell.Object.Pos.x - pos.x) * R.y + (cell.Object.Pos.y - pos.y) * R.x;
+                    if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+                        return cell.Object;
+                }
+                foreach (BaseController obj in cell.MovingObjects)
+                {
+                    Vector2 objectPos;
+                    objectPos.x = (obj.Pos.x - pos.x) * R.x - (obj.Pos.y - pos.y) * R.y;
+                    objectPos.y = (obj.Pos.x - pos.x) * R.y + (obj.Pos.y - pos.y) * R.x;
+                    if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+                        return cell.Object;
+                }
+            }
+        }
+        return null;
     }
 
 

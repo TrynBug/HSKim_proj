@@ -40,22 +40,23 @@ namespace Server.Game
         Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
         Dictionary<int, Projectile> _projectiles = new Dictionary<int, Projectile>();
 
+        public int PlayerCount { get { return _players.Count; } }
+        public int MonsterCount { get { return _monsters.Count; } }
+        public int ProjectileCount { get { return _projectiles.Count; } }
+
         // map
         public Map Map { get; private set; } = new Map();
 
         // pos
-        public Vector2 PosCenter { get { return Map.CellToCenterPos(CellCenter); } }
-        public Vector2Int CellCenter { get { return new Vector2Int(Map.CellMaxX / 2, Map.CellMaxY / 2); } }
-
-
-
-
+        public Vector2 PosCenter { get { return Map.PosCenter; } }
+        public Vector2Int CellCenter { get { return Map.CellCenter; } }
 
 
 
         // push job
         public void Init(int mapId) { Push(_init, mapId); }
         public void EnterGame(GameObject gameObject) { Push(_enterGame, gameObject); }
+        public void EnterGame(RoomTransferInfo transferInfo) { Push(_enterGame, transferInfo); }
         public void LeaveGame(int objectId) { Push(_leaveGame, objectId); }
         //public void Update() { Push(_update); }
         public void Broadcast(IMessage packet, Player except = null) { Push(_broadcast, packet, except); }
@@ -99,7 +100,7 @@ namespace Server.Game
 
         public void _init(int mapId)
         {
-            Map.LoadMap(mapId, "../../../../Common/Map");
+            Map.LoadMap(mapId);
 
             // temp
             //Monster monster = ObjectManager.Instance.Add<Monster>();
@@ -117,17 +118,67 @@ namespace Server.Game
         {
             Flush();  // job queue 내의 모든 job 실행
 
+            // 플레이어 업데이트
+            List<RoomTransferInfo> leavingPlayers = new List<RoomTransferInfo>();
             foreach (Player player in _players.Values)
             {
                 player.Update();
+
+                // 텔레포트 확인
+                TeleportData teleport = Map.GetTeleportUnderObject(player);
+                if(teleport != null)
+                {
+                    int nextRoomId;
+                    if(teleport.number == 0)
+                        nextRoomId = (RoomId - 1) % DataManager.MapDict.Count;
+                    else
+                        nextRoomId = (RoomId + 1) % DataManager.MapDict.Count;
+                    nextRoomId = nextRoomId < 0 ? DataManager.MapDict.Count - 1 : nextRoomId;
+                    leavingPlayers.Add(new RoomTransferInfo { prevRoomId = RoomId, prevTeleportId = teleport.number, nextRoomId = nextRoomId, player = player });
+                }
             }
+
+            // 이동할 플레이어를 이동시킴
+            foreach (RoomTransferInfo transfer in leavingPlayers)
+            {
+                GameRoom nextRoom = RoomManager.Instance.Find(transfer.nextRoomId);
+                if (nextRoom == null)
+                {
+                    Logger.WriteLog(LogLevel.Error, $"GameRoom._update. Can't find next room. nextRoom:{transfer.nextRoomId}, {this}, {transfer.player}");
+                    continue;
+                }
+
+                // 현재 room에서 나감
+               _leaveGame(transfer.player.Id);
+
+                // 다음 room에 들어감
+                nextRoom.EnterGame(transfer);
+            }
+
+
+
+
+
             foreach (Monster monster in _monsters.Values)
             {
                 monster.Update();
             }
+
+            // 투사체 업데이트
+            List<Projectile> deadProjectiles = new List<Projectile>();
             foreach (Projectile projectile in _projectiles.Values)
             {
                 projectile.Update();
+
+                // 삭제 확인
+                if (projectile.State == CreatureState.Dead)
+                    deadProjectiles.Add(projectile);
+            }
+
+            // 삭제될 투사체 삭제
+            foreach (Projectile projectile in deadProjectiles)
+            {
+                _projectiles.Remove(projectile.Id);
             }
 
 
@@ -165,7 +216,9 @@ namespace Server.Game
             GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.Id);
             if(type == GameObjectType.Player)
             {
+                // 맵의 빈공간을 찾고 플레이어를 room에 추가한다.
                 Player newPlayer = gameObject as Player;
+                newPlayer.Room = this;
                 Vector2Int emptyCell;
                 if(Map.FindEmptyCell(newPlayer.Cell, true, out emptyCell) == false)
                 {
@@ -179,67 +232,78 @@ namespace Server.Game
                 // 맵에 추가
                 Map.Add(newPlayer);
 
-                // 플레이어에게 정보 전송
-                {
-                    // 내 정보 전송
-                    S_EnterGame enterPacket = new S_EnterGame();
-                    enterPacket.Player = newPlayer.Info;
-                    foreach (int skillId in newPlayer.Skillset.Keys)
-                        enterPacket.SkillIds.Add(skillId);
-                    newPlayer.Session.Send(enterPacket);
+                // 내 정보 전송
+                S_EnterGame enterPacket = new S_EnterGame();
+                enterPacket.Object = newPlayer.Info;
+                foreach (SkillId skillId in newPlayer.Skillset.Keys)
+                    enterPacket.SkillIds.Add(skillId);
+                enterPacket.RoomId = RoomId;
+                newPlayer.Session.Send(enterPacket);
 
-                    // 나에게 다른 플레이어, 몬스터, 화살 정보 전송
+                // 나에게 다른 플레이어 정보 전송
+                {
                     S_Spawn spawnPacket = new S_Spawn();
                     foreach (Player p in _players.Values)
                         if (newPlayer != p)
                             spawnPacket.Objects.Add(p.Info);
-
-                    foreach(Monster m in _monsters.Values)
-                        spawnPacket.Objects.Add(m.Info);
-
-                    foreach (Projectile p in _projectiles.Values)
-                        spawnPacket.Objects.Add(p.Info);
-
                     newPlayer.Session.Send(spawnPacket);
                 }
+
+
+                // 다른 플레이어에게 내 정보 전송
+                {
+                    S_Spawn spawnPacket = new S_Spawn();
+                    spawnPacket.Objects.Add(gameObject.Info);
+                    foreach (Player p in _players.Values)
+                    {
+                        if (p.Id != gameObject.Id)
+                            p.Session.Send(spawnPacket);
+                    }
+                }
+
             }
             else if (type == GameObjectType.Monster)
             {
-                Monster monster = gameObject as Monster;
-                monster.Room = this;
-                Vector2Int emptyCell;
-                if (Map.FindEmptyCell(monster.Cell, true, out emptyCell) == false)
-                {
-                    Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. objectId:{monster.Id}");
-                    return;
-                }
-                monster.Pos = Map.CellToCenterPos(emptyCell);
-                _monsters.Add(monster.Id, monster);
 
-                // 맵에 추가
-                Map.Add(monster);
             }
             else if (type == GameObjectType.Projectile)
             {
-                Projectile projectile = gameObject as Projectile;
-                projectile.Room = this;
-                _projectiles.Add(projectile.Id, projectile);
-            }
+                Projectile proj = gameObject as Projectile;
+                _projectiles.Add(proj.Id, proj);
 
-            // 다른 플레이어에게 정보 전송
-            {
-                S_Spawn spawnPacket = new S_Spawn();
-                spawnPacket.Objects.Add(gameObject.Info);
-                foreach (Player p in _players.Values)
+                // projectile 스폰 정보 전송
                 {
-                    if (p.Id != gameObject.Id)
+                    S_SpawnSkill spawnPacket = new S_SpawnSkill();
+                    spawnPacket.ObjectId = proj.Id;
+                    spawnPacket.OwnerId = proj.Owner.Id;
+                    spawnPacket.TargetId = proj.Target != null ? proj.Target.Id : -1;
+                    spawnPacket.SkillId = proj.Skill.id;
+                    spawnPacket.DestX = proj.Dest.x;
+                    spawnPacket.DestY = proj.Dest.y;
+                    foreach (Player p in _players.Values)
                         p.Session.Send(spawnPacket);
                 }
             }
 
-            Logger.WriteLog(LogLevel.Debug, $"GameRoom.EnterGame. {gameObject.ToString(InfoLevel.All)}");
-            
+
+
+            Logger.WriteLog(LogLevel.Debug, $"GameRoom.EnterGame. {gameObject.ToString(InfoLevel.All)}");   
         }
+
+        public void _enterGame(RoomTransferInfo transferInfo)
+        {
+            // 이동할 적절한 위치를 찾음
+            Vector2 posEnterZone = Map.GetPosEnterZone(transferInfo.prevTeleportId == 0 ? 1 : 0);
+            Player player = transferInfo.player;
+            player.Room = this;
+            player.Pos = posEnterZone;
+            player.Dest = posEnterZone;
+            player.State = CreatureState.Idle;
+
+            // 이동
+            _enterGame(player);
+        }
+
 
         // 플레이어가 게임룸에서 나감
         public void _leaveGame(int objectId)
@@ -265,30 +329,6 @@ namespace Server.Game
                     player.Session.Send(leavePacket);
                 }
             }
-            else if (type == GameObjectType.Monster)
-            {
-                Monster monster = null;
-                if (_monsters.Remove(objectId, out monster) == false)
-                {
-                    Logger.WriteLog(LogLevel.Error, $"GameRoom.LeaveGame. Can't find monster. id:{objectId}");
-                    return;
-                }
-                monster.Room = null;
-
-                // 맵에서 제거
-                Map.Remove(monster);
-            }
-            else if (type == GameObjectType.Projectile)
-            {
-                Projectile projectile = null;
-                if (_projectiles.Remove(objectId, out projectile) == false)
-                {
-                    Logger.WriteLog(LogLevel.Error, $"GameRoom.LeaveGame. Can't find projectile. id:{objectId}");
-                    return;
-                }
-                projectile.Room = null;
-            }
-
 
 
             // 다른 플레이어에게 정보 전송
@@ -377,77 +417,100 @@ namespace Server.Game
             ObjectInfo info = player.Info;
 
             // 스킬 사용이 가능한지 확인
-            Skill skill;
+            SkillData skill;
             if (player.CanUseSkill(skillPacket.SkillId, out skill) == false)
                 return;
 
-
-            // 타입별 스킬사용
+            // 스킬사용
             S_Skill resSkillPacket = new S_Skill();
             resSkillPacket.ObjectId = info.ObjectId;
             resSkillPacket.SkillId = skillPacket.SkillId;
-            switch (skill.skillType)
+            switch (skillPacket.SkillId)
             {
-                case SkillType.SkillMelee:
+                case SkillId.SkillAttack:
                     {
-                        // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
-                        Vector2 R;
-                        if (player.LookDir == LookDir.LookLeft)
-                        {
-                            R = new Vector2((float)Math.Cos(135f), (float)Math.Sin(135f));
-                        }
-                        else
-                        {
-                            R = new Vector2((float)Math.Cos(45f), (float)Math.Sin(45f));
-                        }
-
-                        // 대상이 공격범위 내에 있다면 피격판정
+                        // 대상이 공격범위 내에 있는지 확인
                         Player target = null;
                         foreach (int objectId in skillPacket.HitObjectIds)
                         {
                             if (_players.TryGetValue(objectId, out target) == false)
                                 continue;
-                            Vector2 objectPos = (target.Pos - player.Pos) * R;
-                            if (objectPos.x > 0 && objectPos.x < skill.melee.rangeX && objectPos.y > -skill.melee.rangeY / 2 && objectPos.y < skill.melee.rangeY / 2)
+                            if (target.State == CreatureState.Dead)
+                                continue;
+
+                            // target이 스킬범위내에 존재하면 피격판정
+                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.melee.rangeX, skill.melee.rangeY), target.Pos) == true)
                             {
                                 // 피격됨
-                                target.OnDamaged(player, player.Stat.Attack);
-                                resSkillPacket.HitObjectIds.Add(objectId);
+                                int damage = target.OnDamaged(player, player.Stat.Damage);
+                                resSkillPacket.Hits.Add(new HitInfo { HitObjectId = target.Id, Damage = damage });
                             }
                         }
                     }
                     break;
 
-                case SkillType.SkillProjectile:
-                    {
-                        //// 화살 스킬
-                        //Arrow arrow = ObjectManager.Instance.Add<Arrow>();
-                        //if (arrow == null)
-                        //{
-                        //    Logger.WriteLog(LogLevel.Error, $"GameRoom.HandleSkill. Failed to create arrow. objectId:{info.ObjectId}");
-                        //    return;
-                        //}
+                case SkillId.SkillArrow:
+                    break;
 
-                        //arrow.Owner = player;
-                        //arrow.Data = skillData;
-                        //arrow.PosInfo.State = CreatureState.Moving;
-                        //arrow.PosInfo.MoveDir = player.PosInfo.MoveDir;
-                        //arrow.PosInfo.PosX = player.PosInfo.PosX;
-                        //arrow.PosInfo.PosY = player.PosInfo.PosY;
-                        //arrow.Speed = skillData.projectile.speed;
-                        //_enterGame(arrow);
+                case SkillId.SkillFireball:
+                    {
+                        // 공격범위 내의 대상 찾기
+                        Player target = null;
+                        foreach (int objectId in skillPacket.HitObjectIds)
+                        {
+                            Player tempTarget = null;
+                            if (_players.TryGetValue(objectId, out tempTarget) == false)
+                                continue;
+                            if (tempTarget.State == CreatureState.Dead)
+                                continue;
+
+                            // target이 스킬범위내에 존재하는지 확인
+                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.projectile.rangeX, skill.projectile.rangeY), tempTarget.Pos) == true)
+                            {
+                                // 타겟 찾음
+                                target = tempTarget;
+                                break;
+                            }
+                        }
+
+                        // 투사체 생성
+                        Fireball fireball = new Fireball();
+                        fireball.Init(skill, player, target);
+                        _enterGame(fireball);
+
+                    }
+                    break;
+
+                case SkillId.SkillLightning:
+                    {
+                        // 대상이 공격범위 내에 있는지 확인
+                        Player target = null;
+                        foreach (int objectId in skillPacket.HitObjectIds)
+                        {
+                            if (_players.TryGetValue(objectId, out target) == false)
+                                continue;
+                            if (target.State == CreatureState.Dead)
+                                continue;
+
+                            // target이 스킬범위내에 존재하면 피격판정
+                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.instant.rangeX, skill.instant.rangeY), target.Pos) == true)
+                            {
+                                // 피격됨
+                                int damage = target.OnDamaged(player, player.Stat.Damage + skill.damage);
+                                resSkillPacket.Hits.Add(new HitInfo { HitObjectId = target.Id, Damage = damage });
+                                break;
+                            }
+                        }
                     }
                     break;
             }
-
-
 
 
             // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
             _broadcast(resSkillPacket);
 
 
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"GameRoom._handleSkill. {player}, skill:{skillPacket.SkillId}, hits:{skillPacket.HitObjectIds.Count}");
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{skillPacket.SkillId}, hits:{skillPacket.HitObjectIds.Count}");
         }
 
 
@@ -458,7 +521,7 @@ namespace Server.Game
         {
             void Crash()
             {
-                ServerCore.Logger.WriteLog(LogLevel.Error, $"GameRoom.InspectCell. Cell integrity failed");
+                ServerCore.Logger.WriteLog(LogLevel.Error, $"GameRoom.InspectCell. Cell integrity failed. {this}");
                 while (true)
                 {
                     if (doCrash == false) break;
@@ -489,6 +552,17 @@ namespace Server.Game
                 if (Map._cells[go.Cell.y, go.Cell.x].Object != go && Map._cells[go.Cell.y, go.Cell.x].HasMovingObject(go) == false)
                     Crash();
             }
+        }
+
+
+
+
+
+
+        // ToString
+        public override string ToString()
+        {
+            return $"room:{RoomId}";
         }
     }
 }

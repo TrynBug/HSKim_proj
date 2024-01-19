@@ -10,8 +10,10 @@ using Data;
 public class BaseController : MonoBehaviour
 {
     // bits : [ Unused(1) | Type(7) | Id(24) ]
-    public int Id { get; set; }
+    public int Id { get { return Info.ObjectId; } }
     public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
+
+    public ObjectInfo Info { get; set; } = new ObjectInfo();
 
     /* 스탯 */
     StatInfo _stat = new StatInfo();
@@ -20,8 +22,6 @@ public class BaseController : MonoBehaviour
         get { return _stat; }
         set
         {
-            if (_stat.Equals(value))
-                return;
             Hp = value.Hp;
             _stat.MaxHp = value.MaxHp;
             Speed = value.Speed;
@@ -37,10 +37,7 @@ public class BaseController : MonoBehaviour
     public virtual int Hp
     {
         get { return Stat.Hp; }
-        set
-        {
-            Stat.Hp = value;
-        }
+        set { Stat.Hp = value; }
     }
 
 
@@ -146,8 +143,8 @@ public class BaseController : MonoBehaviour
 
     /* 스킬 */
     // 사용가능한 스킬정보
-    Dictionary<int, SkillInfo> _skillset = new Dictionary<int, SkillInfo>();
-    public Dictionary<int, SkillInfo> Skillset { get { return _skillset; } }
+    Dictionary<SkillId, SkillInfo> _skillset = new Dictionary<SkillId, SkillInfo>();
+    public Dictionary<SkillId, SkillInfo> Skillset { get { return _skillset; } }
 
     // 스킬 키 눌림
     public virtual bool SkillKeyDown { get; set; } = false;

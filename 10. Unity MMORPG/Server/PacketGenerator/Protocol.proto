@@ -7,16 +7,19 @@ option csharp_namespace = "Google.Protobuf.Protocol";
 enum MsgId {
     S_ENTER_GAME = 0;
     S_LEAVE_GAME = 1;
-    S_SPAWN = 2;
-    S_DESPAWN = 3;
-    C_MOVE = 4;
-    S_MOVE = 5;
-    C_SKILL = 6;
-    S_SKILL = 7;
-    S_CHANGE_HP = 8;
-    S_DIE = 9;
-    C_SYNC_TIME = 10;
-    S_SYNC_TIME_RESPONSE = 11;
+    S_ENTER_ROOM = 2;
+    S_LEAVE_ROOM = 3;
+    S_SPAWN = 4;
+    S_DESPAWN = 5;
+    S_SPAWN_SKILL = 6;
+    C_MOVE = 7;
+    S_MOVE = 8;
+    C_SKILL = 9;
+    S_SKILL = 10;
+    S_CHANGE_HP = 11;
+    S_DIE = 12;
+    C_SYNC_TIME = 13;
+    S_SYNC_TIME_RESPONSE = 14;
 }
 
 enum CreatureState
@@ -49,17 +52,28 @@ enum GameObjectType {
     PLAYER = 1;
     MONSTER = 2;
     PROJECTILE = 3;
+    EFFECT = 4;
 }
 
 enum SkillType {
-    SKILL_NONE = 0;
-    SKILL_MELEE = 1;
-    SKILL_PROJECTILE = 2;
+    SKILL_MELEE = 0;
+    SKILL_PROJECTILE = 1;
+    SKILL_INSTANT = 2;
 }
 
+enum SkillId {
+    SKILL_NONE = 0;
+    SKILL_ATTACK = 1;
+    SKILL_ARROW = 2;
+    SKILL_FIREBALL = 3;
+    SKILL_LIGHTNING = 4;
+}
+
+
 message S_EnterGame {
-  ObjectInfo player = 1;
-  repeated int32 skillIds = 5;
+  ObjectInfo object = 1;
+  repeated SkillId skillIds = 2;
+  int32 roomId = 3;
 }
 
 
@@ -67,12 +81,30 @@ message S_LeaveGame {
 
 }
 
+message S_EnterRoom
+{
+}
+
+message S_LeaveRoom
+{
+}
+
+
 message S_Spawn {
     repeated ObjectInfo objects = 1;
 }
 
 message S_Despawn {
     repeated int32 objectIds = 1;
+}
+
+message S_SpawnSkill {
+    int32 objectId = 1;
+    int32 ownerId = 2;
+    int32 targetId = 3;
+    SkillId skillId = 4;
+    float destX = 5;
+    float destY = 6;
 }
 
 message C_Move {
@@ -87,14 +119,14 @@ message S_Move {
 }
 
 message C_Skill {
-    int32 skillId = 1;
+    SkillId skillId = 1;
     repeated int32 hitObjectIds = 2;
 }
 
 message S_Skill {
     int32 objectId = 1;
-    int32 skillId = 2;
-    repeated int32 hitObjectIds = 3;
+    SkillId skillId = 2;
+    repeated HitInfo hits = 3; 
 }
 
 message S_ChangeHp {
@@ -124,6 +156,7 @@ message ObjectInfo {
     string name = 2;
     PositionInfo posInfo = 3;
     StatInfo statInfo = 4;
+    int32 SPUMId = 5;
 }
 
 message PositionInfo {
@@ -138,10 +171,21 @@ message PositionInfo {
 }
 
 message StatInfo {
-    int32 level = 1;
-    int32 hp = 2;
-    int32 maxHp = 3;
-    int32 attack = 4;
-    float speed = 5;
-    int32 totalExp = 6;
+    optional int32 level = 1;
+    optional int32 hp = 2;
+    optional int32 maxHp = 3;
+    optional int32 damage = 4;
+    optional int32 defence = 5;
+    optional float rangeX = 6;
+    optional float rangeY = 7;
+    optional float attackSpeed = 8;
+    optional float speed = 9;
+    optional int32 exp = 10;
+    optional int32 totalExp = 11;
 }
+
+message HitInfo {
+    int32 hitObjectId = 1;
+    int32 damage = 2;
+}
+

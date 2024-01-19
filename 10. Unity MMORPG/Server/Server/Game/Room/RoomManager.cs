@@ -11,20 +11,20 @@ namespace Server.Game
     {
         public static RoomManager Instance { get; } = new RoomManager();
 
+        public int RoomCount { get { return _rooms.Count; } }
+
         object _lock = new object();
         Dictionary<int, GameRoom> _rooms = new Dictionary<int, GameRoom>();
-        int _roomId = 1;
 
         public GameRoom Add(int mapId)
         {
             GameRoom gameRoom = new GameRoom();
+            gameRoom.RoomId = mapId;
             gameRoom.Init(mapId);
 
             lock(_lock)
             {
-                gameRoom.RoomId = _roomId;
-                _rooms.Add(_roomId, gameRoom);
-                _roomId++;
+                _rooms.Add(gameRoom.RoomId, gameRoom);
             }
 
             return gameRoom;

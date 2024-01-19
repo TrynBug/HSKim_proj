@@ -150,4 +150,52 @@ public static class Util
         return direction;
     }
 
+
+    // 현재 방향에 해당하는 벡터 얻기
+    public static Vector2 GetDirectionVector(LookDir dir)
+    {
+        Vector2 direction;
+        switch (dir)
+        {
+            case LookDir.LookLeft:
+                direction = new Vector2(-1, -1).normalized;
+                break;
+            case LookDir.LookRight:
+                direction = new Vector2(1, 1).normalized;
+                break;
+            default:
+                direction = new Vector2(0, 0);
+                break;
+        }
+
+        return direction;
+    }
+
+    // origin 에서 target를 바라볼 때의 바라보는 방향 얻기
+    public static LookDir GetLookDirectionToTarget(BaseController origin, BaseController target)
+    {
+        if (origin.transform.position.x < target.transform.position.x)
+            return LookDir.LookLeft;
+        else
+            return LookDir.LookRight;
+    }
+
+    public static LookDir GetLookDirectionToTarget(BaseController origin, Vector2 target)
+    {
+        if (origin.transform.position.x < Managers.Map.ServerPosToClientPos(target).x)
+            return LookDir.LookLeft;
+        else
+            return LookDir.LookRight;
+    }
+
+
+
+    // id 에서 타입 얻기
+    public static GameObjectType GetObjectTypeById(int id)
+    {
+        // bits : [ Unused(1) | Type(7) | Id(24) ]
+        int type = (id >> 24) & 0x7F;
+        return (GameObjectType)type;
+    }
+
 }
