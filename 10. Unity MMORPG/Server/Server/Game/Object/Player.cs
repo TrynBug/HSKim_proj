@@ -31,11 +31,11 @@ namespace Server.Game
 
         /* 스킬 */
         // 사용가능한 스킬정보
-        Dictionary<SkillId, SkillInfo> _skillset = new Dictionary<SkillId, SkillInfo>();
-        public Dictionary<SkillId, SkillInfo> Skillset { get { return _skillset; } }
+        Dictionary<SkillId, SkillUseInfo> _skillset = new Dictionary<SkillId, SkillUseInfo>();
+        public Dictionary<SkillId, SkillUseInfo> Skillset { get { return _skillset; } }
 
-        // 스킬 키 눌림
-        public virtual bool SkillKeyDown { get; set; } = false;
+        SkillUseInfo _lastUseSkill = new SkillUseInfo() { lastUseTime = 0, skill = DataManager.DefaultSkill };  // 마지막으로 사용한 스킬
+        SkillUseInfo _usingSkill = null;                  // 현재 사용중인 스킬
 
 
         public Player()
@@ -74,16 +74,8 @@ namespace Server.Game
 
 
             // 스킬 초기화
-            SkillData skill;
-            if (DataManager.SkillDict.TryGetValue(SkillId.SkillAttack, out skill))
-                Skillset.Add(skill.id, new SkillInfo() { lastUseTime = 0, skill = skill });
-            if (DataManager.SkillDict.TryGetValue(SkillId.SkillFireball, out skill))
-                Skillset.Add(skill.id, new SkillInfo() { lastUseTime = 0, skill = skill });
-            if (DataManager.SkillDict.TryGetValue(SkillId.SkillLightning, out skill))
-                Skillset.Add(skill.id, new SkillInfo() { lastUseTime = 0, skill = skill });
-            if (DataManager.SkillDict.TryGetValue(SkillId.SkillArrow, out skill))
-                Skillset.Add(skill.id, new SkillInfo() { lastUseTime = 0, skill = skill });
-
+            foreach(SkillData skill in DataManager.SkillDict.Values)
+                Skillset.Add(skill.id, new SkillUseInfo() { skill = skill });
         }
     
 
@@ -190,6 +182,35 @@ namespace Server.Game
         }
 
 
+
+
+        // 스킬 사용함
+        public virtual void OnSkill(SkillUseInfo useInfo)
+        {
+            // 스킬 사용시간 업데이트
+            useInfo.lastUseTime = Environment.TickCount;
+
+            // 사용중인 스킬 등록
+            _lastUseSkill = useInfo;
+            _usingSkill = useInfo;
+
+            // 스킬패킷 전송
+            S_Skill skillPacket = new S_Skill();
+            skillPacket.SkillId = useInfo.skill.id;
+            skillPacket.ObjectId = Id;
+            Room._broadcast(skillPacket);
+
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"Player.OnSkill. {this}, skill:{useInfo.skill.id}");
+        }
+        public virtual void OnSkill(SkillId skillId)
+        {
+            SkillUseInfo useInfo;
+            if (Skillset.TryGetValue(skillId, out useInfo) == false)
+                return;
+
+            OnSkill(useInfo);
+        }
+
         // 피격됨
         public override int OnDamaged(GameObject attacker, int damage)
         {
@@ -209,26 +230,61 @@ namespace Server.Game
 
 
         // 스킬 사용이 가능한지 검사함
-        public virtual bool CanUseSkill(SkillId skillId, out SkillData skill)
+        public virtual bool CanUseSkill(SkillId skillId, out SkillUseInfo skillUseInfo)
+        {
+            skillUseInfo = null;
+
+            if (State == CreatureState.Dead)
+                return false;
+
+            if (skillId == SkillId.SkillNone)
+                return false;
+
+            // 이전에 사용한 스킬의 딜레이가 끝났는지 확인
+            int tick = Environment.TickCount;
+            if (tick - _lastUseSkill.lastUseTime < _lastUseSkill.skill.skillTime)
+                return false;
+
+            // 사용할 스킬 데이터 얻기
+            SkillUseInfo useInfo;
+            if (Skillset.TryGetValue(skillId, out useInfo) == false)
+                return false;
+
+            // 쿨타임 검사
+            if (tick - useInfo.lastUseTime < useInfo.skill.cooldown)
+                return false;
+
+            skillUseInfo = useInfo;
+            return true;
+        }
+
+
+        // 스킬 피격처리가 가능한지 검사함
+        public virtual bool CanSkillHit(SkillId skillId, out SkillData skill)
         {
             skill = null;
 
             if (State == CreatureState.Dead)
                 return false;
-
-            SkillInfo skillInfo;
-            if (Skillset.TryGetValue(skillId, out skillInfo) == false)
+            if (skillId == SkillId.SkillNone)
+                return false;
+            if (_usingSkill == null)
+                return false;
+            if (skillId != _usingSkill.skill.id)
                 return false;
 
+            // 스킬 시전이 끝났는지 검사함
             int tick = Environment.TickCount;
-            if (tick - skillInfo.lastUseTime < skillInfo.skill.cooldown)
-                return false;
+            if (tick - _usingSkill.lastUseTime > _usingSkill.skill.castingTime)
+            {
+                _usingSkill.casted = true;
+            }
 
-            Skillset[skillId] = new SkillInfo() { lastUseTime = tick, skill = skillInfo.skill };
-            skill = skillInfo.skill;
-
-            return true;
+            // 스킬시전이 끝났다면 피격처리가 가능함
+            skill = _usingSkill.skill;
+            return (_usingSkill.casted == true);
         }
+
 
 
         // 장비 데이터를 참고하여 Stat을 재계산한다.

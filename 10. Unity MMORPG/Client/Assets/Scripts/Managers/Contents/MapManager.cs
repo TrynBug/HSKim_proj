@@ -69,10 +69,13 @@ public class MapManager
     public int TotalCellCount { get { return CellMaxX * CellMaxY; } }  // cell 개수
 
     // grid
-    Cell[,] _cells;
+    public Cell[,] _cells;
 
     // teleport
     List<TeleportData> teleports = new List<TeleportData>();
+
+    // search algorithm
+    JumpPointSearch _search = new JumpPointSearch();
 
 
     // utils
@@ -231,7 +234,8 @@ public class MapManager
         foreach (TeleportData teleport in mapData.teleports)
             teleports.Add(teleport);
 
-
+        // search 알고리즘 초기화
+        _search.Init(_cells, CellMaxX, CellMaxY);
 
         //DrawDebug();
     }
@@ -681,6 +685,65 @@ public class MapManager
         }
     }
 
+    // center를 기준으로 가장 가까운 오브젝트를 찾는다.
+    // 찾지 못했으면 null을 리턴함
+    public BaseController FindObjectNearbyCell(Vector2Int center)
+    {
+        center = GetValidCell(center);
+
+        int loopCount = -1;
+        while (true)
+        {
+            loopCount++;
+            if(loopCount > 1000)
+            {
+                Debug.Assert(loopCount < 1000);
+                return null;
+            }
+
+            // 현재 루프에서 찾을 범위 계산
+            Vector2Int from = center - new Vector2Int(loopCount, loopCount);
+            Vector2Int to = center + new Vector2Int(loopCount, loopCount);
+
+            // 범위가 전체맵을 벗어나면 실패
+            if (from.x < 0 && to.x >= CellMaxX && from.y < 0 && to.y >= CellMaxX)
+                return null;
+
+            // 찾을 범위를 맵에 맞춤
+            from = GetValidCell(from);
+            to = GetValidCell(to);
+
+            // 범위의 왼쪽위 -> 오른쪽위 검색
+            for (int x = from.x; x <= to.x; x++)
+            {
+                if(_cells[from.y, x].GetObject() != null)
+                    return _cells[from.y, x].GetObject();
+            }
+
+            // 범위의 왼쪽, 오른쪽 검색
+            for(int y = from.y + 1; y <= to.y - 1; y++)
+            {
+                if (_cells[y, from.x].GetObject() != null)
+                    return _cells[y, from.x].GetObject();
+                if (_cells[y, to.x].GetObject() != null)
+                    return _cells[y, to.x].GetObject();
+            }
+
+            // 범위의 왼쪽아래 -> 오른쪽아래 검색
+            for (int x = from.x; x <= to.x; x++)
+            {
+                if (_cells[to.y, x].GetObject() != null)
+                    return _cells[to.y, x].GetObject();
+            }
+        }
+    }
+
+
+
+
+
+
+
 
 
 
@@ -961,6 +1024,17 @@ public class MapManager
         }
         return null;
     }
+
+
+    
+    // 길찾기
+    public List<Vector2Int> SearchPath(Vector2Int startCell, Vector2Int endCell)
+    {
+        return _search.SearchPath(startCell, endCell);
+    }
+
+
+
 
 
 

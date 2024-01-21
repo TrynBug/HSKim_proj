@@ -4,7 +4,9 @@ using ServerCore;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
+using UnityEngine.Assertions;
 
 // 패킷 타입별로 호출할 핸들러 함수를 관리하는 클래스
 // 서버에게 받은 패킷을 처리하는 핸들러이기 때문에 S_ 로 시작하는 패킷명에 대한 핸들러 함수만 작성한다.
@@ -22,6 +24,51 @@ class PacketHandler
         BaseController bc = Managers.Object.AddMyPlayer(enterGamePacket);
         if (bc == null)
             return;
+
+
+
+        // 마우스 클릭시 길찾기 테스트
+        //Managers.Input.MouseAction += (Define.MouseEvent e) => 
+        //{
+        //    if(e == Define.MouseEvent.PointerUp)
+        //    {
+        //        //Debug.Log($"Input.mousePosition : {Input.mousePosition}");
+        //        //Debug.Log($"Viewport : {Camera.main.ScreenToViewportPoint(Input.mousePosition)}");
+        //        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(new Vector3(Input.mousePosition.x, Input.mousePosition.y, Camera.main.nearClipPlane));
+        //        Vector2 serverPos = Managers.Map.ClientPosToServerPos(mouseWorldPos);
+        //        Vector2Int serverCell = Managers.Map.PosToCell(serverPos);
+        //        Debug.Log($"World Mouse : {mouseWorldPos}, Server pos :{serverPos} cell:{serverCell}");
+
+        //        JumpPointSearch jsp = new JumpPointSearch();
+        //        jsp.Init(Managers.Map._cells, Managers.Map.CellMaxX, Managers.Map.CellMaxY);
+        //        List<Vector2Int> path = jsp.SearchPath(Managers.Object.MyPlayer.Cell, serverCell);
+        //        Debug.Log($"jsp start: {Managers.Object.MyPlayer.Cell}, end: {serverCell}");
+        //        foreach (Vector2Int p in path)
+        //            Debug.Log($"path: {p}");
+        //        GameObject root = GameObject.Find("@Path");
+        //        if (root == null)
+        //            root = new GameObject { name = "@Path" };
+        //        for(int i=0; i< root.transform.childCount; i++)
+        //            Managers.Resource.Destroy(root.transform.GetChild(i).gameObject);
+        //        for(int i=0; i< path.Count; i++)
+        //        {
+        //            Vector2Int p = path[i];
+        //            GameObject txt = Managers.Resource.Instantiate("DummyText");
+        //            txt.transform.SetParent(root.transform);
+        //            Vector3 pos = Managers.Map.ServerPosToClientPos(Managers.Map.CellToPos(p));
+        //            pos.z = 10;
+
+        //            txt.name = $"#{i} {p}";
+        //            txt.transform.position = pos;
+        //            TextMeshPro text = txt.GetComponent<TextMeshPro>();
+        //            text.text = $"#{i} {p}";
+        //        }
+
+        //    }
+        //};
+
+
+
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_EnterGameHandler. room:{enterGamePacket.RoomId} name:{enterGamePacket.Object.Name}, {bc.ToString(Define.InfoLevel.All)}");
     }
@@ -144,16 +191,44 @@ class PacketHandler
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHandler. objectId:{skillPacket.ObjectId}, skillId:{skillPacket.SkillId}");
 
         // 스킬 사용
-        //if(attacker != Managers.Object.MyPlayer)
-        //    attacker.OnSkill(skillPacket.SkillId);
-        attacker.OnSkill(skillPacket);
+        attacker.OnSkill(skillPacket.SkillId);
+    }
 
-        // 피격됨
-        foreach(HitInfo hitInfo in skillPacket.Hits)
+    public static void S_SkillHitHandler(PacketSession session, IMessage packet)
+    {
+        S_SkillHit hitPacket = packet as S_SkillHit;
+        ServerSession serverSession = session as ServerSession;
+
+        CreatureController attacker = Managers.Object.FindById(hitPacket.ObjectId) as CreatureController;
+        if (attacker == null)
         {
-            CreatureController taker = Managers.Object.FindById<CreatureController>(hitInfo.HitObjectId);
-            if(taker != null)
-                taker.OnDamaged(attacker, hitInfo.Damage);
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_SkillHitHandler. Can't find object. objectId:{hitPacket.ObjectId}");
+            return;
+        }
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHitHandler. objectId:{hitPacket.ObjectId}, skillId:{hitPacket.SkillId}, hits:{hitPacket.HitObjectIds.Count}");
+
+        // 스킬 찾기
+        Data.SkillData skill = Managers.Data.SkillDict.GetValueOrDefault(hitPacket.SkillId, null);
+
+        // 피격된 캐릭터가 없을 경우 이펙트만 생성
+        if (hitPacket.HitObjectIds.Count == 0)
+        {
+            if (string.IsNullOrEmpty(skill.hitEffect) == false)
+            {
+                Vector2 pos = Managers.Map.GetValidPos(attacker.Pos + (Util.GetDirectionVector(attacker.LookDir) * skill.rangeX));
+                Managers.Object.AddEffect(skill.hitEffect, pos, skill.effectOffsetY);
+            }
+        }
+        // 피격된 캐릭터가 있을 경우 해당위치에 이펙트 생성
+        else
+        {
+            foreach (int hitObj in hitPacket.HitObjectIds)
+            {
+                CreatureController taker = Managers.Object.FindById<CreatureController>(hitObj);
+                if (taker != null)
+                    Managers.Object.AddEffect(skill.hitEffect, taker.Pos, skill.effectOffsetY);
+            }
         }
     }
 
@@ -178,6 +253,8 @@ class PacketHandler
         }
 
         cc.Hp = changePacket.Hp;
+        if(changePacket.ChangeType == StatChangeType.ChangeNegative)
+            cc.OnDamaged(changePacket.Amount);
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_ChangeHpHandler. objectId:{changePacket.ObjectId}, Hp:{changePacket.Hp}");
     }

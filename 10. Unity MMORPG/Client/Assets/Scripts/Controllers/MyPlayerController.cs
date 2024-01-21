@@ -9,19 +9,70 @@ using System;
 using TMPro;
 
 
-public class MyPlayerController : PlayerController
-{ 
+public class MyPlayerController : SPUMController
+{
     C_Move _lastCMove = null;       // 마지막으로 보낸 C_Move 패킷
     int _lastCMoveSendTime = 0;     // 마지막으로 C_Move 패킷 보낸 시간 (단위:ms)
 
-    float _speedRateForStop = 1f;  // 움직임을 멈출 때 속도를 감소시킬 비율
+    float _speedRateForStop = 1f;    // 움직임을 멈출 때 속도를 감소시킬 비율 (목적지와의 거리에 따라 값이 변경됨)
+    SkillUseInfo _lastUseSkill = new SkillUseInfo() { lastUseTime = 0, skill = Managers.Data.DefaultSkill };  // 마지막으로 사용한 스킬
+    SkillUseInfo _usingSkill = null;                  // 현재 사용중인 스킬
 
-    KeyInput _keyInput = new KeyInput();
+    public Dictionary<UnityEngine.KeyCode, KeyInput> KeyMap { get; private set; } = new Dictionary<KeyCode, KeyInput>();   // 키보드키와 게임기능키 연결맵
+    public Dictionary<KeyInput, SkillId> KeySkillMap { get; private set; } = new Dictionary<KeyInput, SkillId>();          // 게임기능키와 스킬 연결맵
+    bool[] _keyInput = new bool[Enum.GetValues(typeof(KeyInput)).Length];
+
+    public AIMode AIMode { get; set; } = AIMode.AiNone;
+    AIAuto aiAuto = new AIAuto();
 
     protected override void Init()
     {
         base.Init();
     }
+
+
+    public void Init(S_EnterGame packet)
+    {
+        // 키보드키 매핑 설정
+        KeyMap.Add(KeyCode.W, KeyInput.Up);
+        KeyMap.Add(KeyCode.A, KeyInput.Left);
+        KeyMap.Add(KeyCode.S, KeyInput.Down);
+        KeyMap.Add(KeyCode.D, KeyInput.Right);
+        KeyMap.Add(KeyCode.Space, KeyInput.Attack);
+        KeyMap.Add(KeyCode.Q, KeyInput.SkillA);
+        KeyMap.Add(KeyCode.E, KeyInput.SkillB);
+        KeyMap.Add(KeyCode.R, KeyInput.SkillC);
+        KeyMap.Add(KeyCode.T, KeyInput.SkillD);
+        KeyMap.Add(KeyCode.Y, KeyInput.SkillE);
+        KeyMap.Add(KeyCode.Alpha1, KeyInput.SkillF);
+        KeyMap.Add(KeyCode.Alpha2, KeyInput.SkillG);
+        KeyMap.Add(KeyCode.Alpha3, KeyInput.SkillH);
+        KeyMap.Add(KeyCode.Alpha4, KeyInput.SkillI);
+        KeyMap.Add(KeyCode.Alpha5, KeyInput.SkillJ);
+        KeyMap.Add(KeyCode.Alpha6, KeyInput.SkillK);
+
+        // 데이터 초기화
+        ObjectInfo info = packet.Object;
+        Info = info;
+        PosInfo = info.PosInfo;
+        Stat = info.StatInfo;
+
+        // 스킬셋 등록
+        foreach (SkillId skillId in packet.SkillIds)
+        {
+            Data.SkillData skill;
+            if (Managers.Data.SkillDict.TryGetValue(skillId, out skill))
+                Skillset.Add(skillId, new SkillUseInfo() { lastUseTime = 0, skill = skill });
+        }
+
+        // 키 스킬 매핑 등록
+        for(int i=0; i< packet.SkillIds.Count; i++)
+            KeySkillMap.Add(KeyInput.Attack + i, packet.SkillIds[i]);
+    }
+
+
+
+
 
 
     GameObject goDebug = null;
@@ -58,48 +109,51 @@ public class MyPlayerController : PlayerController
     // 현재 키보드 입력 얻기
     void GetKeyInput()
     {
-        _keyInput.Up = Input.GetKey(KeyCode.W);
-        _keyInput.Left = Input.GetKey(KeyCode.A);
-        _keyInput.Down = Input.GetKey(KeyCode.S);
-        _keyInput.Right = Input.GetKey(KeyCode.D);
-        _keyInput.Attack = Input.GetKeyDown(KeyCode.Space);
-        _keyInput.SkillA = Input.GetKeyDown(KeyCode.Q);
-        _keyInput.SkillB = Input.GetKeyDown(KeyCode.E);
-        _keyInput.SkillC = Input.GetKeyDown(KeyCode.R);
+        // 키보드 입력을 얻음
+        foreach (var pair in KeyMap)
+        {
+            _keyInput[(int)pair.Value] = Input.GetKey(pair.Key);
+        }
+
+        bool up = _keyInput[(int)KeyInput.Up];
+        bool left = _keyInput[(int)KeyInput.Left];
+        bool down = _keyInput[(int)KeyInput.Down];
+        bool right = _keyInput[(int)KeyInput.Right];
+
 
         MoveKeyDown = true;
-        if (_keyInput.Up)
+        if (up)
         {
-            if (_keyInput.Left)
+            if (left)
                 Dir = MoveDir.LeftUp;
-            else if (_keyInput.Right)
+            else if (right)
                 Dir = MoveDir.RightUp;
             else
                 Dir = MoveDir.Up;
         }
-        else if (_keyInput.Left)
+        else if (left)
         {
-            if (_keyInput.Up)
+            if (up)
                 Dir = MoveDir.LeftUp;
-            else if (_keyInput.Down)
+            else if (down)
                 Dir = MoveDir.LeftDown;
             else
                 Dir = MoveDir.Left;
         }
-        else if (_keyInput.Down)
+        else if (down)
         {
-            if (_keyInput.Left)
+            if (left)
                 Dir = MoveDir.LeftDown;
-            else if (_keyInput.Right)
+            else if (right)
                 Dir = MoveDir.RightDown;
             else
                 Dir = MoveDir.Down;
         }
-        else if (_keyInput.Right)
+        else if (right)
         {
-            if (_keyInput.Up)
+            if (up)
                 Dir = MoveDir.RightUp;
-            else if (_keyInput.Down)
+            else if (down)
                 Dir = MoveDir.RightDown;
             else
                 Dir = MoveDir.Right;
@@ -108,14 +162,17 @@ public class MyPlayerController : PlayerController
         {
             MoveKeyDown = false;
         }
+    }
 
-
-
-        SkillKeyDown = false;
-        if (_keyInput.Attack || _keyInput.SkillA || _keyInput.SkillB || _keyInput.SkillC)
+    // 키보드로 입력한 스킬 얻기
+    SkillId GetSkillInput()
+    {
+        foreach (var pair in KeySkillMap)
         {
-            SkillKeyDown = true;
+            if (_keyInput[(int)pair.Key] == true)
+                return pair.Value;
         }
+        return SkillId.SkillNone;
     }
 
 
@@ -125,16 +182,22 @@ public class MyPlayerController : PlayerController
         if (State == CreatureState.Dead)
             return false;
 
-        SkillInfo skillInfo;
-        if (Skillset.TryGetValue(skillId, out skillInfo) == false)
+        if (skillId == SkillId.SkillNone)
             return false;
-
+        
+        // 이전에 사용한 스킬의 딜레이가 끝났는지 확인
         int tick = Environment.TickCount;
-        if (tick - skillInfo.lastUseTime < skillInfo.skill.cooldown)
+        if (tick - _lastUseSkill.lastUseTime < _lastUseSkill.skill.skillTime)
+            return false;
+        
+        // 사용할 스킬 데이터 얻기
+        SkillUseInfo useInfo;
+        if (Skillset.TryGetValue(skillId, out useInfo) == false)
             return false;
 
-        // 스킬 사용시간 업데이트
-        Skillset[skillId] = new SkillInfo() { lastUseTime = tick, skill = skillInfo.skill };
+        // 쿨타임 검사
+        if (tick - useInfo.lastUseTime < useInfo.skill.cooldown)
+            return false;
 
         return true;
     }
@@ -145,7 +208,20 @@ public class MyPlayerController : PlayerController
     protected override void UpdateIdle()
     {
         GetKeyInput();
+        switch(AIMode)
+        {
+            case AIMode.AiNone:
+                UpdateIdle_AINone();
+                break;
+            case AIMode.AiAuto:
+                UpdateIdle_AIAuto();
+                break;
+        }
 
+    }
+
+    void UpdateIdle_AINone()
+    {
         // 방향키 눌림
         if (MoveKeyDown == true)
         {
@@ -155,13 +231,13 @@ public class MyPlayerController : PlayerController
             Vector2 dir = GetDirectionVector(Dir);
             Vector2 dest = Pos + dir * Config.MyPlayerMinimumMove * Speed;   // 처음 움직일 때는 dest를 최소이동거리 만큼 이동시킨다.
             Vector2 intersection;
-            if(Managers.Map.CanGo(Pos, dest, out intersection))
+            if (Managers.Map.CanGo(Pos, dest, out intersection))
             {
                 Dest = dest;
             }
             else
             {
-                Dest = intersection; 
+                Dest = intersection;
             }
 
             State = CreatureState.Moving;
@@ -170,22 +246,69 @@ public class MyPlayerController : PlayerController
             SendMovePacket();
         }
 
-        // 스킬키 눌림
-        if(SkillKeyDown == true)
+
+        // 스킬사용 업데이트
+        UpdateSkill();
+    }
+
+
+
+    enum AutoState
+    { 
+        AutoIdle,
+        AutoChasing,
+        AutoMoving,
+        AutoSkill,
+    }
+    BaseController _target = null;
+    Vector2Int _prevTargetCell;
+    AutoState _state = AutoState.AutoIdle;
+    SkillData _nextSkill = Managers.Data.DefaultSkill;
+    List<Vector2Int> _path;
+    int _nextPathIndex = 0;
+    void UpdateIdle_AIAuto()
+    {
+        switch(_state)
         {
-            SkillId skillId = SkillId.SkillAttack;
-            if (_keyInput.Attack)
-                skillId = SkillId.SkillAttack;
-            else if (_keyInput.SkillA)
-                skillId = SkillId.SkillFireball;
-            else if (_keyInput.SkillB)
-                skillId = SkillId.SkillLightning;
-            else if (_keyInput.SkillC)
-                skillId = SkillId.SkillArrow;
-            if (CanUseSkill(skillId))
-                OnSkill(skillId);
+            case AutoState.AutoIdle:
+                {
+                    _target = Managers.Map.FindObjectNearbyCell(Cell);
+                    if(_target != null)
+                    {
+                        _prevTargetCell = _target.Cell;
+                        _path = Managers.Map.SearchPath(Cell, _target.Cell);
+                        _nextPathIndex = 0;
+                        _state = AutoState.AutoChasing;
+                    }
+                }
+                break;
+            case AutoState.AutoChasing:
+                {
+                    if(Util.IsTargetInRectRange(Pos, LookDir, new Vector2(_nextSkill.rangeX, _nextSkill.rangeY), _target.Pos))
+                    {
+                        _state = AutoState.AutoSkill;
+                    }
+                    else
+                    {
+                        if (_prevTargetCell != _target.Cell)
+                        {
+                            _path = Managers.Map.SearchPath(Cell, _target.Cell);
+                            _nextPathIndex = 0;
+                        }
+
+
+                        Dest = 
+                    }
+                }
+                break;
+            case AutoState.AutoSkill:
+                {
+
+                }
+                break;
         }
     }
+
 
     protected override void UpdateMoving()
     {
@@ -200,7 +323,7 @@ public class MyPlayerController : PlayerController
             Vector2 dest = Dest + GetDirectionVector(Dir) * Time.deltaTime * Speed;
             if (Managers.Map.CanGo(Dest, dest, out intersection))
             {
-                Dest = dest; 
+                Dest = dest;
             }
             else
             {
@@ -290,34 +413,60 @@ public class MyPlayerController : PlayerController
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.UpdateMoving. {this.ToString(InfoLevel.Position)}");
 
 
+        // 스킬사용 업데이트
+        UpdateSkill();
+
+
+        // debug
         Managers.Map.InspectCell();
+    }
 
 
 
-        // 스킬키 눌림
-        if (SkillKeyDown == true)
+    // 스킬 사용에 대한 업데이트
+    void UpdateSkill()
+    {
+        // 스킬 입력 확인
+        SkillId skillInput = GetSkillInput();
+        if (CanUseSkill(skillInput))
+            SendSkillPacket(skillInput);
+
+
+        // 사용중인 스킬에 대한 스킬딜레이 검사
+        if (_usingSkill == null)
+            return;
+
+        // 스킬이 아직 시전되지 않았을 경우 시전시간 검사
+        int tick = Environment.TickCount;
+        if(_usingSkill.casted == false)
         {
-            SkillId skillId = SkillId.SkillAttack;
-            if (_keyInput.Attack)
-                skillId = SkillId.SkillAttack;
-            else if (_keyInput.SkillA)
-                skillId = SkillId.SkillFireball;
-            else if (_keyInput.SkillB)
-                skillId = SkillId.SkillLightning;
-            else if (_keyInput.SkillC)
-                skillId = SkillId.SkillArrow;
-            if (CanUseSkill(skillId))
-                OnSkill(skillId);
+            if (tick - _usingSkill.lastUseTime > _usingSkill.skill.castingTime)
+            {
+                SkillHitCheck(_usingSkill.skill);
+                _usingSkill.casted = true;
+            }
+        }
+        // 스킬시전이 끝났을 경우 스킬딜레이 검사
+        else
+        {
+            if (tick - _usingSkill.lastUseTime > _usingSkill.skill.skillTime)
+            {
+                _usingSkill.casted = false;
+                _usingSkill = null;
+            }
         }
     }
 
 
 
+
+    // 서버에 이동패킷 전송
+    // 상태 변화가 있거나, 마지막으로 전송한 시간에서 Config.MovePacketSendInterval 시간 이상 지났을 경우 전송함
     void SendMovePacket(bool forced = false)
     {
         bool bSend = false;
         int tick = Environment.TickCount;
-        if(forced)
+        if (forced)
         {
             bSend = true;
         }
@@ -325,7 +474,7 @@ public class MyPlayerController : PlayerController
         {
             bSend = true;
         }
-        else if(PosInfo.MoveDir != _lastCMove.PosInfo.MoveDir
+        else if (PosInfo.MoveDir != _lastCMove.PosInfo.MoveDir
             || PosInfo.State != _lastCMove.PosInfo.State
             || PosInfo.MoveKeyDown != _lastCMove.PosInfo.MoveKeyDown
             || tick - _lastCMoveSendTime > Config.MovePacketSendInterval)
@@ -351,56 +500,73 @@ public class MyPlayerController : PlayerController
 
 
 
-    // 스킬 사용됨
-    public override void OnSkill(SkillId skillId)
+    // 스킬 사용요청 패킷을 보냄
+    public void SendSkillPacket(SkillId skillId)
     {
-        base.OnSkill(skillId);
-
-        SkillInfo skillInfo;
-        if (Skillset.TryGetValue(skillId, out skillInfo) == false)
+        SkillUseInfo useInfo;
+        if (Skillset.TryGetValue(skillId, out useInfo) == false)
             return;
-        
-        // 피격대상 찾기
-        SkillData skill = skillInfo.skill;
-        List<BaseController> hitObjects = new List<BaseController>();
-        switch (skill.skillType)
-        {
-            case SkillType.SkillMelee:
-                {
-                    hitObjects = Managers.Map.FindObjectsInRect(Pos, new Vector2(skill.melee.rangeX, skill.melee.rangeY), LookDir);
-                    break;
-                }
-            case SkillType.SkillProjectile:
-                {
-                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.projectile.rangeX, skill.projectile.rangeY), LookDir);
-                    if (hitObj != null)
-                        hitObjects.Add(hitObj);
-                    break;
-                }
-            case SkillType.SkillInstant:
-                {
-                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.instant.rangeX, skill.instant.rangeY), LookDir);
-                    if (hitObj != null)
-                        hitObjects.Add(hitObj);
-                    break;
-                }
-        }
+
+        // 스킬 사용시간 업데이트
+        useInfo.lastUseTime = Environment.TickCount;
+
+        // 사용중인 스킬 등록
+        _lastUseSkill = useInfo;
+        _usingSkill = useInfo;
 
         // 스킬패킷 전송
         C_Skill skillPacket = new C_Skill();
         skillPacket.SkillId = skillId;
-        foreach (BaseController obj in hitObjects)
+        Managers.Network.Send(skillPacket);
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.OnSkill. {this}, skillId:{skillId}");
+    }
+
+
+
+    // 스킬 피격판정 검사
+    public void SkillHitCheck(SkillData skill)
+    {
+        // 피격대상 찾기
+        List<BaseController> listHitObjects = new List<BaseController>();
+        switch (skill.skillType)
+        {
+            case SkillType.SkillMelee:
+                {
+                    listHitObjects = Managers.Map.FindObjectsInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir);
+                    break;
+                }
+            case SkillType.SkillProjectile:
+                {
+                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir);
+                    if (hitObj != null)
+                        listHitObjects.Add(hitObj);
+                    break;
+                }
+            case SkillType.SkillInstant:
+                {
+                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir);
+                    if (hitObj != null)
+                        listHitObjects.Add(hitObj);
+                    break;
+                }
+        }
+
+        // 피격대상 전송
+        C_SkillHit hitPacket = new C_SkillHit();
+        hitPacket.SkillId = skill.id;
+        foreach (BaseController obj in listHitObjects)
         {
             if (obj.State == CreatureState.Dead)
                 continue;
-            skillPacket.HitObjectIds.Add(obj.Id);
+            hitPacket.HitObjectIds.Add(obj.Id);
         }
-        Managers.Network.Send(skillPacket);
+        Managers.Network.Send(hitPacket);
 
 
         // log
-        string _log = $"MyPlayerController.OnSkill. Id:{Id}, skillId:{skillId}, hit {hitObjects.Count} objects: ";
-        foreach (BaseController obj in hitObjects)
+        string _log = $"MyPlayerController.SkillHitCheck. {this}, skill:{skill.id}, hit {listHitObjects.Count} objects: ";
+        foreach (BaseController obj in listHitObjects)
             _log += $"{obj.Id}, ";
         ServerCore.Logger.WriteLog(LogLevel.Debug, _log);
     }

@@ -49,6 +49,17 @@ public class Cell
         return MovingObjects.Find(obj) != null;
     }
 
+
+    public BaseController GetObject()
+    {
+        if (Object != null)
+            return Object;
+        else if (MovingObjects.Count > 0)
+            return MovingObjects.First();
+        else
+            return null;
+    }
+
     public void Clear()
     {
         Collider = false;

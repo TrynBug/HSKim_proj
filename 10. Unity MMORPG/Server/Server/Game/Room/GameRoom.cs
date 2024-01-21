@@ -62,6 +62,7 @@ namespace Server.Game
         public void Broadcast(IMessage packet, Player except = null) { Push(_broadcast, packet, except); }
         public void HandleMove(Player player, C_Move movePacket) { Push(_handleMove, player, movePacket); }
         public void HandleSkill(Player player, C_Skill skillPacket) { Push(_handleSkill, player, skillPacket); }
+        public void HandleSkillHit(Player player, C_SkillHit hitPacket) { Push(_handleSkillHit, player, hitPacket); }
 
 
 
@@ -414,24 +415,41 @@ namespace Server.Game
             if (player == null)
                 return;
 
-            ObjectInfo info = player.Info;
-
             // 스킬 사용이 가능한지 확인
-            SkillData skill;
-            if (player.CanUseSkill(skillPacket.SkillId, out skill) == false)
+            SkillUseInfo useInfo;
+            if (player.CanUseSkill(skillPacket.SkillId, out useInfo) == false)
                 return;
 
-            // 스킬사용
-            S_Skill resSkillPacket = new S_Skill();
-            resSkillPacket.ObjectId = info.ObjectId;
-            resSkillPacket.SkillId = skillPacket.SkillId;
-            switch (skillPacket.SkillId)
+            // 스킬사용, 스킬사용패킷 broadcast
+            player.OnSkill(useInfo);
+
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{skillPacket.SkillId}");
+        }
+
+
+        // 스킬 피격요청 처리
+        public void _handleSkillHit(Player player, C_SkillHit hitPacket)
+        {
+            if (player == null)
+                return;
+
+            // 스킬 피격처리가 가능한지 확인
+            SkillData skill;
+            if (player.CanSkillHit(hitPacket.SkillId, out skill) == false)
+                return;
+
+            // 스킬 피격확인
+            ObjectInfo info = player.Info;
+            S_SkillHit resHitPacket = new S_SkillHit();
+            resHitPacket.ObjectId = info.ObjectId;
+            resHitPacket.SkillId = hitPacket.SkillId;
+            switch (skill.skillType)
             {
-                case SkillId.SkillAttack:
+                case SkillType.SkillMelee:
                     {
                         // 대상이 공격범위 내에 있는지 확인
                         Player target = null;
-                        foreach (int objectId in skillPacket.HitObjectIds)
+                        foreach (int objectId in hitPacket.HitObjectIds)
                         {
                             if (_players.TryGetValue(objectId, out target) == false)
                                 continue;
@@ -439,24 +457,21 @@ namespace Server.Game
                                 continue;
 
                             // target이 스킬범위내에 존재하면 피격판정
-                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.melee.rangeX, skill.melee.rangeY), target.Pos) == true)
+                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
                             {
                                 // 피격됨
                                 int damage = target.OnDamaged(player, player.Stat.Damage);
-                                resSkillPacket.Hits.Add(new HitInfo { HitObjectId = target.Id, Damage = damage });
+                                resHitPacket.HitObjectIds.Add(target.Id);
                             }
                         }
                     }
                     break;
 
-                case SkillId.SkillArrow:
-                    break;
-
-                case SkillId.SkillFireball:
+                case SkillType.SkillProjectile:
                     {
                         // 공격범위 내의 대상 찾기
                         Player target = null;
-                        foreach (int objectId in skillPacket.HitObjectIds)
+                        foreach (int objectId in hitPacket.HitObjectIds)
                         {
                             Player tempTarget = null;
                             if (_players.TryGetValue(objectId, out tempTarget) == false)
@@ -465,7 +480,7 @@ namespace Server.Game
                                 continue;
 
                             // target이 스킬범위내에 존재하는지 확인
-                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.projectile.rangeX, skill.projectile.rangeY), tempTarget.Pos) == true)
+                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), tempTarget.Pos) == true)
                             {
                                 // 타겟 찾음
                                 target = tempTarget;
@@ -473,19 +488,18 @@ namespace Server.Game
                             }
                         }
 
-                        // 투사체 생성
-                        Fireball fireball = new Fireball();
-                        fireball.Init(skill, player, target);
-                        _enterGame(fireball);
-
+                        // projectile의 경우에는 여기에서 피격대상을 전송하지 않고 투사체만 생성한다.
+                        Projectile projectile = Projectile.CreateInstance(skill.id);
+                        projectile.Init(skill, player, target);
+                        _enterGame(projectile);
                     }
                     break;
 
-                case SkillId.SkillLightning:
+                case SkillType.SkillInstant:
                     {
                         // 대상이 공격범위 내에 있는지 확인
                         Player target = null;
-                        foreach (int objectId in skillPacket.HitObjectIds)
+                        foreach (int objectId in hitPacket.HitObjectIds)
                         {
                             if (_players.TryGetValue(objectId, out target) == false)
                                 continue;
@@ -493,11 +507,11 @@ namespace Server.Game
                                 continue;
 
                             // target이 스킬범위내에 존재하면 피격판정
-                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.instant.rangeX, skill.instant.rangeY), target.Pos) == true)
+                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
                             {
                                 // 피격됨
                                 int damage = target.OnDamaged(player, player.Stat.Damage + skill.damage);
-                                resSkillPacket.Hits.Add(new HitInfo { HitObjectId = target.Id, Damage = damage });
+                                resHitPacket.HitObjectIds.Add(target.Id);
                                 break;
                             }
                         }
@@ -507,11 +521,13 @@ namespace Server.Game
 
 
             // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
-            _broadcast(resSkillPacket);
+            _broadcast(resHitPacket);
 
 
-            ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{skillPacket.SkillId}, hits:{skillPacket.HitObjectIds.Count}");
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{resHitPacket.SkillId}, hits:{resHitPacket.HitObjectIds.Count}");
         }
+
+
 
 
         // debug : cell 무결성 확인

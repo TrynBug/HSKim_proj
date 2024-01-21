@@ -2,55 +2,122 @@
   "skills": [
     {
       "id": "SkillAttack",
-      "name": "평타",
+      "name": "Attack",
       "cooldown": "500",
+	  "castingTime": "100",
+	  "skillTime": "300",
+	  "speedRate": "0.5",
 	  "damage": "10",
+	  "rangeX": "1.0",
+	  "rangeY": "2.0",
+	  "skillType": "SkillMelee"
+    },
+    {
+      "id": "SkillHeavyAttack",
+      "name": "HeavyAttack",
+      "cooldown": "1000",
+	  "castingTime": "300",
+	  "skillTime": "500",
+	  "speedRate": "0.5",
+	  "damage": "50",
+	  "rangeX": "1.0",
+	  "rangeY": "2.0",
 	  "skillType": "SkillMelee",
-	  "melee": {
-		  "rangeX": "1.0",
-		  "rangeY": "2.0"
-	  }
+	  "hitEffect": "Effect/HeavyAttack",
+	  "effectOffsetY": "0.25"
+    },
+    {
+      "id": "SkillThunder",
+      "name": "Thunder",
+      "cooldown": "1000",
+	  "castingTime": "200",
+	  "skillTime": "400",
+	  "speedRate": "0.2",
+	  "damage": "20",
+	  "rangeX": "10.0",
+	  "rangeY": "10.0",
+	  "skillType": "SkillInstant",
+	  "hitEffect": "Effect/Thunder",
+	  "effectOffsetY": "1.0"
+    },
+    {
+      "id": "SkillMagicExplosion",
+      "name": "MagicExplosion",
+      "cooldown": "1000",
+	  "castingTime": "200",
+	  "skillTime": "400",
+	  "speedRate": "0.2",
+	  "damage": "20",
+	  "rangeX": "10.0",
+	  "rangeY": "10.0",
+	  "skillType": "SkillInstant",
+	  "hitEffect": "Effect/MagicExplosion",
+	  "effectOffsetY": "0.25"
+    },
+    {
+      "id": "SkillRedExplosion",
+      "name": "RedExplosion",
+      "cooldown": "1000",
+	  "castingTime": "200",
+	  "skillTime": "400",
+	  "speedRate": "0.2",
+	  "damage": "20",
+	  "rangeX": "10.0",
+	  "rangeY": "10.0",
+	  "skillType": "SkillInstant",
+	  "hitEffect": "Effect/RedExplosion",
+	  "effectOffsetY": "0.25"
+    },
+    {
+      "id": "SkillLightningExplosion",
+      "name": "RedExplosion",
+      "cooldown": "1000",
+	  "castingTime": "200",
+	  "skillTime": "400",
+	  "speedRate": "0.2",
+	  "damage": "20",
+	  "rangeX": "10.0",
+	  "rangeY": "10.0",
+	  "skillType": "SkillInstant",
+	  "hitEffect": "Effect/LightningExplosion",
+	  "effectOffsetY": "0.25"
     },
     {
       "id": "SkillArrow",
-      "name": "화살",
+      "name": "Arrow",
       "cooldown": "500",
+	  "castingTime": "200",
+	  "skillTime": "400",
+	  "speedRate": "0.2",
 	  "damage": "5",
+	  "rangeX": "5.0",
+	  "rangeY": "4.0",
 	  "skillType": "SkillProjectile",
 	  "projectile": {
 		  "name": "Arrow",
 		  "speed": "10.0",
-		  "rangeX": "5.0",
-		  "rangeY": "4.0",
-		  "prefab": "Creature/Arrow"
+		  "prefab": "Creature/Arrow",
+		  "hitEffect": "Effect/Explosion"
 	  }
-    },
+	},
     {
       "id": "SkillFireball",
-      "name": "파이어볼",
+      "name": "Fireball",
       "cooldown": "1000",
-	  "damage": "15",
+	  "castingTime": "200",
+	  "skillTime": "400",
+	  "speedRate": "0.2",
+	  "damage": "20",
+	  "rangeX": "7.0",
+	  "rangeY": "7.0",
 	  "skillType": "SkillProjectile",
 	  "projectile": {
 		  "name": "Fireball",
 		  "speed": "10.0",
-		  "rangeX": "7.0",
-		  "rangeY": "7.0",
 		  "prefab": "Projectile/Fireball",
-		  "effect": "Effect/Explosion"
-	  }
-    },
-    {
-      "id": "SkillLightning",
-      "name": "전격",
-      "cooldown": "1000",
-	  "damage": "15",
-	  "skillType": "SkillInstant",
-	  "instant": {
-		  "name": "Lightning",
-		  "rangeX": "10.0",
-		  "rangeY": "10.0",
-		  "effect": "Effect/Lightning"
+		  "offsetY" : "0.4",
+		  "hitEffect": "Effect/Explosion",
+		  "effectOffsetY": "0.25"
 	  }
     }
   ]

@@ -174,7 +174,7 @@ public static class Util
     // origin 에서 target를 바라볼 때의 바라보는 방향 얻기
     public static LookDir GetLookDirectionToTarget(BaseController origin, BaseController target)
     {
-        if (origin.transform.position.x < target.transform.position.x)
+        if (origin.transform.position.x > target.transform.position.x)
             return LookDir.LookLeft;
         else
             return LookDir.LookRight;
@@ -182,7 +182,7 @@ public static class Util
 
     public static LookDir GetLookDirectionToTarget(BaseController origin, Vector2 target)
     {
-        if (origin.transform.position.x < Managers.Map.ServerPosToClientPos(target).x)
+        if (origin.transform.position.x > Managers.Map.ServerPosToClientPos(target).x)
             return LookDir.LookLeft;
         else
             return LookDir.LookRight;
@@ -196,6 +196,30 @@ public static class Util
         // bits : [ Unused(1) | Type(7) | Id(24) ]
         int type = (id >> 24) & 0x7F;
         return (GameObjectType)type;
+    }
+
+
+    // posOrigin을 기준으로, look 방향으로 사각형의 range 범위 내에 target이 위치하는지를 확인함
+    public static bool IsTargetInRectRange(Vector2 posOrigin, LookDir look, Vector2 range, Vector2 posTarget)
+    {
+        // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
+        Vector2 R;
+        if (look == LookDir.LookLeft)
+            R = new Vector2(Mathf.Cos(Mathf.PI / 180f * 135f), Mathf.Sin(Mathf.PI / 180f * 135f));
+        else
+            R = new Vector2(Mathf.Cos(Mathf.PI / 180f * 315f), Mathf.Sin(Mathf.PI / 180f * 315f));
+
+        // target이 range 범위의 사각형 안에 존재하는지 확인
+        Vector2 objectPos;
+        objectPos.x = (posTarget.x - posOrigin.x) * R.x - (posTarget.y - posOrigin.y) * R.y;
+        objectPos.y = (posTarget.x - posOrigin.x) * R.y + (posTarget.y - posOrigin.y) * R.x;
+        if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+        {
+            return true;
+        }
+
+        return false;
+
     }
 
 }

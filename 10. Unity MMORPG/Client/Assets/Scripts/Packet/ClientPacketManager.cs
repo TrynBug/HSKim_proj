@@ -53,6 +53,8 @@ class PacketManager
 		_handler.Add((ushort)MsgId.SMove, PacketHandler.S_MoveHandler);		
 		_makeFunc.Add((ushort)MsgId.SSkill, MakePacket<S_Skill>);
 		_handler.Add((ushort)MsgId.SSkill, PacketHandler.S_SkillHandler);		
+		_makeFunc.Add((ushort)MsgId.SSkillHit, MakePacket<S_SkillHit>);
+		_handler.Add((ushort)MsgId.SSkillHit, PacketHandler.S_SkillHitHandler);		
 		_makeFunc.Add((ushort)MsgId.SChangeHp, MakePacket<S_ChangeHp>);
 		_handler.Add((ushort)MsgId.SChangeHp, PacketHandler.S_ChangeHpHandler);		
 		_makeFunc.Add((ushort)MsgId.SDie, MakePacket<S_Die>);

@@ -47,5 +47,23 @@ namespace Server.Game
         {
             return MovingObjects.Find(obj) != null;
         }
+
+
+        public GameObject GetObject()
+        {
+            if (Object != null)
+                return Object;
+            else if (MovingObjects.Count > 0)
+                return MovingObjects.First();
+            else
+                return null;
+        }
+
+        public void Clear()
+        {
+            Collider = false;
+            Object = null;
+            MovingObjects.Clear();
+        }
     }
 }

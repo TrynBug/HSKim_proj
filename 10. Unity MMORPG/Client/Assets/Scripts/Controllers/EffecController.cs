@@ -20,8 +20,21 @@ public class EffectController : BaseController
 
 
     public string Prefab { get; protected set; }
-
+    public float OffsetY { get; protected set; }
     Animator _animator;
+
+    public override Vector2 Pos
+    {
+        get { return base.Pos; }
+        set
+        {
+            base.Pos = value;
+            gameObject.transform.position += new Vector3(0, OffsetY, 0);
+        }
+    }
+
+
+
 
     public EffectController()
     {
@@ -37,32 +50,22 @@ public class EffectController : BaseController
         base.Init();
     }
 
-    public void Init(string prefab, Vector2 pos)
+    public void Init(string prefab, Vector2 pos, float offsetY)
     {
         Prefab = prefab;
-        Pos = pos;
+        OffsetY = offsetY;
+
+        Pos = pos;  // Pos를 OffsetY 보다 나중에 지정해야함
         State = CreatureState.Idle;
     }
 
 
-    protected override void UpdateIdle()
-    {
-        if(_animator == null)
-        {
-            State = CreatureState.Dead;
-            return;
-        }
-
-        // 애니메이션이 끝났다면 상태를 Dead로 변경
-        if(_animator.GetCurrentAnimatorStateInfo(0).IsName("End"))
-            State = CreatureState.Dead;
-    }
-
-
-    protected override void UpdateDead()
+    // 애니메이션의 마지막 key frame 에서 호출될 이벤트
+    void EndAnimationEventCallback()
     {
         // 자신 파괴
         Managers.Object.Remove(Id);
     }
+
 }
 

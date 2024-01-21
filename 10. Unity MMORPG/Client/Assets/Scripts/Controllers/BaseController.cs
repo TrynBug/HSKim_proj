@@ -15,31 +15,6 @@ public class BaseController : MonoBehaviour
 
     public ObjectInfo Info { get; set; } = new ObjectInfo();
 
-    /* 스탯 */
-    StatInfo _stat = new StatInfo();
-    public StatInfo Stat
-    {
-        get { return _stat; }
-        set
-        {
-            Hp = value.Hp;
-            _stat.MaxHp = value.MaxHp;
-            Speed = value.Speed;
-        }
-    }
-
-    public virtual float Speed
-    {
-        get { return Stat.Speed; }
-        set { Stat.Speed = value; }
-    }
-
-    public virtual int Hp
-    {
-        get { return Stat.Hp; }
-        set { Stat.Hp = value; }
-    }
-
 
     /* 위치 */
     PositionInfo _posInfo = new PositionInfo { State = CreatureState.Idle, MoveDir = MoveDir.Left, LookDir=LookDir.LookLeft, PosX = 0, PosY = 0, DestX = 0, DestY = 0, MoveKeyDown = false };
@@ -48,9 +23,6 @@ public class BaseController : MonoBehaviour
         get { return _posInfo; }
         set
         {
-            if (_posInfo.Equals(value))
-                return;
-            
             Pos = new Vector2(value.PosX, value.PosY);
             Dest = new Vector2(value.DestX, value.DestY);
             State = value.State;
@@ -59,7 +31,7 @@ public class BaseController : MonoBehaviour
         }
     }
 
-    public Vector2 Pos
+    public virtual Vector2 Pos
     {
         get
         {
@@ -141,13 +113,8 @@ public class BaseController : MonoBehaviour
 
 
 
-    /* 스킬 */
-    // 사용가능한 스킬정보
-    Dictionary<SkillId, SkillInfo> _skillset = new Dictionary<SkillId, SkillInfo>();
-    public Dictionary<SkillId, SkillInfo> Skillset { get { return _skillset; } }
 
-    // 스킬 키 눌림
-    public virtual bool SkillKeyDown { get; set; } = false;
+
     
 
 
@@ -184,7 +151,7 @@ public class BaseController : MonoBehaviour
                 UpdateIdle();
                 break;
             case CreatureState.Moving:
-                UpdateMoving();     // 이동 목적지까지 캐릭터를 이동시킨다.
+                UpdateMoving();
                 break;
             case CreatureState.Dead:
                 UpdateDead();
@@ -200,12 +167,12 @@ public class BaseController : MonoBehaviour
     }
 
     // Moving 상태 업데이트
-    // 이동 목적지까지 캐릭터를 이동시킨다.
     protected virtual void UpdateMoving()
     {
 
     }
 
+    // Dead 상태 업데이트
     protected virtual void UpdateDead()
     {
 
@@ -226,10 +193,8 @@ public class BaseController : MonoBehaviour
                 return $"id:{Id}, type:{ObjectType}, room:{Managers.Map.MapId}";
             case InfoLevel.Position:
                 return $"id:{Id}, type:{ObjectType}, room:{Managers.Map.MapId}, pos:{Pos}, dest:{Dest}, cell:{Cell}, state:{State}, dir:{Dir}";
-            case InfoLevel.Stat:
-                return $"id:{Id}, type:{ObjectType}, room:{Managers.Map.MapId}, speed:{Speed}, hp:{Hp}";
             case InfoLevel.All:
-                return $"id:{Id}, type:{ObjectType}, room:{Managers.Map.MapId}, pos:{Pos}, dest:{Dest}, cell:{Cell}, state:{State}, dir:{Dir}, speed:{Speed}, hp:{Hp}";
+                return $"id:{Id}, type:{ObjectType}, room:{Managers.Map.MapId}, pos:{Pos}, dest:{Dest}, cell:{Cell}, state:{State}, dir:{Dir}";
             default:
                 return $"id:{Id}, type:{ObjectType}, room:{Managers.Map.MapId}";
         }

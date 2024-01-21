@@ -149,13 +149,14 @@ namespace Server
 
 
 
-    public struct SkillInfo
+    public class SkillUseInfo
     {
-        public int lastUseTime;
-        public Data.SkillData skill;
+        public Data.SkillData skill = null;
+        public int lastUseTime = 0;
+        public bool casted = false;
     }
 
-    public struct RoomTransferInfo
+    public class RoomTransferInfo
     {
         public Player player;
         public int prevRoomId;

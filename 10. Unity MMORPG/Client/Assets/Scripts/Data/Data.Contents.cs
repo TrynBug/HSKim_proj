@@ -37,11 +37,16 @@ namespace Data
         public SkillId id;
         public string name;
         public int cooldown;
+        public int castingTime;
+        public int skillTime;
+        public float speedRate;
         public int damage;
+        public float rangeX;
+        public float rangeY;
         public SkillType skillType;
-        public MeleeData melee;
+        public string hitEffect;
+        public float effectOffsetY;
         public ProjectileData projectile;
-        public InstantData instant;
     }
 
     [Serializable]
@@ -49,26 +54,10 @@ namespace Data
     {
         public string name;
         public float speed;
-        public float rangeX;
-        public float rangeY;
         public string prefab;
-        public string effect;
-    }
-
-    [Serializable]
-    public class MeleeData
-    {
-        public float rangeX;
-        public float rangeY;
-    }
-
-    [Serializable]
-    public class InstantData
-    {
-        public string name;
-        public float rangeX;
-        public float rangeY;
-        public string effect;
+        public float offsetY;
+        public string hitEffect;
+        public float effectOffsetY;
     }
 
     [Serializable]

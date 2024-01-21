@@ -60,6 +60,27 @@ public class Define
 
 
 
+    /* key input */
+    public enum KeyInput
+    {
+        Up,
+        Down,
+        Left,
+        Right,
+        Attack,
+        SkillA,
+        SkillB,
+        SkillC,
+        SkillD,
+        SkillE,
+        SkillF,
+        SkillG,
+        SkillH,
+        SkillI,
+        SkillJ,
+        SkillK,
+    }
+
 
 
 

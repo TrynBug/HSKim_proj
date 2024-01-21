@@ -222,9 +222,6 @@ namespace Server.Game
         }
 
 
-
-
-
         // 피격됨
         // 리턴값 : 실제로 받은 데미지
         public virtual int OnDamaged(GameObject attacker, int damage)
@@ -245,6 +242,8 @@ namespace Server.Game
             S_ChangeHp changePacket = new S_ChangeHp();
             changePacket.ObjectId = Id;
             changePacket.Hp = Stat.Hp;
+            changePacket.Amount = finalDamage;
+            changePacket.ChangeType = StatChangeType.ChangeNegative;
             Room._broadcast(changePacket);
 
             // 사망처리

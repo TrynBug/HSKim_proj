@@ -9,11 +9,28 @@ namespace Server.Game
 {
     public class Projectile : GameObject
     {
+        // Projectile 객체 생성함수
+        public static Projectile CreateInstance(SkillId skillId)
+        {
+            switch(skillId)
+            {
+                case SkillId.SkillArrow:
+                    return new Arrow();
+                case SkillId.SkillFireball:
+                    return new Fireball();
+                default:
+                    return new Projectile();
+            }
+        }
+
+
         public Data.SkillData Skill { get; private set; }
         public GameObject Owner { get; private set; }
         public GameObject Target { get; private set; }
 
-        public Projectile()
+
+
+        protected Projectile()
         {
             ObjectType = GameObjectType.Projectile;
         }
@@ -33,7 +50,7 @@ namespace Server.Game
             if (target != null)
                 Dest = target.Pos;
             else
-                Dest = owner.Pos + (Util.GetDirectionVector(owner.LookDir) * skill.projectile.rangeX);
+                Dest = owner.Pos + (Util.GetDirectionVector(owner.LookDir) * skill.rangeX);
             State = CreatureState.Moving;
         }
 

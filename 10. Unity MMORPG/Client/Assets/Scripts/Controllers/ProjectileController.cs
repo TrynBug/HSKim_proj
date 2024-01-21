@@ -15,6 +15,16 @@ public class ProjectileController : BaseController
 
     SpriteRenderer _sprite;
 
+    /* 위치 */
+    public override Vector2 Pos
+    {
+        get { return base.Pos; }
+        set
+        {
+            base.Pos = value;
+            gameObject.transform.position += new Vector3(0, Skill.projectile.offsetY, 0);
+        }
+    }
     public override LookDir LookDir
     {
         get { return base.LookDir; }
@@ -22,9 +32,12 @@ public class ProjectileController : BaseController
         { 
             base.LookDir = value;
             if (_sprite != null)
-                _sprite.flipX = (value == LookDir.LookRight);
+                _sprite.flipX = (value == LookDir.LookLeft);
         }
     }
+
+    /* 스탯 */
+    protected float Speed { get { return Skill.projectile.speed; } }
 
 
     protected override void Init()
@@ -46,8 +59,6 @@ public class ProjectileController : BaseController
         Owner = owner;
         Target = target;
 
-        Pos = owner.Pos;
-        Speed = skill.projectile.speed;
         if (target != null)
         {
             Dest = target.Pos;
@@ -55,11 +66,14 @@ public class ProjectileController : BaseController
         }
         else
         {
-            Dest = owner.Pos + (Util.GetDirectionVector(owner.LookDir) * skill.projectile.rangeX);
+            Dest = owner.Pos + (Util.GetDirectionVector(owner.LookDir) * skill.rangeX);
             LookDir = Util.GetLookDirectionToTarget(Owner, Dest);
 
         }
         State = CreatureState.Moving;
+
+        // offset 조정을 위해 pos는 맨 마지막에 지정함
+        Pos = owner.Pos;
     }
 
 
@@ -89,7 +103,7 @@ public class ProjectileController : BaseController
     protected override void UpdateDead()
     {
         // effect 생성 
-        Managers.Object.AddEffect(Skill.projectile.effect, Pos);
+        Managers.Object.AddEffect(Skill.projectile.hitEffect, Pos, Skill.effectOffsetY);
         // 자신 파괴
         Managers.Object.Remove(Id);
     }

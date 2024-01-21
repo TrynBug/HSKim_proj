@@ -74,5 +74,13 @@ public class PriorityQueue<T> where T : IComparable<T>
 		return ret;
 	}
 
+
+	public void Clear()
+	{
+		while (Count > 0)
+			Pop();
+	}
+
+
 	public int Count { get { return _heap.Count; } }
 }

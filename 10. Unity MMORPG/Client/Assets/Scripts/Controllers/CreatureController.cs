@@ -4,6 +4,7 @@ using UnityEngine;
 using Google.Protobuf.Protocol;
 using static Define;
 using Data;
+using static UnityEngine.GraphicsBuffer;
 
 // 움직이고 HP가 있는 오브젝트에 대한 기본 컨트롤러
 // HP Bar, 피격 함수, 사망 함수가 있다.
@@ -14,17 +15,8 @@ public abstract class CreatureController : BaseController
     HpBar _hpBar;
     DebugText _debugText;
 
-    public override int Hp
-    {
-        get { return base.Hp; }
-        set
-        {
-            base.Hp = value;
-            UpdateHpBar();
-        }
-    }
 
-
+    /* 위치 */
     // 현재상태. 애니메이션 업데이트 추가.
     public override CreatureState State
     {
@@ -50,6 +42,45 @@ public abstract class CreatureController : BaseController
             UpdateAnimation();
         }
     }
+
+
+
+    /* 스탯 */
+    StatInfo _stat = new StatInfo();
+    public StatInfo Stat
+    {
+        get { return _stat; }
+        set
+        {
+            Hp = value.Hp;
+            _stat.MaxHp = value.MaxHp;
+            Speed = value.Speed;
+        }
+    }
+
+    public virtual float Speed
+    {
+        get { return Stat.Speed; }
+        set { Stat.Speed = value; }
+    }
+
+    public virtual int Hp
+    {
+        get { return Stat.Hp; }
+        set 
+        { 
+            Stat.Hp = value;
+            UpdateHpBar();
+        }
+    }
+
+
+
+    /* 스킬 */
+    // 사용가능한 스킬정보
+    Dictionary<SkillId, SkillUseInfo> _skillset = new Dictionary<SkillId, SkillUseInfo>();
+    public Dictionary<SkillId, SkillUseInfo> Skillset { get { return _skillset; } }
+
 
 
     public void Awake()
@@ -80,47 +111,24 @@ public abstract class CreatureController : BaseController
     // 스킬 사용됨
     public virtual void OnSkill(SkillId skillId)
     {
-
-    }
-
-    public virtual void OnSkill(S_Skill packet)
-    {
-        SkillData skill = Managers.Data.SkillDict.GetValueOrDefault(packet.SkillId);
-        if (skill == null)
-            return;
-
         UpdateSkillAnimation();
-
-        switch (packet.SkillId)
-        {
-            case SkillId.SkillAttack:
-                break;
-
-            case SkillId.SkillArrow:
-                break;
-
-            case SkillId.SkillFireball:
-                break;
-
-            case SkillId.SkillLightning:
-                foreach (HitInfo hitInfo in packet.Hits)
-                {
-                    CreatureController target = Managers.Object.FindById<CreatureController>(hitInfo.HitObjectId);
-                    if (target != null)
-                        Managers.Object.AddEffect(skill.instant.effect, target.Pos);
-                }
-
-                break;
-        }
     }
+
 
 
     // 피격됨
     public virtual void OnDamaged(CreatureController attacker, int damage)
     {
+        // 대미지 숫자 생성
         Managers.Number.Spawn(NumberType.Damage, transform.position + Vector3.up, damage);
+
         ServerCore.Logger.WriteLog(ServerCore.LogLevel.Debug, $"CreatureController.OnDamaged. damage:{damage}, me:[{this}], attacker:[{attacker}]");
     }
+    public virtual void OnDamaged(int damage)
+    {
+        OnDamaged(null, damage);
+    }
+
 
     // 사망함
     public virtual void OnDead()
@@ -169,6 +177,7 @@ public abstract class CreatureController : BaseController
         UpdateDebugText();
     }
 
+    // Debug Text 업데이트
     protected void UpdateDebugText()
     {
         if (_debugText == null)

@@ -6,10 +6,8 @@ using Google.Protobuf.Protocol;
 using static Define;
 using ServerCore;
 
-public class PlayerController : CreatureController
+public class PlayerController : SPUMController
 {
-    protected Coroutine _coSkill;  // skill 사용 후 후처리(쿨타임 등)를 위한 코루틴
-
     public CreatureState RemoteState { get; set; } = CreatureState.Idle;
     public MoveDir RemoteDir { get; set; } = MoveDir.Down;
 
@@ -121,76 +119,5 @@ public class PlayerController : CreatureController
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"Player.UpdateMoving. {this.ToString(InfoLevel.Position)}");
     }
-
-
-
-    protected override void UpdateAnimation()
-    {
-        switch (State)
-        {
-            case CreatureState.Idle:
-                _animator.SetFloat("RunState", 0);
-                break;
-            case CreatureState.Moving:
-                _animator.SetFloat("RunState", 0.5f);
-                switch (LookDir)
-                {
-                    case LookDir.LookLeft:
-                        gameObject.transform.localScale = new Vector3(1, 1, 1);
-                        break;
-                    case LookDir.LookRight:
-                        gameObject.transform.localScale = new Vector3(-1, 1, 1);
-                        break;
-                }
-                break;
-            case CreatureState.Dead:
-                _animator.SetTrigger("Die");
-                break;
-        }
-    }
-
-    protected override void UpdateSkillAnimation()
-    {
-        _animator.SetTrigger("Attack"); 
-    }
-
-
-
-
-
-    // 스킬 사용됨
-    public override void OnSkill(SkillId skillId)
-    {
-        UpdateSkillAnimation();
-    }
-
-
-
-
-
-    // Punch 사용에 대한 코루틴
-    protected IEnumerator CoStartPunch()
-    {
-        // 쿨타임 후 상태를 Idle로 바꾼다.
-        //_rangeSkill = false;
-        //State = CreatureState.Skill;
-        yield return new WaitForSeconds(0.5f);
-        State = CreatureState.Idle;
-        _coSkill = null;
-
-    }
-
-    // 화살 사용에 대한 코루틴
-    protected IEnumerator CoStartShootArrow()
-    {
-        // 쿨타임 후 상태를 Idle로 바꾼다.
-        //_rangeSkill = true;
-        //State = CreatureState.Skill;
-        yield return new WaitForSeconds(0.3f);
-        State = CreatureState.Idle;
-        _coSkill = null;
-
-    }
-
 
 }

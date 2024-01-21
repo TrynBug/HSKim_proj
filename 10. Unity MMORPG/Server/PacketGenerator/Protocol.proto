@@ -16,10 +16,14 @@ enum MsgId {
     S_MOVE = 8;
     C_SKILL = 9;
     S_SKILL = 10;
-    S_CHANGE_HP = 11;
-    S_DIE = 12;
-    C_SYNC_TIME = 13;
-    S_SYNC_TIME_RESPONSE = 14;
+    C_SKILL_HIT = 11;
+    S_SKILL_HIT = 12;
+    S_CHANGE_HP = 13;
+    S_DIE = 14;
+    C_SYNC_TIME = 15;
+    S_SYNC_TIME_RESPONSE = 16;
+    C_SET_AI = 17;
+    S_SET_AI_RESPONSE = 18;
 }
 
 enum CreatureState
@@ -66,7 +70,22 @@ enum SkillId {
     SKILL_ATTACK = 1;
     SKILL_ARROW = 2;
     SKILL_FIREBALL = 3;
-    SKILL_LIGHTNING = 4;
+    SKILL_THUNDER = 4;
+    SKILL_HEAVY_ATTACK = 5;
+    SKILL_MAGIC_EXPLOSION = 6;
+    SKILL_RED_EXPLOSION = 7;
+    SKILL_LIGHTNING_EXPLOSION = 8;
+}
+
+enum StatChangeType {
+    CHANGE_NONE = 0;
+    CHANGE_POSITIVE = 1;
+    CHANGE_NEGATIVE = 2;
+}
+
+enum AIMode {
+    AI_NONE = 0;
+    AI_AUTO = 1;
 }
 
 
@@ -120,18 +139,29 @@ message S_Move {
 
 message C_Skill {
     SkillId skillId = 1;
+}
+
+message C_SkillHit {
+    SkillId skillId = 1;
     repeated int32 hitObjectIds = 2;
 }
 
 message S_Skill {
     int32 objectId = 1;
     SkillId skillId = 2;
-    repeated HitInfo hits = 3; 
+}
+
+message S_SkillHit {
+    int32 objectId = 1;
+    SkillId skillId = 2;
+    repeated int32 hitObjectIds = 3; 
 }
 
 message S_ChangeHp {
     int32 objectId = 1;
     int32 hp = 2;
+    int32 amount = 3;
+    StatChangeType changeType = 4;
 }
 
 message S_Die {
@@ -148,6 +178,13 @@ message S_SyncTimeResponse {
     int64 serverTime = 2;
 }
 
+message C_SetAI {
+    AIMode mode = 1;
+}
+
+message S_SetAIResponse {
+    AIMode mode = 1;
+}
 
 
 
@@ -184,8 +221,5 @@ message StatInfo {
     optional int32 totalExp = 11;
 }
 
-message HitInfo {
-    int32 hitObjectId = 1;
-    int32 damage = 2;
-}
+
 

@@ -52,22 +52,14 @@ public class ObjectManager
         go.transform.position = Vector3.zero;
         go.name = "MyPlayer";
 
-        // 데이터 초기화
+        // MyPlayer 등록
         MyPlayerController player = Util.FindChild(go, "UnitRoot").GetOrAddComponent<MyPlayerController>();
         MyPlayer = player;
         SortingGroup sort = player.GetOrAddComponent<SortingGroup>();
         sort.sortingOrder = 2;
-        player.Info = packet.Object;
-        player.PosInfo = info.PosInfo;
-        player.Stat = info.StatInfo;
 
-        // 스킬 등록
-        foreach (SkillId skillId in packet.SkillIds)
-        {
-            Data.SkillData skill;
-            if (Managers.Data.SkillDict.TryGetValue(skillId, out skill))
-                player.Skillset.Add(skillId, new SkillInfo() { lastUseTime = 0, skill = skill });
-        }
+        // 객체 초기화
+        MyPlayer.Init(packet);
 
         // object 추가
         _players.Add(info.ObjectId, player);
@@ -167,7 +159,7 @@ public class ObjectManager
 
 
     // effect 오브젝트 추가
-    public EffectController AddEffect(string prefab, Vector2 pos)
+    public EffectController AddEffect(string prefab, Vector2 pos, float offsetY)
     {
         if (string.IsNullOrEmpty(prefab))
             return null;
@@ -180,11 +172,11 @@ public class ObjectManager
             return null;
         }
         EffectController effect = go.GetOrAddComponent<EffectController>();
-        effect.Init(prefab, pos);
+        effect.Init(prefab, pos, offsetY);
 
         // order layer 설정
         SpriteRenderer renderer = effect.GetOrAddComponent<SpriteRenderer>();
-        renderer.sortingOrder = 2;
+        renderer.sortingOrder = 3;
 
         // object 추가
         _effects.Add(effect.Id, effect);

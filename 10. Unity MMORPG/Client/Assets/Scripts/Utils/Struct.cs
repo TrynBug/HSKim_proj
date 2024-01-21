@@ -6,23 +6,13 @@ using System.Threading.Tasks;
 
 
 
-public struct SkillInfo
+public class SkillUseInfo
 {
-    public int lastUseTime;
-    public Data.SkillData skill;
+    public Data.SkillData skill = null;
+    public int lastUseTime = 0;
+    public bool casted = false;
 }
 
 
 
-public class KeyInput
-{
-    public bool Up;
-    public bool Down;
-    public bool Left;
-    public bool Right;
-    public bool SkillA;
-    public bool SkillB;
-    public bool SkillC;
-    public bool Attack;
-}
 

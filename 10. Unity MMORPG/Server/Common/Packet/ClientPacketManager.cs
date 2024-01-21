@@ -53,12 +53,16 @@ class PacketManager
 		_handler.Add((ushort)MsgId.SMove, PacketHandler.S_MoveHandler);		
 		_makeFunc.Add((ushort)MsgId.SSkill, MakePacket<S_Skill>);
 		_handler.Add((ushort)MsgId.SSkill, PacketHandler.S_SkillHandler);		
+		_makeFunc.Add((ushort)MsgId.SSkillHit, MakePacket<S_SkillHit>);
+		_handler.Add((ushort)MsgId.SSkillHit, PacketHandler.S_SkillHitHandler);		
 		_makeFunc.Add((ushort)MsgId.SChangeHp, MakePacket<S_ChangeHp>);
 		_handler.Add((ushort)MsgId.SChangeHp, PacketHandler.S_ChangeHpHandler);		
 		_makeFunc.Add((ushort)MsgId.SDie, MakePacket<S_Die>);
 		_handler.Add((ushort)MsgId.SDie, PacketHandler.S_DieHandler);		
 		_makeFunc.Add((ushort)MsgId.SSyncTimeResponse, MakePacket<S_SyncTimeResponse>);
-		_handler.Add((ushort)MsgId.SSyncTimeResponse, PacketHandler.S_SyncTimeResponseHandler);
+		_handler.Add((ushort)MsgId.SSyncTimeResponse, PacketHandler.S_SyncTimeResponseHandler);		
+		_makeFunc.Add((ushort)MsgId.SSetAiResponse, MakePacket<S_SetAiResponse>);
+		_handler.Add((ushort)MsgId.SSetAiResponse, PacketHandler.S_SetAiResponseHandler);
 	}
 
     // buffer에서 패킷ID를 추출하고, 패킷ID에 해당하는 패킷을 생성한다(_makeFunc에서 찾은 MakePacket<T> 함수를 호출하여).
