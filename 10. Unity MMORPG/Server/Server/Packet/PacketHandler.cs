@@ -6,6 +6,7 @@ using ServerCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -105,6 +106,23 @@ internal class PacketHandler
         syncTimeResponse.ClientTime = syncTime.ClientTime;
         syncTimeResponse.ServerTime = TimeManager.ServerTime;
         clientSession.Send(syncTimeResponse);
+    }
+
+
+    // AI 설정요청 처리
+    public static void C_SetAutoHandler(PacketSession session, IMessage packet)
+    {
+        C_SetAuto autoPacket = packet as C_SetAuto;
+        ClientSession clientSession = session as ClientSession;
+
+        if (clientSession.MyPlayer.SetAutoMode(autoPacket.Mode) == false)
+            return;
+
+        S_SetAutoResponse responsePacket = new S_SetAutoResponse();
+        responsePacket.Mode = autoPacket.Mode;
+        clientSession.Send(responsePacket);
+
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SetAiHandler. objectId:{clientSession.MyPlayer.Id}, mode:{autoPacket.Mode}");
     }
 
 }

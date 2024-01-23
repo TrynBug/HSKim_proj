@@ -12,6 +12,15 @@ public class SPUMController : CreatureController
         {
             case CreatureState.Idle:
                 _animator.SetFloat("RunState", 0);
+                switch (LookDir)
+                {
+                    case LookDir.LookLeft:
+                        gameObject.transform.localScale = new Vector3(1, 1, 1);
+                        break;
+                    case LookDir.LookRight:
+                        gameObject.transform.localScale = new Vector3(-1, 1, 1);
+                        break;
+                }
                 break;
             case CreatureState.Moving:
                 _animator.SetFloat("RunState", 0.5f);

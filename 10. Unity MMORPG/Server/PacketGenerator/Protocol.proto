@@ -22,8 +22,12 @@ enum MsgId {
     S_DIE = 14;
     C_SYNC_TIME = 15;
     S_SYNC_TIME_RESPONSE = 16;
-    C_SET_AI = 17;
-    S_SET_AI_RESPONSE = 18;
+    C_SET_AUTO = 17;
+    S_SET_AUTO_RESPONSE = 18;
+    S_STOP = 20;
+    S_AUTO_CHASE = 21;
+    S_AUTO_WAIT = 22;
+    S_AUTO_SKILL = 23;
 }
 
 enum CreatureState
@@ -31,6 +35,7 @@ enum CreatureState
     IDLE = 0;    
     MOVING = 1;
     DEAD = 2;
+    LOADING = 3;
 }
 
 enum MoveDir
@@ -83,9 +88,19 @@ enum StatChangeType {
     CHANGE_NEGATIVE = 2;
 }
 
-enum AIMode {
-    AI_NONE = 0;
-    AI_AUTO = 1;
+enum AutoMode {
+    MODE_NONE = 0;
+    MODE_AUTO = 1;
+}
+
+enum AutoState
+{
+    AUTO_IDLE = 0;
+    AUTO_CHASING = 1;
+    AUTO_MOVING = 2;
+    AUTO_SKILL = 3;
+    AUTO_DEAD = 4;
+    AUTO_WAIT = 5;
 }
 
 
@@ -178,13 +193,53 @@ message S_SyncTimeResponse {
     int64 serverTime = 2;
 }
 
-message C_SetAI {
-    AIMode mode = 1;
+message C_SetAuto {
+    AutoMode mode = 1;
 }
 
-message S_SetAIResponse {
-    AIMode mode = 1;
+message S_SetAutoResponse {
+    AutoMode mode = 1;
 }
+
+message S_Stop {
+    int32 objectId = 1;
+    float posX = 2;
+    float posY = 3;
+}
+
+message S_AutoChase {
+    int32 objectId = 1;
+    float posX = 2;
+    float posY = 3;
+    int32 targetId = 4;
+    float targetPosX = 5;
+    float targetPosY = 6;
+    float distance = 7;
+}
+
+message S_AutoWait {
+    int32 objectId = 1;
+    float posX = 2;
+    float posY = 3;
+    int32 targetId = 4;
+    int32 waitTime = 5;
+    AutoState nextState = 6;
+}
+
+message S_AutoSkill {
+    int32 objectId = 1;
+    float posX = 2;
+    float posY = 3;
+    int32 targetId = 4;
+    float targetPosX = 5;
+    float targetPosY = 6;
+    SkillId skillId = 7;
+}
+
+
+
+
+
 
 
 
@@ -220,6 +275,4 @@ message StatInfo {
     optional int32 exp = 10;
     optional int32 totalExp = 11;
 }
-
-
 

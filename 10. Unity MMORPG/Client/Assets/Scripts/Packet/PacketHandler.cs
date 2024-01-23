@@ -4,9 +4,9 @@ using ServerCore;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Assertions;
 
 // 패킷 타입별로 호출할 핸들러 함수를 관리하는 클래스
 // 서버에게 받은 패킷을 처리하는 핸들러이기 때문에 S_ 로 시작하는 패킷명에 대한 핸들러 함수만 작성한다.
@@ -166,8 +166,6 @@ class PacketHandler
         PositionInfo info = movePacket.PosInfo;
         pc.Dest = new Vector2(info.DestX, info.DestY);
         pc.Dir = info.MoveDir;
-        pc.RemoteState = info.State;
-        pc.RemoteDir = info.MoveDir;
         pc.MoveKeyDown = info.MoveKeyDown;
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_MoveHandler. " +
@@ -230,6 +228,8 @@ class PacketHandler
                     Managers.Object.AddEffect(skill.hitEffect, taker.Pos, skill.effectOffsetY);
             }
         }
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHitHandler. skill:{hitPacket.SkillId}, hits:{hitPacket.HitObjectIds.Count}, {attacker}");
     }
 
 
@@ -291,6 +291,121 @@ class PacketHandler
         ServerSession serverSession = session as ServerSession;
 
         Managers.Time.SyncTime(syncPacket);
+    }
+
+
+    public static void S_SetAutoResponseHandler(PacketSession session, IMessage packet)
+    {
+        S_SetAutoResponse autoPacket = packet as S_SetAutoResponse;
+        ServerSession serverSession = session as ServerSession;
+
+        Managers.Object.MyPlayer.AutoMode = autoPacket.Mode;
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SetAutoResponseHandler. mode:{autoPacket.Mode}, {Managers.Object.MyPlayer}");
+    }
+
+
+    public static void S_StopHandler(PacketSession session, IMessage packet)
+    {
+        S_Stop stopPacket = packet as S_Stop;
+        ServerSession serverSession = session as ServerSession;
+
+        BaseController obj = Managers.Object.FindById(stopPacket.ObjectId);
+        if (obj == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_StopHandler. Can't find object. objectId:{stopPacket.ObjectId}");
+            return;
+        }
+
+        CreatureController cc = obj as CreatureController;
+        if (cc == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_StopHandler. Object has no CreatureController component. objectId:{stopPacket.ObjectId}");
+            return;
+        }
+
+        cc.StopAt(new Vector2(stopPacket.PosX, stopPacket.PosY));
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_StopHandler. id:{stopPacket.ObjectId}, pos:({stopPacket.PosX},{stopPacket.PosY})");
+    }
+
+
+
+    public static void S_AutoChaseHandler(PacketSession session, IMessage packet)
+    {
+        S_AutoChase chasePacket = packet as S_AutoChase;
+        ServerSession serverSession = session as ServerSession;
+
+        BaseController obj = Managers.Object.FindById(chasePacket.ObjectId);
+        if (obj == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoChaseHandler. Can't find object. objectId:{chasePacket.ObjectId}");
+            return;
+        }
+
+        CreatureController cc = obj as CreatureController;
+        if (cc == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoChaseHandler. Object has no CreatureController component. objectId:{chasePacket.ObjectId}");
+            return;
+        }
+
+        cc.SetAutoChase(chasePacket);
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_AutoChaseHandler. me:{chasePacket.ObjectId}, target:{chasePacket.TargetId}, " +
+            $"pos:({chasePacket.PosX},{chasePacket.PosX}), targetPos:({chasePacket.TargetPosX},{chasePacket.TargetPosY}), distance:{chasePacket.Distance}");
+    }
+
+
+    public static void S_AutoWaitHandler(PacketSession session, IMessage packet)
+    {
+        S_AutoWait waitPacket = packet as S_AutoWait;
+        ServerSession serverSession = session as ServerSession;
+
+        BaseController obj = Managers.Object.FindById(waitPacket.ObjectId);
+        if (obj == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoWaitHandler. Can't find object. objectId:{waitPacket.ObjectId}");
+            return;
+        }
+
+        CreatureController cc = obj as CreatureController;
+        if (cc == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoWaitHandler. Object has no CreatureController component. objectId:{waitPacket.ObjectId}");
+            return;
+        }
+
+        cc.SetAutoWait(waitPacket);
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_AutoWaitHandler. me:{waitPacket.ObjectId}, target:{waitPacket.TargetId}, " +
+            $"pos:({waitPacket.PosX},{waitPacket.PosX}), waitTime:{waitPacket.WaitTime}, nextState{waitPacket.NextState}");
+    }
+
+
+    public static void S_AutoSkillHandler(PacketSession session, IMessage packet)
+    {
+        S_AutoSkill skillPacket = packet as S_AutoSkill;
+        ServerSession serverSession = session as ServerSession;
+
+        BaseController obj = Managers.Object.FindById(skillPacket.ObjectId);
+        if (obj == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoSkillHandler. Can't find object. objectId:{skillPacket.ObjectId}");
+            return;
+        }
+
+        CreatureController cc = obj as CreatureController;
+        if (cc == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoSkillHandler. Object has no CreatureController component. objectId:{skillPacket.ObjectId}");
+            return;
+        }
+
+        cc.SetAutoSkill(skillPacket);
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_AutoSkillHandler. me:{skillPacket.ObjectId}, target:{skillPacket.TargetId}, " +
+            $"pos:({skillPacket.PosX},{skillPacket.PosX}), targetPos:({skillPacket.TargetPosX},{skillPacket.TargetPosY}), skill:{skillPacket.SkillId}");
     }
 
 }

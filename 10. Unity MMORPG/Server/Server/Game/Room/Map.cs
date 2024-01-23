@@ -1,13 +1,6 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
-using System.Drawing;
-using System.IO;
-using System.IO.Compression;
-using System.Linq;
-using System.Numerics;
-using System.Text;
-using System.Threading.Tasks;
 using Google.Protobuf.Protocol;
 using Server.Data;
 using Server.Game;
@@ -21,6 +14,7 @@ namespace Server.Game
     // map collision 데이터를 참조하여 grid 상에서 특정 좌표가 이동 가능한 좌표인지를 판단해준다.
     public class Map
     {
+        GameRoom _room;
         public int Id { get; private set; }
 
         // cell 개수를 몇배수로 할지 결정함
@@ -40,11 +34,19 @@ namespace Server.Game
         public Vector2 PosCenter { get { return CellToCenterPos(CellCenter); } }
         public Vector2Int CellCenter { get { return new Vector2Int(CellMaxX / 2, CellMaxY / 2); } }
 
+
         // grid
         public Cell[,] _cells;
 
         // map data
         MapData _mapData;
+
+        // search algorithm
+        JumpPointSearch _search = new JumpPointSearch();
+
+        // etc
+        Random _random = new Random();
+
 
 
         // utils
@@ -81,7 +83,7 @@ namespace Server.Game
         }
         public Vector2Int GetValidCell(Vector2Int cell)
         {
-            return new Vector2Int(Math.Clamp(cell.x, 0, CellMaxX), Math.Clamp(cell.y, 0, CellMaxY));
+            return new Vector2Int(Math.Clamp(cell.x, 0, CellMaxX - 1), Math.Clamp(cell.y, 0, CellMaxY - 1));
         }
         // 비어있는 cell인지 확인
         public bool IsEmptyCell(Vector2Int cell, bool checkObjects = true)
@@ -98,6 +100,37 @@ namespace Server.Game
         {
             return IsEmptyCell(PosToCell(pos), checkObjects);
         }
+
+
+
+        // 랜덤 포지션 얻기 (텔레포트 위치 제외)
+        public Vector2 GetRandomEmptyPos()
+        {
+            Vector2 pos;
+            int loopCount = 0;
+            while (true)
+            {
+                loopCount++;
+                if(loopCount > 1000)
+                {
+                    Debug.Assert(loopCount < 1000);
+                    return PosCenter;
+                }    
+
+                pos.x = PosMaxX * (float)_random.NextDouble();
+                pos.y = PosMaxY * (float)_random.NextDouble();
+
+                if (GetTeleportAtPos(pos) != null)
+                    continue;
+
+                if (IsEmptyCell(pos, checkObjects: true) == false)
+                    continue;
+
+                return pos;    
+            }
+        }
+
+
 
 
         // 맵 데이터 로드
@@ -126,8 +159,8 @@ namespace Server.Game
             int maxY = mapData.cellBoundMaxY + 1;
             CellMaxX = (maxX - minX) * CellMultiple;
             CellMaxY = (maxY - minY) * CellMultiple;
-            PosMaxX = CellMaxX * CellWidth - 0.01f; ;
-            PosMaxY = CellMaxY * CellHeight - 0.01f; ;
+            PosMaxX = CellMaxX * CellWidth - 0.001f; ;
+            PosMaxY = CellMaxY * CellHeight - 0.001f; ;
 
 
             // grid 생성
@@ -161,6 +194,10 @@ namespace Server.Game
 
                 }
             }
+
+
+            // search 알고리즘 초기화
+            _search.Init(this, _cells, CellMaxX, CellMaxY);
         }
 
 
@@ -184,6 +221,17 @@ namespace Server.Game
             foreach (TeleportData teleport in _mapData.teleports)
             {
                 Vector2 pos = new Vector2(obj.Pos.x - teleport.posX, obj.Pos.y - teleport.posY);
+                if (pos.x > -teleport.width / 2 && pos.x < teleport.width / 2 && pos.y > -teleport.height / 2 && pos.y < teleport.height / 2)
+                    return teleport;
+            }
+            return null;
+        }
+
+        // pos 위치의 텔레포트 얻기
+        public TeleportData GetTeleportAtPos(Vector2 pos)
+        {
+            foreach (TeleportData teleport in _mapData.teleports)
+            {
                 if (pos.x > -teleport.width / 2 && pos.x < teleport.width / 2 && pos.y > -teleport.height / 2 && pos.y < teleport.height / 2)
                     return teleport;
             }
@@ -245,7 +293,8 @@ namespace Server.Game
 
 
         // object를 dest 위치에 MovingObject로 이동시킨다.
-        public bool TryMoving(GameObject obj, Vector2Int dest)
+        // checkCollider = false 일 경우 collider와 상관없이 이동시킨다. 이것은 Auto Moving을 할 때 사용한다.
+        public bool TryMoving(GameObject obj, Vector2Int dest, bool checkCollider = true)
         {
             // 오류체크
             Vector2Int cell = obj.Cell;
@@ -266,7 +315,7 @@ namespace Server.Game
             Cell destCell = _cells[dest.y, dest.x];
 
             // dest에 collider가 있을 경우 실패
-            if (destCell.Collider == true)
+            if (checkCollider == true && destCell.Collider == true)
                 return false;
 
             // cell 이동
@@ -287,17 +336,19 @@ namespace Server.Game
 
             return true;
         }
-        public bool TryMoving(GameObject obj, Vector2 dest)
+        public bool TryMoving(GameObject obj, Vector2 dest, bool checkCollider = true)
         {
-            return TryMoving(obj, PosToCell(dest));
+            return TryMoving(obj, PosToCell(dest), checkCollider);
         }
+
+
 
 
 
         // object를 dest에 위치시킨다.
         // dest에 위치할 수 없을 경우 가장 가까운 cell에 위치시킨다.
         // 현재 cell과 dest의 위치가 같아도 오류가 없으면 true를 리턴한다.
-        // 이동할 수 없을 경우 false를 리턴한다. 이 때는 stopPos 값을 사용하면 안된다.
+        // 이동할 수 없을 경우 false를 리턴한다.
         public bool TryStop(GameObject obj, Vector2 targetPos, out Vector2 stopPos)
         {
             // 오류체크
@@ -540,7 +591,7 @@ namespace Server.Game
 
         // center를 기준으로 가장 가까운 오브젝트를 찾는다.
         // 찾지 못했으면 null을 리턴함
-        public GameObject FindObjectNearbyCell(Vector2Int center)
+        public GameObject FindObjectNearbyCell(Vector2Int center, GameObject exceptObject = null)
         {
             center = GetValidCell(center);
 
@@ -569,24 +620,28 @@ namespace Server.Game
                 // 범위의 왼쪽위 -> 오른쪽위 검색
                 for (int x = from.x; x <= to.x; x++)
                 {
-                    if (_cells[from.y, x].GetObject() != null)
-                        return _cells[from.y, x].GetObject();
+                    GameObject obj = _cells[from.y, x].GetObject();
+                    if (obj != null && obj != exceptObject)
+                        return obj;
                 }
 
                 // 범위의 왼쪽, 오른쪽 검색
                 for (int y = from.y + 1; y <= to.y - 1; y++)
                 {
-                    if (_cells[y, from.x].GetObject() != null)
-                        return _cells[y, from.x].GetObject();
-                    if (_cells[y, to.x].GetObject() != null)
-                        return _cells[y, to.x].GetObject();
+                    GameObject obj = _cells[y, from.x].GetObject();
+                    if (obj != null && obj != exceptObject)
+                        return obj;
+                    obj = _cells[y, to.x].GetObject();
+                    if (obj != null && obj != exceptObject)
+                        return obj;
                 }
 
                 // 범위의 왼쪽아래 -> 오른쪽아래 검색
                 for (int x = from.x; x <= to.x; x++)
                 {
-                    if (_cells[to.y, x].GetObject() != null)
-                        return _cells[to.y, x].GetObject();
+                    GameObject obj = _cells[to.y, x].GetObject();
+                    if (obj != null && obj != exceptObject)
+                        return obj;
                 }
             }
         }
@@ -695,6 +750,92 @@ namespace Server.Game
 
 
 
+        // pos 위치를 기준으로 dir 방향의 사각형 range 범위에 있는 오브젝트를 찾아 리턴한다.
+        public List<GameObject> FindObjectsInRect(Vector2 pos, Vector2 range, LookDir dir)
+        {
+            List<GameObject> objects = new List<GameObject>();
+
+            // 공격범위를 조사할 cell 찾기
+            // 공격범위: pos 위치에서 dir 방향으로 너비 range.x, 높이 range.y 사각형
+            Vector2 targetPosMin;
+            Vector2 targetPosMax;
+            if (dir == LookDir.LookLeft)
+            {
+                targetPosMin.x = pos.x + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).x;
+                targetPosMax.x = pos.x + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).x;
+                targetPosMin.y = pos.y + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).y;
+                targetPosMax.y = pos.y + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).y;
+            }
+            else
+            {
+                targetPosMin.x = pos.x + (Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).x;
+                targetPosMax.x = pos.x + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).x;
+                targetPosMin.y = pos.y + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).y;
+                targetPosMax.y = pos.y + (Util.GetDirectionVector(MoveDir.Right) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).y;
+            }
+            targetPosMin = GetValidPos(targetPosMin);
+            targetPosMax = GetValidPos(targetPosMax);
+            Vector2Int targetCellMin = PosToCell(targetPosMin);
+            Vector2Int targetCellMax = PosToCell(targetPosMax);
+
+
+            // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
+            Vector2 R;
+            if (dir == LookDir.LookLeft)
+                R = new Vector2((float)Math.Cos(Math.PI / 180 * 135), (float)Math.Sin(Math.PI / 180 * 135));
+            else
+                R = new Vector2((float)Math.Cos(Math.PI / 180 * 315), (float)Math.Sin(Math.PI / 180 * 315));
+
+            // 범위 내의 object 찾기
+            for (int y = targetCellMin.y; y <= targetCellMax.y; y++)
+            {
+                for (int x = targetCellMin.x; x <= targetCellMax.x; x++)
+                {
+                    Cell cell = _cells[y, x];
+                    if (cell.Object != null)
+                    {
+                        Vector2 objectPos;
+                        objectPos.x = (cell.Object.Pos.x - pos.x) * R.x - (cell.Object.Pos.y - pos.y) * R.y;
+                        objectPos.y = (cell.Object.Pos.x - pos.x) * R.y + (cell.Object.Pos.y - pos.y) * R.x;
+                        if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+                            objects.Add(cell.Object);
+                    }
+                    foreach (GameObject obj in cell.MovingObjects)
+                    {
+                        Vector2 objectPos;
+                        objectPos.x = (obj.Pos.x - pos.x) * R.x - (obj.Pos.y - pos.y) * R.y;
+                        objectPos.y = (obj.Pos.x - pos.x) * R.y + (obj.Pos.y - pos.y) * R.x;
+                        if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+                            objects.Add(cell.Object);
+                    }
+                }
+            }
+
+            return objects;
+        }
+
+
+        // 길찾기
+        public List<Vector2> SearchPath(Vector2 start, Vector2 end)
+        {
+            // 목적지까지 곧바로 갈 수 있다면 경로를 바로 return
+            Vector2 intersection;
+            if(CanGo(start, end, out intersection) == true)
+            {
+                return new List<Vector2>() { start, end };
+            }
+
+            // 경로 찾기
+            Vector2Int startCell = PosToCell(start);
+            Vector2Int endCell = PosToCell(end);
+            List<Vector2> path = _search.SearchPath(startCell, endCell);
+            if (path.Count > 0)
+                path[0] = start;  // 경로 첫 좌표는 시작좌표로 교체한다.
+            return path;
+        }
+
+
+
 
         // ToString
         public override string ToString()
@@ -702,159 +843,6 @@ namespace Server.Game
             return $"map:{Id}";
         }
 
-
-
-
-
-
-        #region A* PathFinding
-        public List<Vector2Int> FindPath(Vector2Int startCellPos, Vector2Int destCellPos, bool checkObjects = true)
-        {
-            return null;
-        }
-        //public struct Pos
-        //{
-        //    public Pos(int y, int x) { Y = y; X = x; }
-        //    public int Y;
-        //    public int X;
-        //}
-
-        //public struct PQNode : IComparable<PQNode>
-        //{
-        //    public int F;
-        //    public int G;
-        //    public int Y;
-        //    public int X;
-
-        //    public int CompareTo(PQNode other)
-        //    {
-        //        if (F == other.F)
-        //            return 0;
-        //        return F < other.F ? 1 : -1;
-        //    }
-        //}
-
-
-        //// U D L R
-        //int[] _deltaY = new int[] { 1, -1, 0, 0 };
-        //int[] _deltaX = new int[] { 0, 0, -1, 1 };
-        //int[] _cost = new int[] { 10, 10, 10, 10 };
-
-        //public List<Vector2Int> FindPath(Vector2Int startCellPos, Vector2Int destCellPos, bool checkObjects = true)
-        //{
-        //    List<Pos> path = new List<Pos>();
-
-        //    // 점수 매기기
-        //    // F = G + H
-        //    // F = 최종 점수 (작을 수록 좋음, 경로에 따라 달라짐)
-        //    // G = 시작점에서 해당 좌표까지 이동하는데 드는 비용 (작을 수록 좋음, 경로에 따라 달라짐)
-        //    // H = 목적지에서 얼마나 가까운지 (작을 수록 좋음, 고정)
-
-        //    // (y, x) 이미 방문했는지 여부 (방문 = closed 상태)
-        //    bool[,] closed = new bool[SizeY, SizeX]; // CloseList
-
-        //    // (y, x) 가는 길을 한 번이라도 발견했는지
-        //    // 발견X => MaxValue
-        //    // 발견O => F = G + H
-        //    int[,] open = new int[SizeY, SizeX]; // OpenList
-        //    for (int y = 0; y < SizeY; y++)
-        //        for (int x = 0; x < SizeX; x++)
-        //            open[y, x] = Int32.MaxValue;
-
-        //    Pos[,] parent = new Pos[SizeY, SizeX];
-
-        //    // 오픈리스트에 있는 정보들 중에서, 가장 좋은 후보를 빠르게 뽑아오기 위한 도구
-        //    PriorityQueue<PQNode> pq = new PriorityQueue<PQNode>();
-
-        //    // CellPos -> ArrayPos
-        //    Pos pos = Cell2Pos(startCellPos);
-        //    Pos dest = Cell2Pos(destCellPos);
-
-        //    // 시작점 발견 (예약 진행)
-        //    open[pos.Y, pos.X] = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X));
-        //    pq.Push(new PQNode() { F = 10 * (Math.Abs(dest.Y - pos.Y) + Math.Abs(dest.X - pos.X)), G = 0, Y = pos.Y, X = pos.X });
-        //    parent[pos.Y, pos.X] = new Pos(pos.Y, pos.X);
-
-        //    while (pq.Count > 0)
-        //    {
-        //        // 제일 좋은 후보를 찾는다
-        //        PQNode node = pq.Pop();
-        //        // 동일한 좌표를 여러 경로로 찾아서, 더 빠른 경로로 인해서 이미 방문(closed)된 경우 스킵
-        //        if (closed[node.Y, node.X])
-        //            continue;
-
-        //        // 방문한다
-        //        closed[node.Y, node.X] = true;
-        //        // 목적지 도착했으면 바로 종료
-        //        if (node.Y == dest.Y && node.X == dest.X)
-        //            break;
-
-        //        // 상하좌우 등 이동할 수 있는 좌표인지 확인해서 예약(open)한다
-        //        for (int i = 0; i < _deltaY.Length; i++)
-        //        {
-        //            Pos next = new Pos(node.Y + _deltaY[i], node.X + _deltaX[i]);
-
-        //            // 유효 범위를 벗어났으면 스킵
-        //            // 벽으로 막혀서 갈 수 없으면 스킵
-        //            if (next.Y != dest.Y || next.X != dest.X)
-        //            {
-        //                if (CanGo(Pos2Cell(next), checkObjects) == false) // CellPos
-        //                    continue;
-        //            }
-
-        //            // 이미 방문한 곳이면 스킵
-        //            if (closed[next.Y, next.X])
-        //                continue;
-
-        //            // 비용 계산
-        //            int g = 0;// node.G + _cost[i];
-        //            int h = 10 * ((dest.Y - next.Y) * (dest.Y - next.Y) + (dest.X - next.X) * (dest.X - next.X));
-        //            // 다른 경로에서 더 빠른 길 이미 찾았으면 스킵
-        //            if (open[next.Y, next.X] < g + h)
-        //                continue;
-
-        //            // 예약 진행
-        //            open[dest.Y, dest.X] = g + h;
-        //            pq.Push(new PQNode() { F = g + h, G = g, Y = next.Y, X = next.X });
-        //            parent[next.Y, next.X] = new Pos(node.Y, node.X);
-        //        }
-        //    }
-
-        //    return CalcCellPathFromParent(parent, dest);
-        //}
-
-        //List<Vector2Int> CalcCellPathFromParent(Pos[,] parent, Pos dest)
-        //{
-        //    List<Vector2Int> cells = new List<Vector2Int>();
-
-        //    int y = dest.Y;
-        //    int x = dest.X;
-        //    while (parent[y, x].Y != y || parent[y, x].X != x)
-        //    {
-        //        cells.Add(Pos2Cell(new Pos(y, x)));
-        //        Pos pos = parent[y, x];
-        //        y = pos.Y;
-        //        x = pos.X;
-        //    }
-        //    if (!(x == 0 && y == 0))
-        //        cells.Add(Pos2Cell(new Pos(y, x)));
-        //    cells.Reverse();
-        //    return cells;
-        //}
-
-        //Pos Cell2Pos(Vector2Int cell)
-        //{
-        //    // CellPos -> ArrayPos
-        //    return new Pos(MaxY - cell.y, cell.x - MinX);
-        //}
-
-        //Vector2Int Pos2Cell(Pos pos)
-        //{
-        //    // ArrayPos -> CellPos
-        //    return new Vector2Int(pos.X + MinX, MaxY - pos.Y);
-        //}
-
-        #endregion
     }
 
 }

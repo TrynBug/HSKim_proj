@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
-using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using UnityEditor;
@@ -109,12 +108,15 @@ public class JumpPointSearch
     }
 
 
-    public List<Vector2Int> SearchPath(Vector2Int start, Vector2Int end)
+    public List<Vector2> SearchPath(Vector2Int start, Vector2Int end)
     {
         Clear();
 
-        _start = start;
-        _end = end;
+        _start = new Vector2Int(Math.Clamp(start.x, 0, _maxX - 1), Math.Clamp(start.y, 0, _maxY - 1));
+        _end = new Vector2Int(Math.Clamp(end.x, 0, _maxX - 1), Math.Clamp(end.y, 0, _maxY - 1));
+
+        if (_start == _end)
+            return new List<Vector2> { Managers.Map.CellToCenterPos(_start), Managers.Map.CellToCenterPos(_end) };
 
         // _cells 배열 초기화, 도착지점 정보 입력
         for (int y = 0; y < _maxY; y++)
@@ -162,8 +164,8 @@ public class JumpPointSearch
         // Bresenham 알고리즘으로 보정된 경로 생성
         bool isAccessible = true;
         loopCount = 0;
-        List<Vector2Int> smoothPath = new List<Vector2Int>();
-        smoothPath.Add(_path[0]);
+        List<Vector2> smoothPath = new List<Vector2>();
+        smoothPath.Add(Managers.Map.CellToCenterPos(_path[0]));
         for (int from = 0; from < _path.Count - 1;)
         {
             if (loopCount++ > 1000)
@@ -187,7 +189,7 @@ public class JumpPointSearch
 
                 if (isAccessible)
                 {
-                    smoothPath.Add(_path[to]);
+                    smoothPath.Add(Managers.Map.CellToCenterPos(_path[to]));
                     from = to;
                     break;
                 }

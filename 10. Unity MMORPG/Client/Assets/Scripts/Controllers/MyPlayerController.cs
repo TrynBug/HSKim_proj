@@ -7,6 +7,7 @@ using static Define;
 using Data;
 using System;
 using TMPro;
+using System.Linq;
 
 
 public class MyPlayerController : SPUMController
@@ -21,9 +22,6 @@ public class MyPlayerController : SPUMController
     public Dictionary<UnityEngine.KeyCode, KeyInput> KeyMap { get; private set; } = new Dictionary<KeyCode, KeyInput>();   // 키보드키와 게임기능키 연결맵
     public Dictionary<KeyInput, SkillId> KeySkillMap { get; private set; } = new Dictionary<KeyInput, SkillId>();          // 게임기능키와 스킬 연결맵
     bool[] _keyInput = new bool[Enum.GetValues(typeof(KeyInput)).Length];
-
-    public AIMode AIMode { get; set; } = AIMode.AiNone;
-    AIAuto aiAuto = new AIAuto();
 
     protected override void Init()
     {
@@ -50,6 +48,7 @@ public class MyPlayerController : SPUMController
         KeyMap.Add(KeyCode.Alpha4, KeyInput.SkillI);
         KeyMap.Add(KeyCode.Alpha5, KeyInput.SkillJ);
         KeyMap.Add(KeyCode.Alpha6, KeyInput.SkillK);
+        KeyMap.Add(KeyCode.P, KeyInput.Auto);
 
         // 데이터 초기화
         ObjectInfo info = packet.Object;
@@ -78,6 +77,14 @@ public class MyPlayerController : SPUMController
     GameObject goDebug = null;
     protected override void UpdateController()
     {
+        GetKeyInput();
+        if (_keyInput[(int)KeyInput.Auto] == true)
+        {
+            SendAutoRequest();
+        }
+
+
+
         base.UpdateController();
 
 
@@ -207,22 +214,7 @@ public class MyPlayerController : SPUMController
 
     protected override void UpdateIdle()
     {
-        GetKeyInput();
-        switch(AIMode)
-        {
-            case AIMode.AiNone:
-                UpdateIdle_AINone();
-                break;
-            case AIMode.AiAuto:
-                UpdateIdle_AIAuto();
-                break;
-        }
-
-    }
-
-    void UpdateIdle_AINone()
-    {
-        // 방향키 눌림
+        // 방향키가 눌림
         if (MoveKeyDown == true)
         {
             _speedRateForStop = 1f; // 초기화
@@ -245,12 +237,17 @@ public class MyPlayerController : SPUMController
             // 서버에 전송
             SendMovePacket();
         }
+        // 현재위치와 목적지가 다름
+        else if (Util.Equals(Pos, Dest) == false)
+        {
+            State = CreatureState.Moving;
+            SendMovePacket();
+        }
 
 
         // 스킬사용 업데이트
         UpdateSkill();
     }
-
 
 
     enum AutoState
@@ -259,51 +256,86 @@ public class MyPlayerController : SPUMController
         AutoChasing,
         AutoMoving,
         AutoSkill,
+        AutoWait,
     }
     BaseController _target = null;
     Vector2Int _prevTargetCell;
     AutoState _state = AutoState.AutoIdle;
     SkillData _nextSkill = Managers.Data.DefaultSkill;
-    List<Vector2Int> _path;
-    int _nextPathIndex = 0;
+    List<Vector2> _path;
+    int _nextPathIndex = 1;
+    int _waitTime = 0;
     void UpdateIdle_AIAuto()
     {
         switch(_state)
         {
             case AutoState.AutoIdle:
                 {
-                    _target = Managers.Map.FindObjectNearbyCell(Cell);
+                    _target = Managers.Map.FindObjectNearbyCell(Cell, exceptObject:this);
                     if(_target != null)
                     {
                         _prevTargetCell = _target.Cell;
                         _path = Managers.Map.SearchPath(Cell, _target.Cell);
-                        _nextPathIndex = 0;
+                        _nextPathIndex = 1;
                         _state = AutoState.AutoChasing;
                     }
                 }
                 break;
             case AutoState.AutoChasing:
                 {
-                    if(Util.IsTargetInRectRange(Pos, LookDir, new Vector2(_nextSkill.rangeX, _nextSkill.rangeY), _target.Pos))
+                    if (_target == null || _target.State == CreatureState.Dead)
                     {
+                        _target = null;
+                        _state = AutoState.AutoIdle;
+                    }
+
+                    if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(_nextSkill.rangeX, _nextSkill.rangeY), _target.Pos))
+                    {
+                        // 스킬범위 내라면 스킬사용
                         _state = AutoState.AutoSkill;
                     }
                     else
                     {
+                        // 타겟이 이동했으면 경로 재계산
                         if (_prevTargetCell != _target.Cell)
                         {
                             _path = Managers.Map.SearchPath(Cell, _target.Cell);
-                            _nextPathIndex = 0;
+                            _nextPathIndex = 1;
                         }
 
+                        // Dest에 도착했다면 다음 목적지 지정
+                        if(Util.Equals(Pos, Dest))
+                        {
+                            if (_nextPathIndex < _path.Count)
+                            {
+                                Dest = _path[_nextPathIndex];
+                                _nextPathIndex++;
+                            }
+                            else
+                            {
+                                Dest = _path.Last();
+                            }
 
-                        Dest = 
+                        }
                     }
                 }
                 break;
             case AutoState.AutoSkill:
                 {
+                    // 스킬키 입력
+                    _keyInput[(int)KeyInput.Attack] = true;
 
+                    // wait 상태로 변경
+                    _waitTime = Environment.TickCount + 1000;
+                    _state = AutoState.AutoWait;
+                }
+                break;
+            case AutoState.AutoWait:
+                {
+                    // wait 후 chase 상태로 변경
+                    int tick = Environment.TickCount;
+                    if (tick > _waitTime)
+                        _state = AutoState.AutoChasing;
                 }
                 break;
         }
@@ -312,8 +344,6 @@ public class MyPlayerController : SPUMController
 
     protected override void UpdateMoving()
     {
-        GetKeyInput();
-
         // 키보드 방향키가 눌려있는 동안은 Dest를 계속해서 이동시킨다.
         Vector2 intersection;
         if (MoveKeyDown == true)
@@ -572,4 +602,14 @@ public class MyPlayerController : SPUMController
     }
 
 
+
+    // 자동사냥 시작 패킷 전송
+    void SendAutoRequest()
+    {
+        C_SetAuto autoPacket = new C_SetAuto();
+        autoPacket.Mode = AutoMode.ModeAuto;
+        Managers.Network.Send(autoPacket);
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.SendAutoRequest. mode:{autoPacket.Mode}");
+    }
 }

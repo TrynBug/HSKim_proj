@@ -239,13 +239,13 @@ public class ObjectManager
         switch (objType)
         {
             case GameObjectType.Player:
-                _players.TryGetValue(id, out obj);
+                obj = _players.GetValueOrDefault(id, null);
                 break;
             case GameObjectType.Projectile:
-                _projectiles.TryGetValue(id, out obj);
+                obj = _projectiles.GetValueOrDefault(id, null);
                 break;
             case GameObjectType.Effect:
-                _effects.TryGetValue(id, out obj);
+                obj = _effects.GetValueOrDefault(id, null);
                 break;
         }
         

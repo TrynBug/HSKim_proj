@@ -121,7 +121,48 @@ namespace Server
             return opposite;
         }
 
+        // pos에서 dest로의 방향 얻기
+        public static MoveDir GetDirectionToDest(Vector2 pos, Vector2 dest)
+        {
+            const float r1 = (float)Math.PI / 180f * (22.5f + 45f * 0);
+            const float r2 = (float)Math.PI / 180f * (22.5f + 45f * 1);
+            const float r3 = (float)Math.PI / 180f * (22.5f + 45f * 2);
+            const float r4 = (float)Math.PI / 180f * (22.5f + 45f * 3);
+            const float r5 = (float)Math.PI / 180f * -(22.5f + 45f * 3);
+            const float r6 = (float)Math.PI / 180f * -(22.5f + 45f * 2);
+            const float r7 = (float)Math.PI / 180f * -(22.5f + 45f * 1);
+            const float r8 = (float)Math.PI / 180f * -(22.5f + 45f * 0);
 
+            Vector2 diff = (dest - pos).normalized;
+            float radian = (float)Math.Atan2(-diff.y, diff.x);
+
+            if (radian > 0)
+            {
+                if (radian < r1)
+                    return MoveDir.RightUp;
+                else if (radian < r2)
+                    return MoveDir.Up;
+                else if (radian < r3)
+                    return MoveDir.LeftUp;
+                else if (radian < r4)
+                    return MoveDir.Left;
+                else
+                    return MoveDir.LeftDown;
+            }
+            else
+            {
+                if (radian < r5)
+                    return MoveDir.LeftDown;
+                else if (radian < r6)
+                    return MoveDir.Down;
+                else if (radian < r7)
+                    return MoveDir.RightDown;
+                else if (radian < r8)
+                    return MoveDir.Right;
+                else
+                    return MoveDir.RightUp;
+            }
+        }
 
         // posOrigin을 기준으로, look 방향으로 사각형의 range 범위 내에 target이 위치하는지를 확인함
         public static bool IsTargetInRectRange(Vector2 posOrigin, LookDir look, Vector2 range, Vector2 posTarget)

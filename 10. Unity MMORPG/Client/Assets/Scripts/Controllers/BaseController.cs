@@ -4,6 +4,8 @@ using UnityEngine;
 using Google.Protobuf.Protocol;
 using static Define;
 using Data;
+using UnityEditor;
+using System;
 
 // 모든 컨트롤러의 부모 컨트롤러
 // 상태와 이동방향을 정의한다.
@@ -113,9 +115,22 @@ public class BaseController : MonoBehaviour
 
 
 
+    /* Auto */
+    AutoMode _autoMode = AutoMode.ModeNone;
+    public AutoMode AutoMode 
+    {
+        get { return _autoMode; }
+        set
+        {
+            _autoMode = value;
+            if (_autoMode == AutoMode.ModeNone)
+                State = CreatureState.Idle;
+            else if (_autoMode == AutoMode.ModeAuto)
+                AutoState = AutoState.AutoIdle;
+        }
+    }
+    public AutoState AutoState { get; protected set; } = AutoState.AutoIdle;
 
-
-    
 
 
     // 현재 방향에 해당하는 벡터 얻기
@@ -143,19 +158,47 @@ public class BaseController : MonoBehaviour
     {
     }
 
+    // update
     protected virtual void UpdateController()
     {
-        switch (State)
+        if (AutoMode == AutoMode.ModeNone)
         {
-            case CreatureState.Idle:
-                UpdateIdle();
-                break;
-            case CreatureState.Moving:
-                UpdateMoving();
-                break;
-            case CreatureState.Dead:
-                UpdateDead();
-                break;
+            switch (State)
+            {
+                case CreatureState.Idle:
+                    UpdateIdle();
+                    break;
+                case CreatureState.Moving:
+                    UpdateMoving();
+                    break;
+                case CreatureState.Dead:
+                    UpdateDead();
+                    break;
+            }
+        }
+        else if (AutoMode == AutoMode.ModeAuto)
+        {
+            switch (AutoState)
+            {
+                case AutoState.AutoIdle:
+                    UpdateAutoIdle();
+                    break;
+                case AutoState.AutoChasing:
+                    UpdateAutoChasing();
+                    break;
+                case AutoState.AutoMoving:
+                    UpdateAutoMoving();
+                    break;
+                case AutoState.AutoSkill:
+                    UpdateAutoSkill();
+                    break;
+                case AutoState.AutoDead:
+                    UpdateAutoDead();
+                    break;
+                case AutoState.AutoWait:
+                    UpdateAutoWait();
+                    break;
+            }
         }
     }
 
@@ -178,7 +221,29 @@ public class BaseController : MonoBehaviour
 
     }
 
+    protected virtual void UpdateAutoIdle()
+    {
+    }
 
+    protected virtual void UpdateAutoChasing()
+    {
+    }
+
+    protected virtual void UpdateAutoMoving()
+    {
+    }
+
+    protected virtual void UpdateAutoSkill()
+    {
+    }
+
+    protected virtual void UpdateAutoDead()
+    {
+    }
+
+    protected virtual void UpdateAutoWait()
+    {
+    }
 
     // ToString
     public override string ToString()

@@ -79,6 +79,7 @@ public class Define
         SkillI,
         SkillJ,
         SkillK,
+        Auto,
     }
 
 
@@ -134,7 +135,7 @@ public class Define
         Weapon_Spear,
         Weapon_SteelShield,
         Weapon_Sword,
-        Weapon_Ward,
+        Weapon_Wand,
     }
     #endregion
 

@@ -131,6 +131,32 @@ namespace Server.Game
 
 
 
+        /* Auto */
+        public AutoMode AutoMode { get; protected set; } = AutoMode.ModeNone;
+        public AutoState AutoState { get; protected set; } = AutoState.AutoIdle;
+        public class AutoInfo
+        {
+            List<Vector2> _path = new List<Vector2>();
+            public List<Vector2> Path
+            {
+                get { return _path; }
+                set
+                {
+                    _path = value;
+                    PathIndex = 1;
+                }
+            }
+            public int PathIndex = 1;
+            public GameObject Target = null;
+            public Vector2Int PrevTargetCell = new Vector2Int(0, 0);
+            public float TargetDistance = 0;
+
+            public SkillUseInfo SkillUse = null;
+
+            public int WaitUntil = 0;
+            public AutoState NextState;
+        }
+        public AutoInfo Auto { get; set; } = new AutoInfo();
 
 
 
@@ -181,18 +207,47 @@ namespace Server.Game
         // update
         public virtual void Update()
         {
-            switch (State)
+            if (AutoMode == AutoMode.ModeNone)
             {
-                case CreatureState.Idle:
-                    UpdateIdle();
-                    break;
-                case CreatureState.Moving:
-                    UpdateMoving();
-                    break;
-                case CreatureState.Dead:
-                    UpdateDead();
-                    break;
+                switch (State)
+                {
+                    case CreatureState.Idle:
+                        UpdateIdle();
+                        break;
+                    case CreatureState.Moving:
+                        UpdateMoving();
+                        break;
+                    case CreatureState.Dead:
+                        UpdateDead();
+                        break;
+                }
             }
+            else if(AutoMode == AutoMode.ModeAuto)
+            {
+                switch (AutoState)
+                {
+                    case AutoState.AutoIdle:
+                        UpdateAutoIdle();
+                        break;
+                    case AutoState.AutoChasing:
+                        UpdateAutoChasing();
+                        break;
+                    case AutoState.AutoMoving:
+                        UpdateAutoMoving();
+                        break;
+                    case AutoState.AutoSkill:
+                        UpdateAutoSkill();
+                        break;
+                    case AutoState.AutoDead:
+                        UpdateAutoDead();
+                        break;
+                    case AutoState.AutoWait:
+                        UpdateAutoWait();
+                        break;
+                }
+            }
+
+            UpdateSkill();
         }
 
         protected virtual void UpdateIdle()
@@ -213,7 +268,40 @@ namespace Server.Game
 
 
 
+        protected virtual void UpdateAutoIdle()
+        {
+        }
 
+        protected virtual void UpdateAutoChasing()
+        {
+        }
+
+        protected virtual void UpdateAutoMoving()
+        {
+        }
+
+        protected virtual void UpdateAutoSkill()
+        {
+        }
+
+        protected virtual void UpdateAutoDead()
+        {
+        }
+
+        protected virtual void UpdateAutoWait()
+        {
+            int tick = Environment.TickCount;
+            if(tick > Auto.WaitUntil)
+            {
+                AutoState = Auto.NextState;
+
+                ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameObject.UpdateAutoWait. nextState:{AutoState}, {this}");
+
+                return;
+            }
+
+            
+        }
 
         // 현재 방향에 해당하는 벡터 얻기
         public Vector2 GetDirectionVector(MoveDir dir)
@@ -269,6 +357,27 @@ namespace Server.Game
             Room._broadcast(diePacket);
 
             Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDead. me:[{this.ToString(InfoLevel.Stat)}], attacker:[{attacker.ToString(InfoLevel.Stat)}]");
+        }
+
+
+        // Set Auto
+        public bool SetAutoMode(AutoMode autoMode)
+        {
+            if (AutoMode == autoMode)
+                return false;
+
+            AutoMode = autoMode;
+            if (autoMode == AutoMode.ModeNone)
+            {
+                State = CreatureState.Idle;
+            }
+            else if (autoMode == AutoMode.ModeAuto)
+            {
+                Speed = 7f;
+                AutoState = AutoState.AutoIdle;
+            }
+
+            return true;
         }
     }
 }

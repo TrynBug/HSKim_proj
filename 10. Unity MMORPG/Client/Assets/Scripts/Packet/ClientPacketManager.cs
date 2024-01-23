@@ -60,7 +60,17 @@ class PacketManager
 		_makeFunc.Add((ushort)MsgId.SDie, MakePacket<S_Die>);
 		_handler.Add((ushort)MsgId.SDie, PacketHandler.S_DieHandler);		
 		_makeFunc.Add((ushort)MsgId.SSyncTimeResponse, MakePacket<S_SyncTimeResponse>);
-		_handler.Add((ushort)MsgId.SSyncTimeResponse, PacketHandler.S_SyncTimeResponseHandler);
+		_handler.Add((ushort)MsgId.SSyncTimeResponse, PacketHandler.S_SyncTimeResponseHandler);		
+		_makeFunc.Add((ushort)MsgId.SSetAutoResponse, MakePacket<S_SetAutoResponse>);
+		_handler.Add((ushort)MsgId.SSetAutoResponse, PacketHandler.S_SetAutoResponseHandler);		
+		_makeFunc.Add((ushort)MsgId.SStop, MakePacket<S_Stop>);
+		_handler.Add((ushort)MsgId.SStop, PacketHandler.S_StopHandler);		
+		_makeFunc.Add((ushort)MsgId.SAutoChase, MakePacket<S_AutoChase>);
+		_handler.Add((ushort)MsgId.SAutoChase, PacketHandler.S_AutoChaseHandler);		
+		_makeFunc.Add((ushort)MsgId.SAutoWait, MakePacket<S_AutoWait>);
+		_handler.Add((ushort)MsgId.SAutoWait, PacketHandler.S_AutoWaitHandler);		
+		_makeFunc.Add((ushort)MsgId.SAutoSkill, MakePacket<S_AutoSkill>);
+		_handler.Add((ushort)MsgId.SAutoSkill, PacketHandler.S_AutoSkillHandler);
 	}
 
     // buffer에서 패킷ID를 추출하고, 패킷ID에 해당하는 패킷을 생성한다(_makeFunc에서 찾은 MakePacket<T> 함수를 호출하여).

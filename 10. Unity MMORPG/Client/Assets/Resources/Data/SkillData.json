@@ -83,24 +83,6 @@
 	  "effectOffsetY": "0.25"
     },
     {
-      "id": "SkillArrow",
-      "name": "Arrow",
-      "cooldown": "500",
-	  "castingTime": "200",
-	  "skillTime": "400",
-	  "speedRate": "0.2",
-	  "damage": "5",
-	  "rangeX": "5.0",
-	  "rangeY": "4.0",
-	  "skillType": "SkillProjectile",
-	  "projectile": {
-		  "name": "Arrow",
-		  "speed": "10.0",
-		  "prefab": "Creature/Arrow",
-		  "hitEffect": "Effect/Explosion"
-	  }
-	},
-    {
       "id": "SkillFireball",
       "name": "Fireball",
       "cooldown": "1000",

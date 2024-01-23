@@ -85,5 +85,12 @@ namespace ServerCore
                 return default(T);
             return _heap[0];
         }
+
+
+        public void Clear()
+        {
+            while (Count > 0)
+                Pop();
+        }
     }
 }
