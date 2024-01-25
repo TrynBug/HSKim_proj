@@ -101,8 +101,21 @@ public class DataManager
     // SPUM Editor를 위한 데이터생성 함수
     public Dictionary<string, Data.Item> MakeOnlySpriteItemDict()
     {
-        Dictionary<int, Data.Item> itemDict = LoadCSV<ItemDataLoader, int, Item>("ItemData");
-        Dictionary<string, Data.Item> spriteItemDict = ItemDataLoader.MakeSpriteItemDict(itemDict);
-        return spriteItemDict;
+        // 아이템 데이터 생성하기
+        TextAsset textAsset = Resources.Load<TextAsset>($"Data/ItemData");  // item 데이터파일 열기
+        using (MemoryStream stream = new MemoryStream(textAsset.bytes))
+        {
+            using (var reader = ExcelReaderFactory.CreateCsvReader(stream))
+            {
+                DataSet result = reader.AsDataSet();
+
+                ItemDataLoader loader = new ItemDataLoader();
+                ItemDict = loader.LoadCSVData(result);
+            }
+        }
+
+        // sprite-item 데이터 생성하기
+        SpriteItemDict = ItemDataLoader.MakeSpriteItemDict(ItemDict);
+        return SpriteItemDict;
     }
 }

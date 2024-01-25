@@ -6,20 +6,45 @@ using static Define;
 using Data;
 using UnityEditor;
 using System;
+using Unity.VisualScripting;
 
 // 모든 컨트롤러의 부모 컨트롤러
 // 상태와 이동방향을 정의한다.
 public class BaseController : MonoBehaviour
 {
-    // bits : [ Unused(1) | Type(7) | Id(24) ]
-    public int Id { get { return Info.ObjectId; } }
+
     public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
 
-    public ObjectInfo Info { get; set; } = new ObjectInfo();
+    ObjectInfo _info = new ObjectInfo();
+    public virtual ObjectInfo Info {
+        get { return _info; }
+        set 
+        {
+            _info.ObjectId = value.ObjectId;
+            _info.Name = value.Name;
+            _info.SPUMId = value.SPUMId;
+            _info.AutoMode = value.AutoMode;
+            PosInfo = value.PosInfo;
+        }
+    }
+
+    /* object */
+    // bits : [ Unused(1) | Type(7) | Id(24) ]
+    public int Id { get { return Info.ObjectId; } }
+    public int SPUMId
+    {
+        get { return Info.SPUMId; }
+        set { Info.SPUMId = value; }
+    }
+    public AutoMode AutoMode
+    {
+        get { return Info.AutoMode; }
+        set { Info.AutoMode = value; }
+    }
 
 
     /* 위치 */
-    PositionInfo _posInfo = new PositionInfo { State = CreatureState.Idle, MoveDir = MoveDir.Left, LookDir=LookDir.LookLeft, PosX = 0, PosY = 0, DestX = 0, DestY = 0, MoveKeyDown = false };
+    PositionInfo _posInfo = new PositionInfo();
     public PositionInfo PosInfo
     {
         get { return _posInfo; }
@@ -30,6 +55,7 @@ public class BaseController : MonoBehaviour
             State = value.State;
             Dir = value.MoveDir;
             LookDir = value.LookDir;
+            MoveKeyDown = value.MoveKeyDown;
         }
     }
 
@@ -45,6 +71,8 @@ public class BaseController : MonoBehaviour
             PosInfo.PosY = value.y;
             Cell = Managers.Map.PosToCell(Pos);
             gameObject.transform.position = Managers.Map.ServerPosToClientPos(Pos);
+
+            _bSoftStop = false;
         }
     }
     public Vector2 Dest    // 목적지
@@ -57,10 +85,12 @@ public class BaseController : MonoBehaviour
         {
             PosInfo.DestX = value.x;
             PosInfo.DestY = value.y;
+            
         }
     }     
     public Vector2Int Cell { get; private set; }   // 현재 cell
-    
+    bool _bSoftStop = false;
+
 
     // 현재 상태
     public virtual CreatureState State
@@ -114,24 +144,22 @@ public class BaseController : MonoBehaviour
     }
 
 
-
-    /* Auto */
-    AutoMode _autoMode = AutoMode.ModeNone;
-    public AutoMode AutoMode 
+    /* util */
+    public bool IsAlive
     {
-        get { return _autoMode; }
-        set
+        get
         {
-            _autoMode = value;
-            if (_autoMode == AutoMode.ModeNone)
-                State = CreatureState.Idle;
-            else if (_autoMode == AutoMode.ModeAuto)
-                AutoState = AutoState.AutoIdle;
+            switch (State)
+            {
+                case CreatureState.Dead:
+                case CreatureState.Loading:
+                    return false;
+                default:
+                    return true;
+            }
         }
     }
-    public AutoState AutoState { get; protected set; } = AutoState.AutoIdle;
-
-
+    public bool IsDead { get { return !IsAlive; } }
 
     // 현재 방향에 해당하는 벡터 얻기
     public Vector2 GetDirectionVector(MoveDir dir)
@@ -142,11 +170,28 @@ public class BaseController : MonoBehaviour
 
 
 
+    /* init */
+    // Init 은 객체를 생성한 뒤 1가지 Init 함수만 호출하면 됨
+    // 그리고 반드시 base.Init 을 먼저 호출해야한다.
+    public virtual void Init()
+    {
+        _info.PosInfo = _posInfo;
+        PosInfo = new PositionInfo { State = CreatureState.Idle, MoveDir = MoveDir.Left, LookDir = LookDir.LookLeft, PosX = 0, PosY = 0, DestX = 0, DestY = 0, MoveKeyDown = false };
+    }
+
+    public virtual void Init(ObjectInfo info)
+    {
+        _info.PosInfo = _posInfo;
+
+        Info = info;
+        PosInfo = info.PosInfo;
+    }
+
+
 
 
     public void Start()
     {
-        Init();
     }
 
     void Update()
@@ -154,52 +199,27 @@ public class BaseController : MonoBehaviour
         UpdateController();
     }
 
-    protected virtual void Init()
-    {
-    }
 
-    // update
+    /* update */
     protected virtual void UpdateController()
     {
-        if (AutoMode == AutoMode.ModeNone)
+        switch (State)
         {
-            switch (State)
-            {
-                case CreatureState.Idle:
-                    UpdateIdle();
-                    break;
-                case CreatureState.Moving:
-                    UpdateMoving();
-                    break;
-                case CreatureState.Dead:
-                    UpdateDead();
-                    break;
-            }
+            case CreatureState.Idle:
+                UpdateIdle();
+                break;
+            case CreatureState.Moving:
+                UpdateMoving();
+                break;
+            case CreatureState.Dead:
+                UpdateDead();
+                break;
+            case CreatureState.Loading:
+                UpdateLoading();
+                break;
         }
-        else if (AutoMode == AutoMode.ModeAuto)
-        {
-            switch (AutoState)
-            {
-                case AutoState.AutoIdle:
-                    UpdateAutoIdle();
-                    break;
-                case AutoState.AutoChasing:
-                    UpdateAutoChasing();
-                    break;
-                case AutoState.AutoMoving:
-                    UpdateAutoMoving();
-                    break;
-                case AutoState.AutoSkill:
-                    UpdateAutoSkill();
-                    break;
-                case AutoState.AutoDead:
-                    UpdateAutoDead();
-                    break;
-                case AutoState.AutoWait:
-                    UpdateAutoWait();
-                    break;
-            }
-        }
+
+        UpdateSoftStop();
     }
 
 
@@ -221,31 +241,71 @@ public class BaseController : MonoBehaviour
 
     }
 
-    protected virtual void UpdateAutoIdle()
+    protected virtual void UpdateLoading()
     {
     }
 
-    protected virtual void UpdateAutoChasing()
+
+
+    /* stop */
+    // 위치에 멈춤
+    public void StopAt(Vector2 dest)
     {
+        State = CreatureState.Idle;
+
+        Vector2 stopPos;
+        if (Managers.Map.TryStop(this, dest, out stopPos) == false)
+        {
+            Dest = Pos;
+            return;
+        }
+
+        Vector2 prevPos = Pos;
+        Pos = stopPos;
+        Dest = stopPos;
+        
+        _bSoftStop = true;
+
+
+        _stopStartPos = Managers.Map.ServerPosToClientPos(prevPos);
+        _stopEndPos = gameObject.transform.position;
+        _totalStopTime = 0.4f;
+        _stopTimeAcc = 0;
     }
 
-    protected virtual void UpdateAutoMoving()
+
+    Vector2 _stopStartPos;
+    Vector2 _stopEndPos;
+    float _totalStopTime;
+    float _stopTimeAcc;
+    protected void UpdateSoftStop()
     {
+        if (_bSoftStop == false)
+            return;
+
+        // 마우스 클릭에 따른 화면 위치 조정
+        // 현재 카메라 위치는 시작 위치에서 도착 위치로 m_fMoveTime 초만에 도착한다.
+        // 카메라 위치는 등가속도(a<0)로 이동한다.
+        _stopTimeAcc += Time.deltaTime;
+        if (_stopTimeAcc > _totalStopTime)
+        {
+            gameObject.transform.position = _stopEndPos;
+            _bSoftStop = false;
+        }
+        else
+        {
+            Vector2 dist = _stopEndPos - _stopStartPos;  // 이동해야할 거리
+            Vector2 v0 = dist * 2f / _totalStopTime;          // 시작속도
+            Vector2 acc = -1f * v0 / _totalStopTime;          // 가속도
+            Vector2 v = acc * _stopTimeAcc + v0;          // 현재 속도
+            Vector2 pos = (v0 + v) * _stopTimeAcc / 2f + _stopStartPos;  // 현재 위치
+            gameObject.transform.position = new Vector3(pos.x, pos.y, Config.ObjectDefaultZ);
+        }
     }
 
-    protected virtual void UpdateAutoSkill()
-    {
-    }
 
-    protected virtual void UpdateAutoDead()
-    {
-    }
 
-    protected virtual void UpdateAutoWait()
-    {
-    }
-
-    // ToString
+    /* ToString */
     public override string ToString()
     {
         return ToString(InfoLevel.Identity);

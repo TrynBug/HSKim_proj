@@ -34,11 +34,11 @@
     "id": 3,
     "prefabName": "SPUM003",
     "back": 0,
-    "cloth": 10010,
-    "armor": 30002,
+    "cloth": 0,
+    "armor": 30005,
     "helmet": 0,
-    "weaponLeft": 40000,
-    "weaponRight": 40003
+    "weaponLeft": 40027,
+    "weaponRight": 40011
   },
   {
     "id": 4,
@@ -159,6 +159,96 @@
     "helmet": 20000,
     "weaponLeft": 40035,
     "weaponRight": 40017
+  },
+  {
+    "id": 16,
+    "prefabName": "SPUM016",
+    "back": 50001,
+    "cloth": 10011,
+    "armor": 30010,
+    "helmet": 20020,
+    "weaponLeft": 0,
+    "weaponRight": 40042
+  },
+  {
+    "id": 17,
+    "prefabName": "SPUM017",
+    "back": 50001,
+    "cloth": 10003,
+    "armor": 0,
+    "helmet": 20022,
+    "weaponLeft": 0,
+    "weaponRight": 40042
+  },
+  {
+    "id": 18,
+    "prefabName": "SPUM018",
+    "back": 50000,
+    "cloth": 10020,
+    "armor": 0,
+    "helmet": 20013,
+    "weaponLeft": 0,
+    "weaponRight": 40042
+  },
+  {
+    "id": 19,
+    "prefabName": "SPUM019",
+    "back": 50001,
+    "cloth": 10011,
+    "armor": 30015,
+    "helmet": 20016,
+    "weaponLeft": 40027,
+    "weaponRight": 0
+  },
+  {
+    "id": 20,
+    "prefabName": "SPUM020",
+    "back": 50006,
+    "cloth": 0,
+    "armor": 30008,
+    "helmet": 20010,
+    "weaponLeft": 40027,
+    "weaponRight": 0
+  },
+  {
+    "id": 21,
+    "prefabName": "SPUM021",
+    "back": 0,
+    "cloth": 10000,
+    "armor": 30012,
+    "helmet": 20018,
+    "weaponLeft": 40027,
+    "weaponRight": 0
+  },
+  {
+    "id": 22,
+    "prefabName": "SPUM022",
+    "back": 50000,
+    "cloth": 10010,
+    "armor": 30010,
+    "helmet": 20019,
+    "weaponLeft": 40027,
+    "weaponRight": 0
+  },
+  {
+    "id": 23,
+    "prefabName": "SPUM023",
+    "back": 50003,
+    "cloth": 0,
+    "armor": 30018,
+    "helmet": 0,
+    "weaponLeft": 0,
+    "weaponRight": 40011
+  },
+  {
+    "id": 24,
+    "prefabName": "SPUM024",
+    "back": 50005,
+    "cloth": 10008,
+    "armor": 0,
+    "helmet": 0,
+    "weaponLeft": 0,
+    "weaponRight": 40011
   }
 ]
 }

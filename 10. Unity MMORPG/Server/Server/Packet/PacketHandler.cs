@@ -122,8 +122,27 @@ internal class PacketHandler
         responsePacket.Mode = autoPacket.Mode;
         clientSession.Send(responsePacket);
 
-        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SetAiHandler. objectId:{clientSession.MyPlayer.Id}, mode:{autoPacket.Mode}");
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SetAutoHandler. objectId:{clientSession.MyPlayer.Id}, mode:{autoPacket.Mode}");
     }
 
+
+    
+    // 로딩완료 요청 처리
+    public static void C_LoadFinishedHandler(PacketSession session, IMessage packet)
+    {
+        C_LoadFinished loadPacket = packet as C_LoadFinished;
+        ClientSession clientSession = session as ClientSession;
+
+        Player player = clientSession.MyPlayer;
+        if(player.Room == null)
+        {
+            Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_LoadFinishedHandler. Player has no room. {player}");
+            return;
+        }
+
+        clientSession.MyPlayer.Room.HandleLoadFinish(player, loadPacket);
+
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_LoadFinishedHandler. {player}");
+    }
 }
 

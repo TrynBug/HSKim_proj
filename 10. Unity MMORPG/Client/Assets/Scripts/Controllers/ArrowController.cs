@@ -37,7 +37,7 @@ public class ArrowController : BaseController
     //}
 
 
-    protected override void Init()
+    public override void Init()
     {
         base.Init();
         Pos = new Vector2(0,0);

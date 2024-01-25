@@ -12,10 +12,17 @@ using System;
 // HP Bar, 피격 함수, 사망 함수가 있다.
 public abstract class CreatureController : BaseController
 {
-    protected Animator _animator;
-
-    HpBar _hpBar;
-    DebugText _debugText;
+    /* object */
+    public override ObjectInfo Info
+    {
+        get { return base.Info; }
+        set
+        {
+            base.Info = value;
+            Stat = value.StatInfo;
+            AutoInfo = value.AutoInfo;
+        }
+    }
 
 
     /* 위치 */
@@ -84,47 +91,97 @@ public abstract class CreatureController : BaseController
     public Dictionary<SkillId, SkillUseInfo> Skillset { get { return _skillset; } }
 
 
+
     /* Auto */
-    public class AutoInfo
+    AutoInfo _autoInfo = new AutoInfo();       // Auto 데이터
+    public AutoInfo AutoInfo
     {
-        List<Vector2> _path = new List<Vector2>();
-        public List<Vector2> Path
-        {
-            get { return _path; }
-            set 
-            { 
-                _path = value;
-                PathIndex = 0;
-            }
-        }
-        public int PathIndex = 0;
-        public BaseController Target = null;
-        public float TargetDistance = 0;
-        public Vector2Int PrevTargetCell = new Vector2Int(0, 0);
-
-        public S_AutoSkill SkillPacket = null;
-
-        public int WaitUntil = 0;
-        public AutoState NextState;
+        get { return _autoInfo; }
+        set { _autoInfo = value; }
     }
-    public AutoInfo Auto { get; private set; } = new AutoInfo();
+    public AutoMove Auto { get; private set; } = new AutoMove();     // 자동이동 할 때 사용할 데이터
+
+
+    /* component */
+    protected Animator _animator;
+    HpBar _hpBar;
+    DebugText _debugText;
 
 
 
-    public void Awake()
+    public override void Init(ObjectInfo info)
     {
         _animator = GetComponent<Animator>();
-    }
 
+        base.Init(info);
+        Info.StatInfo = _stat;
+        Info.AutoInfo = _autoInfo;
 
-    protected override void Init()
-    {
-        base.Init();
+        Stat = info.StatInfo;
+        AutoInfo = info.AutoInfo;
+        
+        Auto.Init(this);
 
         AddHpBar();
         AddDebugText();
         UpdateAnimation();
     }
+
+    protected override void UpdateController()
+    {
+        if (State == CreatureState.Loading)
+        {
+            UpdateLoading();
+        }
+        else if (AutoMode == AutoMode.ModeNone)
+        {
+            switch (State)
+            {
+                case CreatureState.Idle:
+                    UpdateIdle();
+                    break;
+                case CreatureState.Moving:
+                    UpdateMoving();
+                    break;
+                case CreatureState.Dead:
+                    UpdateDead();
+                    break;
+            }
+        }
+        else if (AutoMode == AutoMode.ModeAuto)
+        {
+            switch (Auto.State)
+            {
+                case AutoState.AutoIdle:
+                    UpdateAutoIdle();
+                    break;
+                case AutoState.AutoChasing:
+                    UpdateAutoChasing();
+                    break;
+                case AutoState.AutoMoving:
+                    UpdateAutoMoving();
+                    break;
+                case AutoState.AutoSkill:
+                    UpdateAutoSkill();
+                    break;
+                case AutoState.AutoDead:
+                    UpdateAutoDead();
+                    break;
+                case AutoState.AutoWait:
+                    UpdateAutoWait();
+                    break;
+            }
+        }
+
+        // component
+        UpdateDebugText();
+
+        // soft stop
+        UpdateSoftStop();
+    }
+
+
+
 
 
 
@@ -234,76 +291,111 @@ public abstract class CreatureController : BaseController
 
 
 
-    public void SetAutoChase(S_AutoChase chasePacket)
+    // 서버에서 받은 AutoMove 패킷을 세팅한다.
+    public void SetAutoMove(S_AutoMove autoPacket)
     {
+        SetAutoMove(autoPacket.AutoInfo, autoPacket.PosInfo);
+    }
+    public void SetAutoMove(AutoInfo autoInfo, PositionInfo posInfo)
+    { 
         if (AutoMode != AutoMode.ModeAuto)
             AutoMode = AutoMode.ModeAuto;
         Speed = 7f;
 
+        // set data
+        AutoInfo = autoInfo;
+        Dir = posInfo.MoveDir;
+        State = posInfo.State;
+
         // 타겟 찾기
-        Auto.Target = Managers.Object.FindById(chasePacket.TargetId);
+        Auto.Target = Managers.Object.FindById(autoInfo.TargetId) as CreatureController;
+        // 스킬 찾기
+        Auto.Skill = Managers.Data.SkillDict.GetValueOrDefault(autoInfo.SkillId, null);
 
-        // 타겟이 지정되면 경로를 찾고 상태를 Chasing으로 변경
-        if (Auto.Target != null)
+        switch (autoInfo.AutoState)
         {
-            // 경로 찾기
-            Vector2 pos = new Vector2(chasePacket.PosX, chasePacket.PosY);
-            Vector2 targetPos = new Vector2(chasePacket.TargetPosX, chasePacket.TargetPosY);
-            Auto.PrevTargetCell = Auto.Target.Cell;
-            Auto.Path = Managers.Map.SearchPath(pos, targetPos);
-            Auto.TargetDistance = chasePacket.Distance;
+            case AutoState.AutoIdle:
+                Auto.State = AutoState.AutoIdle;
+                break;
+            case AutoState.AutoChasing:
+                {
+                    // 타겟이 있다면 경로를 찾고 상태를 Chasing으로 변경
+                    if (Auto.Target != null)
+                    {
+                        // 경로 찾기
+                        // 길찾기의 시작좌표는 서버의 현재 Dest, 도착좌표는 서버에서 보내준 타겟 Pos 이다.
+                        // 서버와 클라가 항상 동일한 경로를 찾기 위함임
+                        Auto.SetPathToTarget(new Vector2(posInfo.DestX, posInfo.DestY), new Vector2(autoInfo.TargetPosX, autoInfo.TargetPosY));
 
-            // 상태 변경
-            AutoState = AutoState.AutoChasing;
-            State = CreatureState.Moving;
+                        // chasing 상태로 변경
+                        Auto.State = AutoState.AutoChasing;
+                    }
+                    // 타겟이 없다면 상태를 Idle로 변경
+                    else
+                    {
+                        Auto.State = AutoState.AutoIdle;
+                    }
+                }
+                break;
+            case AutoState.AutoMoving:
+                Auto.State = AutoState.AutoMoving;
+                break;
+            case AutoState.AutoSkill:
+                {
+                    // 현재위치에 멈춤
+                    Vector2 stopPos;
+                    Managers.Map.TryStop(this, Pos, out stopPos);
+                    Pos = stopPos;
+                    Dest = stopPos;
+
+                    // 방향 수정
+                    Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
+
+                    // 스킬 사용
+                    if(Auto.Skill != null)
+                        OnSkill(Auto.Skill.id);
+
+                    // skill 상태로 변경
+                    Auto.State = AutoState.AutoSkill;
+                }
+                break;
+            case AutoState.AutoWait:
+                {
+                    Auto.State = AutoState.AutoWait;
+                }
+                break;
+            case AutoState.AutoDead:
+                Auto.State = AutoState.AutoDead;
+                break;
         }
-        // 타겟이 없다면 상태를 Idle로 변경
-        else
-        {
-            AutoState = AutoState.AutoIdle;
-            State = CreatureState.Idle;
-        }
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"CreatureController.SetAutoChase. me:{Id}, target:[{Auto.Target?.ToString(InfoLevel.Position)}]");
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"CreatureController.SetAutoMove. me:{Id}, target:[{Auto.Target?.ToString(InfoLevel.Position)}]");
     }
 
-    public void SetAutoWait(S_AutoWait waitPacket)
+
+
+    protected virtual void UpdateAutoIdle()
     {
-        Auto.WaitUntil = Environment.TickCount + waitPacket.WaitTime;
-        Auto.NextState = waitPacket.NextState;
-
-        AutoState = AutoState.AutoWait;
-        State = CreatureState.Idle;
     }
 
-    public void SetAutoSkill(S_AutoSkill skillPacket)
-    {
-        Auto.SkillPacket = skillPacket;
-        AutoState = AutoState.AutoSkill;
-        
-        OnSkill(skillPacket.SkillId);
-    }
-
-
-    protected override void UpdateAutoIdle()
-    {
-
-    }
-
-    protected override void UpdateAutoChasing()
+    protected virtual void UpdateAutoChasing()
     {
         // 타겟이 없다면 Idle 상태로 돌아감
-        if (Auto.Target == null || Auto.Target.State == CreatureState.Dead)
+        if (Auto.Target == null || Auto.Target.IsDead)
         {
-            AutoState = AutoState.AutoIdle;
-            State = CreatureState.Idle;
+            Auto.WaitTime = 1000;
+            Auto.NextState = AutoState.AutoIdle;
+            Auto.State = AutoState.AutoWait;
+            Auto.Target = null;
             return;
         }
 
         // 타겟과의 거리 확인 
-        float distance = (Auto.Target.Pos - Pos).magnitude;
-        // 추적거리 내라면 움직이지 않음
-        if (distance < Auto.TargetDistance)
+        Vector2 dist = Auto.Target.Pos - Pos;
+        Vector2 distAbs = new Vector2(Mathf.Abs(dist.x), Mathf.Abs(dist.y));
+        // 추적범위 내에 있고 동시에 스킬범위 내에 있으면 움직이지 않음
+        if (distAbs.x < Auto.TargetDistance.x && distAbs.y < Auto.TargetDistance.y
+            && Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.Skill.rangeX, Auto.Skill.rangeY), Auto.Target.Pos))
         {
             State = CreatureState.Idle;
 
@@ -318,89 +410,43 @@ public abstract class CreatureController : BaseController
 
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"CreatureController.UpdateAutoChasing. Stop. {this.ToString(InfoLevel.Position)}");
         }
-        // 추적거리 밖이면 움직임
+        // 추적범위 밖이면 움직임
         else
         {
             // 타겟이 cell을 이동했으면 경로 재계산
             if (Auto.PrevTargetCell != Auto.Target.Cell)
             {
-                Auto.PrevTargetCell = Auto.Target.Cell;
-                Auto.Path = Managers.Map.SearchPath(Pos, Auto.Target.Pos);
+                Auto.SetPathToTarget(Pos, Auto.Target.Pos);   // TBD. 서버와 클라의 타겟 cell이 틀리면 어떻게?
             }
 
             // 경로를 따라 이동함
             State = CreatureState.Moving;
-            Auto.PathIndex = AutoMoveToPath(Auto.Path, Auto.PathIndex);
+            Auto.MoveThroughPath();
         }
     }
 
-
-    int AutoMoveToPath(List<Vector2> path, int pathIndex)
+    protected virtual void UpdateAutoMoving()
     {
-        if (pathIndex < 0 || pathIndex >= path.Count)
-            return pathIndex;
-        State = CreatureState.Moving;
-
-        // 목적지 지정
-        Dest = path[pathIndex];
-
-        // 목적지에 도달했다면 현재위치를 목적지로 이동시킴
-        Vector2 diff = (Dest - Pos);
-        Vector2 dir = diff.normalized;
-        float magnitude = diff.magnitude;
-        float moveDist = Time.deltaTime * Speed;
-        if (magnitude <= moveDist)
-        {
-            Managers.Map.TryMoving(this, Dest, checkCollider: false);
-            Pos = Dest;
-
-            // 만약 다음 경로가 있을 경우 목적지를 재지정함
-            pathIndex++;
-            if (pathIndex < path.Count)
-            {
-                Dest = path[pathIndex];
-
-                // 남은 이동거리를 보정함
-                {
-                    float remainder = moveDist - magnitude;
-                    Vector2 pos = Pos + (Dest - Pos).normalized * remainder;
-                    Managers.Map.TryMoving(this, pos, checkCollider: false);
-                    Pos = pos;
-                }
-            }
-            // 다음 경로가 없을 경우 현재위치에 정지함
-            else
-            {
-                Vector2 stopPos;
-                Managers.Map.TryStop(this, Pos, out stopPos);
-                Pos = stopPos;
-                Dest = stopPos;
-                State = CreatureState.Idle;
-            }
-        }
-        // 현재위치 이동
-        else
-        {
-            Vector2 pos = Pos + dir * moveDist;
-            Managers.Map.TryMoving(this, pos, checkCollider: false);
-            Pos = pos;
-        }
-
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"CreatureController.AutoMoveToPath. {this.ToString(InfoLevel.Position)}");
-        return pathIndex;
     }
 
-    protected override void UpdateAutoSkill()
+    protected virtual void UpdateAutoSkill()
     {
-
+        
     }
 
-    protected override void UpdateAutoWait()
+    protected virtual void UpdateAutoDead()
     {
-        int tick = Environment.TickCount;
+    }
+
+
+    protected virtual void UpdateAutoWait()
+    {
+        long tick = Managers.Time.CurrentTime;
         if (tick > Auto.WaitUntil)
         {
-            AutoState = Auto.NextState;
+            Auto.State = Auto.NextState;
+
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"CreatureController.UpdateAutoWait. nextState:{Auto.State}, {this}");
         }
     }
 
@@ -450,17 +496,7 @@ public abstract class CreatureController : BaseController
         //GameObject.Destroy(effect, 0.5f);
     }
 
-    // 위치에 멈춤
-    public void StopAt(Vector2 pos)
-    {
-        Vector2 stopPos;
-        Managers.Map.TryStop(this, pos, out stopPos);
-        Pos = stopPos;
-        Dest = stopPos;
-        State = CreatureState.Idle;
-    }
-
-
+    /* compoment */
     // HP Bar 추가
     protected void AddHpBar()
     {

@@ -24,19 +24,11 @@ namespace Server.Game
             get { return _SPUM; }
             set { 
                 _SPUM = value;
-                Info.SPUMId = _SPUM.id;
+                SPUMId = _SPUM.id;
             }
         }
 
         public Equipment Equip { get; set; } = new Equipment();
-
-        /* 스킬 */
-        // 사용가능한 스킬정보
-        Dictionary<SkillId, SkillUseInfo> _skillset = new Dictionary<SkillId, SkillUseInfo>();
-        public Dictionary<SkillId, SkillUseInfo> Skillset { get { return _skillset; } }
-
-        SkillUseInfo _lastUseSkill = new SkillUseInfo() { lastUseTime = 0, skill = DataManager.DefaultSkill };  // 마지막으로 사용한 스킬
-        SkillUseInfo _usingSkill = null;                  // 현재 사용중인 스킬
 
 
 
@@ -67,8 +59,9 @@ namespace Server.Game
             StatOrigin.MergeFrom(stat);
 
             // SPUM 데이터 가져오기
-            int spumId = (Id & 0xf) % DataManager.SPUMDict.Count;
-            SPUM = DataManager.SPUMDict.GetValueOrDefault(spumId, DataManager.DefaultSPUM);
+            Random rand = new Random();
+            SPUMId = rand.Next(0, DataManager.SPUMDict.Count);
+            SPUM = DataManager.SPUMDict.GetValueOrDefault(SPUMId, DataManager.DefaultSPUM);
 
             // 장비아이템 초기화
             Equip.SetEquipment(SPUM);
@@ -77,8 +70,10 @@ namespace Server.Game
             RecalculateStat();
 
             // 스킬 초기화
-            Item itemWeapon = Equip.WeaponLeft ?? Equip.WeaponRight;
-            if(itemWeapon != null)
+            Item itemWeapon = Equip.WeaponLeft;
+            if (itemWeapon.subType == EquipmentSubType.Empty)
+                itemWeapon = Equip.WeaponRight;
+            if (itemWeapon != null)
             {
                 switch (itemWeapon.subType)
                 {
@@ -233,22 +228,7 @@ namespace Server.Game
 
 
 
-        // 가장 빨리 사용할 수 있는 스킬을 얻는다.
-        SkillUseInfo AutoGetNextSkill()
-        {
-            SkillUseInfo nextSkill = null;
-            int fastestTime = int.MaxValue;
-            foreach (SkillUseInfo use in Skillset.Values)
-            {
-                if (fastestTime > use.lastUseTime + use.skill.cooldown)
-                {
-                    fastestTime = use.lastUseTime + use.skill.cooldown;
-                    nextSkill = use;
-                }
-            }
 
-            return nextSkill;
-        }
 
         protected override void UpdateAutoIdle()
         {
@@ -260,30 +240,17 @@ namespace Server.Game
             // 타겟이 지정됨
             if (Auto.Target != null)
             {
-                // 스킬 선정
-                Auto.SkillUse = AutoGetNextSkill();
-
-                // 유지할 거리 계산
-                Auto.TargetDistance = (new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY)).magnitude * (2/3);
-
-                // 타겟 지정 패킷을 보냄
-                S_AutoChase chasePacket = new S_AutoChase();
-                chasePacket.ObjectId = Id;
-                chasePacket.PosX = Pos.x;
-                chasePacket.PosY = Pos.y;
-                chasePacket.TargetId = Auto.Target.Id;
-                chasePacket.TargetPosX = Auto.Target.Pos.x;
-                chasePacket.TargetPosY = Auto.Target.Pos.y;
-                chasePacket.Distance = Auto.TargetDistance;
-                Room._broadcast(chasePacket);
-                
-
-                // 경로 찾기
-                Auto.PrevTargetCell = Auto.Target.Cell;
-                Auto.Path = Room.Map.SearchPath(Pos, Auto.Target.Pos);
+                // 다음 스킬 지정
+                Auto.SetNextSkill();
 
                 // 상태 변경
-                AutoState = AutoState.AutoChasing;
+                Auto.State = AutoState.AutoChasing;
+
+                // 경로 찾기
+                Auto.SetPathToTarget();
+
+                // 타겟 지정 패킷을 보냄
+                Auto.SendAutoPacket();
 
                 Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoIdle. me:[{this.ToString(InfoLevel.Position)}], target:[{Auto.Target?.ToString(InfoLevel.Position)}]");
             }
@@ -292,36 +259,24 @@ namespace Server.Game
         protected override void UpdateAutoChasing()
         {
             // 타겟이 없다면 Idle 상태로 돌아감
-            if(Room.RoomId != Auto.Target.Room.RoomId || Auto.Target.State == CreatureState.Dead)
+            if(Auto.Target == null || Room.RoomId != Auto.Target.Room.RoomId || Auto.Target.IsDead)
             {
-                int waitTime = 1000;
-                Auto.WaitUntil = Environment.TickCount + waitTime;
+                Auto.WaitTime = TimeSpan.TicksPerSecond;
                 Auto.NextState = AutoState.AutoIdle;
-
-                AutoState = AutoState.AutoWait;
-                State = CreatureState.Idle;
+                Auto.State = AutoState.AutoWait;
                 Auto.Target = null;
 
                 // wait 패킷 전송
-                {
-                    S_AutoWait waitPacket = new S_AutoWait();
-                    waitPacket.ObjectId = Id;
-                    waitPacket.PosX = Pos.x;
-                    waitPacket.PosY = Pos.y;
-                    waitPacket.TargetId = Auto.Target == null ? -1 : Auto.Target.Id;
-                    waitPacket.WaitTime = waitTime;
-                    waitPacket.NextState = Auto.NextState;
-                    Room._broadcast(waitPacket);
-                }
+                Auto.SendAutoPacket();
                 return;
             }
 
-
-
             // 타겟과의 거리 확인 
-            float distance = (Auto.Target.Pos - Pos).magnitude;
-            // 추적거리 내라면 움직이지 않음
-            if (distance < Auto.TargetDistance)
+            Vector2 dist = Auto.Target.Pos - Pos;
+            Vector2 distAbs = dist.Abs;
+            // 추적범위 내에 있고 동시에 스킬범위 내에 있으면 움직이지 않음
+            if (distAbs.x < Auto.TargetDistance.x && distAbs.y < Auto.TargetDistance.y
+                && Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
             {
                 State = CreatureState.Idle;
 
@@ -336,21 +291,19 @@ namespace Server.Game
 
                 Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoChasing. Stop. {this.ToString(InfoLevel.Position)}");
             }
-            // 추적거리 밖이면 움직임
+            // 추적범위 밖이면 움직임
             else
             {
                 // 타겟이 cell을 이동했으면 경로 재계산
                 if (Auto.PrevTargetCell != Auto.Target.Cell)
                 {
-                    Auto.PrevTargetCell = Auto.Target.Cell;
-                    Auto.Path = Room.Map.SearchPath(Pos, Auto.Target.Pos);
+                    Auto.SetPathToTarget();
                 }
 
                 // 경로를 따라 이동함
                 State = CreatureState.Moving;
-                Auto.PathIndex = AutoMoveToPath(Auto.Path, Auto.PathIndex);
+                Auto.MoveThroughPath();
             }
-
 
 
             // 스킬을 사용할 수 있고 타겟이 스킬범위내에 있을 경우
@@ -371,116 +324,15 @@ namespace Server.Game
                     AutoSkillUse(Auto.SkillUse, Auto.Target);
 
                     // Skill 상태로 변경
-                    AutoState = AutoState.AutoSkill;
-                    State = CreatureState.Moving;
+                    Auto.State = AutoState.AutoSkill;
+
+                    // Skill 사용패킷 전송
+                    Auto.SendAutoPacket();
 
                     return;
                 }
             }
         }
-
-
-
-
-        int AutoMoveToPath(List<Vector2> path, int pathIndex)
-        {
-            if (pathIndex < 0 || pathIndex >= path.Count)
-                return pathIndex;
-
-            // 목적지 지정
-            Dest = path[pathIndex];
-
-            // 목적지에 도달했다면 현재위치를 목적지로 이동시킴
-            Vector2 diff = (Dest - Pos);
-            Vector2 dir = diff.normalized;
-            float magnitude = diff.magnitude;
-            float moveDist = Room.Time.DeltaTime * Speed;
-            if (magnitude <= moveDist)
-            {
-                Room.Map.TryMoving(this, Dest, checkCollider: false);
-                Pos = Dest;
-
-                // 만약 다음 경로가 있을 경우 목적지를 재지정함
-                pathIndex++;
-                if (pathIndex < path.Count)
-                {
-                    Dest = path[pathIndex];
-
-                    // 남은 이동거리를 보정함
-                    {
-                        float remainder = moveDist - magnitude;
-                        Vector2 pos = Pos + (Dest - Pos).normalized * remainder;
-                        Room.Map.TryMoving(this, pos, checkCollider: false);
-                        Pos = pos;
-                    }
-                }
-                // 다음 경로가 없을 경우 현재위치에 정지함
-                else
-                {
-                    Vector2 stopPos;
-                    Room.Map.TryStop(this, Pos, out stopPos);
-                    Pos = stopPos;
-
-                    // 정지패킷 전송
-                    S_Stop stopPacket = new S_Stop();
-                    stopPacket.ObjectId = Id;
-                    stopPacket.PosX = Pos.x;
-                    stopPacket.PosY = Pos.y;
-                    Room._broadcast(stopPacket);
-                }
-            }
-            // 현재위치 이동
-            else
-            {
-                Vector2 pos = Pos + dir * moveDist;
-                Room.Map.TryMoving(this, pos, checkCollider: false);
-                Pos = pos;
-            }
-
-            // 방향 수정
-            Dir = Util.GetDirectionToDest(Pos, Dest);
-
-            Logger.WriteLog(LogLevel.Debug, $"Player.AutoMoveToPath. {this.ToString(InfoLevel.Position)}");
-
-            return pathIndex;
-        }
-
-
-        public virtual void AutoSkillUse(SkillUseInfo useInfo, GameObject target)
-        {
-            // 스킬 사용시간 업데이트
-            useInfo.lastUseTime = Environment.TickCount;
-
-            // 사용중인 스킬 등록
-            _lastUseSkill = useInfo;
-            _usingSkill = useInfo;
-
-            // Skill 사용패킷 전송
-            S_AutoSkill skillPacket = new S_AutoSkill();
-            skillPacket.ObjectId = Id;
-            skillPacket.PosX = Pos.x;
-            skillPacket.PosY = Pos.y;
-            if(target == null)
-            {
-                skillPacket.TargetId = Auto.Target.Id;
-                skillPacket.TargetPosX = Auto.Target.Pos.x;
-                skillPacket.TargetPosY = Auto.Target.Pos.y;
-            }
-            else
-            {
-                skillPacket.TargetId = -1;
-                skillPacket.TargetPosX = 0;
-                skillPacket.TargetPosY = 0;
-            }
-
-            skillPacket.SkillId = Auto.SkillUse.skill.id;
-            Room._broadcast(skillPacket);
-            
-
-            ServerCore.Logger.WriteLog(LogLevel.Debug, $"Player.AutoSkillUse. {this}, skill:{useInfo.skill.id}");
-        }
-
-
 
 
         protected override void UpdateAutoMoving()
@@ -498,47 +350,43 @@ namespace Server.Game
             // 스킬 피격처리
             AutoSkillHit(Auto.SkillUse.skill, Auto.Target);
 
-
             // 스킬 재선정
-            Auto.SkillUse = AutoGetNextSkill();
-
-            // 유지할 거리 계산
-            Auto.TargetDistance = (new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY)).magnitude * (2 / 3);
-
-            // 타겟 지정 패킷을 보냄
-            S_AutoChase chasePacket = new S_AutoChase();
-            chasePacket.ObjectId = Id;
-            chasePacket.PosX = Pos.x;
-            chasePacket.PosY = Pos.y;
-            chasePacket.TargetId = Auto.Target.Id;
-            chasePacket.TargetPosX = Auto.Target.Pos.x;
-            chasePacket.TargetPosY = Auto.Target.Pos.y;
-            chasePacket.Distance = Auto.TargetDistance;
-            Room._broadcast(chasePacket);
-
-
-
-
+            Auto.SetNextSkill();
 
             // wait 후 Chasing 상태로 변경
-            int waitTime = 1000;
-            Auto.WaitUntil = Environment.TickCount + waitTime;
+            Auto.WaitTime = TimeSpan.TicksPerSecond;
             Auto.NextState = AutoState.AutoChasing;
-
-            AutoState = AutoState.AutoWait;
-            State = CreatureState.Idle;
+            Auto.State = AutoState.AutoWait;
 
             // wait 패킷 전송
-            S_AutoWait waitPacket = new S_AutoWait();
-            waitPacket.ObjectId = Id;
-            waitPacket.PosX = Pos.x;
-            waitPacket.PosY = Pos.y;
-            waitPacket.TargetId = Auto.Target == null ? -1 : Auto.Target.Id;
-            waitPacket.WaitTime = waitTime;
-            waitPacket.NextState = Auto.NextState;
-            Room._broadcast(waitPacket);
+            Auto.SendAutoPacket();
 
-            ServerCore.Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoSkill. {this}, skill:{Auto.SkillUse.skill.id}");
+            Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoSkill. {this}, skill:{Auto.SkillUse.skill.id}");
+        }
+
+        protected override void UpdateAutoWait()
+        {
+            long tick = DateTime.Now.Ticks;
+            if (tick > Auto.WaitUntil)
+            {
+                Auto.State = Auto.NextState;
+
+                Logger.WriteLog(LogLevel.Debug, $"GameObject.UpdateAutoWait. nextState:{Auto.State}, {this}");
+                return;
+            }
+        }
+
+
+
+
+        void AutoSkillUse(SkillUseInfo useInfo, GameObject target)
+        {
+            // 스킬 사용시간 업데이트
+            useInfo.lastUseTime = Environment.TickCount;
+
+            // 사용중인 스킬 등록
+            _lastUseSkill = useInfo;
+            _usingSkill = useInfo;
         }
 
         void AutoSkillHit(SkillData skill, GameObject target)

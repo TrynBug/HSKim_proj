@@ -8,10 +8,17 @@ using ServerCore;
 
 public class PlayerController : SPUMController
 {
-    protected override void Init()
+    public override void Init(ObjectInfo info)
     {
+        base.Init(info);
+
         ObjectType = GameObjectType.Player;
-        base.Init();
+
+        // auto move 상태일 경우 세팅
+        if(Info.AutoMode == AutoMode.ModeAuto)
+        {
+            SetAutoMove(AutoInfo, PosInfo);
+        }
     }
 
 

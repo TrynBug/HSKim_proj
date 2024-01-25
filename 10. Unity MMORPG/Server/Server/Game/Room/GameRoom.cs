@@ -63,6 +63,7 @@ namespace Server.Game
         public void HandleMove(Player player, C_Move movePacket) { Push(_handleMove, player, movePacket); }
         public void HandleSkill(Player player, C_Skill skillPacket) { Push(_handleSkill, player, skillPacket); }
         public void HandleSkillHit(Player player, C_SkillHit hitPacket) { Push(_handleSkillHit, player, hitPacket); }
+        public void HandleLoadFinish(Player player, C_LoadFinished loadPacket) { Push(_handleLoadFinish, player, loadPacket); }
 
 
 
@@ -217,21 +218,24 @@ namespace Server.Game
             GameObjectType type = ObjectManager.GetObjectTypeById(gameObject.Id);
             if(type == GameObjectType.Player)
             {
-                // 맵의 빈공간을 찾고 플레이어를 room에 추가한다.
+                // 맵의 빈공간을 찾는다.
                 Player newPlayer = gameObject as Player;
                 newPlayer.Room = this;
                 Vector2Int emptyCell;
-                if(Map.FindEmptyCell(newPlayer.Cell, true, out emptyCell) == false)
+                if(Map.FindEmptyCell(newPlayer.Cell, checkObjects:true, out emptyCell) == false)
                 {
                     Logger.WriteLog(LogLevel.Error, $"GameRoom.EnterGame. No empty cell in the map. {newPlayer}");
                     return;
                 }
                 newPlayer.Pos = Map.CellToCenterPos(emptyCell);
                 newPlayer.Dest = newPlayer.Pos;
-                _players.Add(newPlayer.Id, newPlayer);
-
+                
                 // 맵에 추가
-                Map.Add(newPlayer);
+                if (Map.Add(newPlayer) == false)
+                    return;
+
+                // room에 추가
+                _players.Add(newPlayer.Id, newPlayer);
 
                 // 내 정보 전송
                 S_EnterGame enterPacket = new S_EnterGame();
@@ -261,6 +265,19 @@ namespace Server.Game
                             p.Session.Send(spawnPacket);
                     }
                 }
+
+
+                // 서버로딩 완료 세팅
+                newPlayer.ServerSideLoading = true;
+                if (newPlayer.IsLoadingFinished)
+                {
+                    S_LoadFinished loadPacket = new S_LoadFinished();
+                    loadPacket.ObjectId = newPlayer.Id;
+                    _broadcast(loadPacket);
+
+                    newPlayer.State = CreatureState.Idle;
+                }
+
 
             }
             else if (type == GameObjectType.Monster)
@@ -526,6 +543,36 @@ namespace Server.Game
 
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{resHitPacket.SkillId}, hits:{resHitPacket.HitObjectIds.Count}");
         }
+
+
+
+
+        // 클라이언트의 로딩완료 요청 처리
+        public void _handleLoadFinish(Player player, C_LoadFinished loadPacket)
+        {
+            if (player == null)
+                return;
+
+            // 로딩 완료되면 로딩완료 패킷 전송
+            player.ClientSideLoading = true;
+            if(player.IsLoadingFinished)
+            {
+                player.State = CreatureState.Idle;
+                
+                S_LoadFinished resPacket = new S_LoadFinished();
+                resPacket.ObjectId = player.Id;
+                _broadcast(resPacket);
+            }
+
+
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleLoadFinish. {player}");
+        }
+
+
+
+
+
+
 
 
 

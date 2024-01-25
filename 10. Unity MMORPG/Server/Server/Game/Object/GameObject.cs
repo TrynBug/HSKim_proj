@@ -13,6 +13,7 @@ namespace Server.Game
 {
     public class GameObject
     {
+        /* static */
         // bits : [ Unused(1) | Type(7) | Id(24) ]
         static int _counter = 1;
 
@@ -23,16 +24,28 @@ namespace Server.Game
         }
 
 
-
+        /* base */
         public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
-        // bits : [ Unused(1) | Type(7) | Id(24) ]
-        public int Id { get { return Info.ObjectId; } }
 
         public GameRoom Room { get; set; } = null;
-        public ObjectInfo Info { get; private set; } = new ObjectInfo();   
-        public PositionInfo PosInfo { get; private set; } = new PositionInfo();  // Info.PosInfo 는 PosInfo를 리턴함
-        public StatInfo StatOrigin { get; private set; } = new StatInfo();   // 초기 스탯 데이터
-        public StatInfo Stat { get; private set; } = new StatInfo();       // Info.StatInfo 는 Stat을 리턴함
+        public ObjectInfo Info { get; private set; } = new ObjectInfo();
+        public PositionInfo PosInfo { get; private set; } = new PositionInfo();  // 위치 데이터. Info.PosInfo 는 PosInfo를 리턴함
+        public StatInfo StatOrigin { get; private set; } = new StatInfo();       // 초기 스탯 데이터
+        public StatInfo Stat { get; private set; } = new StatInfo();             // 현재 스탯 데이터. Info.StatInfo 는 Stat을 리턴함
+        public AutoInfo AutoInfo { get; private set; } = new AutoInfo();         // Auto 데이터
+        public AutoMove Auto { get; private set; } = new AutoMove();             // 자동이동 할 때 사용할 데이터
+
+        /* object */
+        // bits : [ Unused(1) | Type(7) | Id(24) ]
+        public int Id { get { return Info.ObjectId; } }
+        public int SPUMId {
+            get { return Info.SPUMId; }
+            set { Info.SPUMId = value; }
+        }
+        public AutoMode AutoMode {
+            get { return Info.AutoMode; }
+            set { Info.AutoMode = value; }
+        }
 
         /* 스탯 */
         public float Speed
@@ -50,8 +63,8 @@ namespace Server.Game
         public Vector2 Range
         {
             get { return new Vector2(Stat.RangeX, Stat.RangeY); }
-            set 
-            { 
+            set
+            {
                 Stat.RangeX = value.x;
                 Stat.RangeY = value.y;
             }
@@ -69,7 +82,7 @@ namespace Server.Game
             {
                 PosInfo.PosX = value.x;
                 PosInfo.PosY = value.y;
-                if(Room != null)
+                if (Room != null)
                     Cell = Room.Map.PosToCell(Pos);
             }
         }
@@ -90,8 +103,20 @@ namespace Server.Game
         public CreatureState State
         {
             get { return PosInfo.State; }
-            set { PosInfo.State = value; }
+            set 
+            { 
+                PosInfo.State = value; 
+                if(value == CreatureState.Loading)
+                {
+                    ClientSideLoading = false;
+                    ServerSideLoading = false;
+                }
+            }
         }
+        // for loading
+        public bool ClientSideLoading { get; set; } = false;
+        public bool ServerSideLoading { get; set; } = false;
+        public bool IsLoadingFinished { get { return (ClientSideLoading && ServerSideLoading); } }
 
         public virtual MoveDir Dir
         {
@@ -131,34 +156,31 @@ namespace Server.Game
 
 
 
-        /* Auto */
-        public AutoMode AutoMode { get; protected set; } = AutoMode.ModeNone;
-        public AutoState AutoState { get; protected set; } = AutoState.AutoIdle;
-        public class AutoInfo
+        /* 스킬 */
+        // 사용가능한 스킬정보
+        Dictionary<SkillId, SkillUseInfo> _skillset = new Dictionary<SkillId, SkillUseInfo>();
+        public Dictionary<SkillId, SkillUseInfo> Skillset { get { return _skillset; } }
+
+        protected SkillUseInfo _lastUseSkill = new SkillUseInfo() { lastUseTime = 0, skill = DataManager.DefaultSkill };  // 마지막으로 사용한 스킬
+        protected SkillUseInfo _usingSkill = null;                  // 현재 사용중인 스킬
+
+
+        /* util */
+        public bool IsAlive
         {
-            List<Vector2> _path = new List<Vector2>();
-            public List<Vector2> Path
+            get
             {
-                get { return _path; }
-                set
+                switch (State)
                 {
-                    _path = value;
-                    PathIndex = 1;
+                    case CreatureState.Dead:
+                    case CreatureState.Loading:
+                        return false;
+                    default:
+                        return true;
                 }
             }
-            public int PathIndex = 1;
-            public GameObject Target = null;
-            public Vector2Int PrevTargetCell = new Vector2Int(0, 0);
-            public float TargetDistance = 0;
-
-            public SkillUseInfo SkillUse = null;
-
-            public int WaitUntil = 0;
-            public AutoState NextState;
         }
-        public AutoInfo Auto { get; set; } = new AutoInfo();
-
-
+        public bool IsDead { get { return !IsAlive; } }
 
 
         // 생성자
@@ -166,13 +188,19 @@ namespace Server.Game
         {
             Info.PosInfo = PosInfo;
             Info.StatInfo = Stat;
+            Info.AutoInfo = AutoInfo;
         }
+
 
         // init
         public virtual void Init()
         {
             Info.ObjectId = GenerateId(ObjectType);
+
+            Auto.Init(this);
         }
+
+        
 
 
 
@@ -207,7 +235,11 @@ namespace Server.Game
         // update
         public virtual void Update()
         {
-            if (AutoMode == AutoMode.ModeNone)
+            if(State == CreatureState.Loading)
+            {
+                UpdateLoading();
+            }
+            else if (AutoMode == AutoMode.ModeNone)
             {
                 switch (State)
                 {
@@ -224,7 +256,7 @@ namespace Server.Game
             }
             else if(AutoMode == AutoMode.ModeAuto)
             {
-                switch (AutoState)
+                switch (Auto.State)
                 {
                     case AutoState.AutoIdle:
                         UpdateAutoIdle();
@@ -262,6 +294,10 @@ namespace Server.Game
         {
         }
 
+        protected virtual void UpdateLoading()
+        {
+        }
+
         protected virtual void UpdateSkill()
         {
         }
@@ -290,17 +326,6 @@ namespace Server.Game
 
         protected virtual void UpdateAutoWait()
         {
-            int tick = Environment.TickCount;
-            if(tick > Auto.WaitUntil)
-            {
-                AutoState = Auto.NextState;
-
-                ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameObject.UpdateAutoWait. nextState:{AutoState}, {this}");
-
-                return;
-            }
-
-            
         }
 
         // 현재 방향에 해당하는 벡터 얻기
@@ -374,7 +399,7 @@ namespace Server.Game
             else if (autoMode == AutoMode.ModeAuto)
             {
                 Speed = 7f;
-                AutoState = AutoState.AutoIdle;
+                Auto.State = AutoState.AutoIdle;
             }
 
             return true;

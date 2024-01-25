@@ -69,6 +69,11 @@ class PacketHandler
 
 
 
+        // 로딩완료 패킷 전송 (원래는 모든 첫 spawn 패킷 다받고 보내야함)
+        C_LoadFinished loadPacket = new C_LoadFinished();
+        loadPacket.BLoaded = true;
+        Managers.Network.Send(loadPacket);
+
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_EnterGameHandler. room:{enterGamePacket.RoomId} name:{enterGamePacket.Object.Name}, {bc.ToString(Define.InfoLevel.All)}");
     }
@@ -330,82 +335,51 @@ class PacketHandler
     }
 
 
-
-    public static void S_AutoChaseHandler(PacketSession session, IMessage packet)
+    public static void S_AutoMoveHandler(PacketSession session, IMessage packet)
     {
-        S_AutoChase chasePacket = packet as S_AutoChase;
+        S_AutoMove autoPacket = packet as S_AutoMove;
         ServerSession serverSession = session as ServerSession;
 
-        BaseController obj = Managers.Object.FindById(chasePacket.ObjectId);
+        BaseController obj = Managers.Object.FindById(autoPacket.ObjectId);
         if (obj == null)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoChaseHandler. Can't find object. objectId:{chasePacket.ObjectId}");
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoMoveHandler. Can't find object. objectId:{autoPacket.ObjectId}");
             return;
         }
 
         CreatureController cc = obj as CreatureController;
         if (cc == null)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoChaseHandler. Object has no CreatureController component. objectId:{chasePacket.ObjectId}");
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoMoveHandler. Object has no CreatureController component. objectId:{autoPacket.ObjectId}");
             return;
         }
 
-        cc.SetAutoChase(chasePacket);
+        cc.SetAutoMove(autoPacket);
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_AutoChaseHandler. me:{chasePacket.ObjectId}, target:{chasePacket.TargetId}, " +
-            $"pos:({chasePacket.PosX},{chasePacket.PosX}), targetPos:({chasePacket.TargetPosX},{chasePacket.TargetPosY}), distance:{chasePacket.Distance}");
+        AutoInfo info = autoPacket.AutoInfo;
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_AutoMoveHandler. id:{autoPacket.ObjectId}, " +
+            $"state:{info.AutoState}, pos:({info.StartPosX},{info.StartPosY}) target:{info.TargetId} tPos:({info.TargetPosX},{info.TargetPosY}), " +
+            $"dist:({info.TargetDistX},{info.TargetDistY}), wait:{(float)(info.WaitUntil - Managers.Time.CurrentTime) / (float)TimeSpan.TicksPerSecond}, next:{info.NextState}, skill:{info.SkillId}");
     }
 
 
-    public static void S_AutoWaitHandler(PacketSession session, IMessage packet)
+    // 로딩완료 요청 처리
+    public static void S_LoadFinishedHandler(PacketSession session, IMessage packet)
     {
-        S_AutoWait waitPacket = packet as S_AutoWait;
+        S_LoadFinished loadPacket = packet as S_LoadFinished;
         ServerSession serverSession = session as ServerSession;
 
-        BaseController obj = Managers.Object.FindById(waitPacket.ObjectId);
+        BaseController obj = Managers.Object.FindById(loadPacket.ObjectId);
         if (obj == null)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoWaitHandler. Can't find object. objectId:{waitPacket.ObjectId}");
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_LoadFinishedHandler. Can't find object. objectId:{loadPacket.ObjectId}");
             return;
         }
 
-        CreatureController cc = obj as CreatureController;
-        if (cc == null)
-        {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoWaitHandler. Object has no CreatureController component. objectId:{waitPacket.ObjectId}");
-            return;
-        }
+        // 로딩이 완료되었으므로 상태를 Idle로 변경
+        obj.State = CreatureState.Idle;
 
-        cc.SetAutoWait(waitPacket);
-
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_AutoWaitHandler. me:{waitPacket.ObjectId}, target:{waitPacket.TargetId}, " +
-            $"pos:({waitPacket.PosX},{waitPacket.PosX}), waitTime:{waitPacket.WaitTime}, nextState{waitPacket.NextState}");
-    }
-
-
-    public static void S_AutoSkillHandler(PacketSession session, IMessage packet)
-    {
-        S_AutoSkill skillPacket = packet as S_AutoSkill;
-        ServerSession serverSession = session as ServerSession;
-
-        BaseController obj = Managers.Object.FindById(skillPacket.ObjectId);
-        if (obj == null)
-        {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoSkillHandler. Can't find object. objectId:{skillPacket.ObjectId}");
-            return;
-        }
-
-        CreatureController cc = obj as CreatureController;
-        if (cc == null)
-        {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_AutoSkillHandler. Object has no CreatureController component. objectId:{skillPacket.ObjectId}");
-            return;
-        }
-
-        cc.SetAutoSkill(skillPacket);
-
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_AutoSkillHandler. me:{skillPacket.ObjectId}, target:{skillPacket.TargetId}, " +
-            $"pos:({skillPacket.PosX},{skillPacket.PosX}), targetPos:({skillPacket.TargetPosX},{skillPacket.TargetPosY}), skill:{skillPacket.SkillId}");
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_LoadFinishedHandler. objectId:{obj.Id}");
     }
 
 }

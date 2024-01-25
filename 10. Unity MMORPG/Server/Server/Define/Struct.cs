@@ -59,11 +59,9 @@ namespace Server
         public float cellDistFromZero { get { return Math.Abs(x) + Math.Abs(y); } }
         public Vector2 normalized { get { return new Vector2(x / magnitude, y / magnitude); } }
 
+        public float Sum { get { return x + y; } }
+        public Vector2 Abs { get { return new Vector2(Math.Abs(x), Math.Abs(y)); } }
 
-        public float AbsSum()
-        {
-            return Math.Abs(x) + Math.Abs(y);
-        }
 
         public override string? ToString() { return $"({x:f2},{y:f2})"; }
     }

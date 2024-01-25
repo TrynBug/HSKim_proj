@@ -36,22 +36,17 @@ public class EffectController : BaseController
 
 
 
-    public EffectController()
+
+    public void Init(string prefab, Vector2 pos, float offsetY)
     {
+        base.Init();
+        _animator = gameObject.GetComponent<Animator>();
+
         ObjectType = GameObjectType.Effect;
 
         // id 생성. Effect는 id를 클라이언트에서 생성한다. 서버에는 effect가 없기 때문
         Info.ObjectId = GenerateEffectId();
-    }
 
-    protected override void Init()
-    {
-        _animator = gameObject.GetComponent<Animator>();
-        base.Init();
-    }
-
-    public void Init(string prefab, Vector2 pos, float offsetY)
-    {
         Prefab = prefab;
         OffsetY = offsetY;
 

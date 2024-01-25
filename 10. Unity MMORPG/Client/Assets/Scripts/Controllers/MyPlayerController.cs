@@ -23,14 +23,12 @@ public class MyPlayerController : SPUMController
     public Dictionary<KeyInput, SkillId> KeySkillMap { get; private set; } = new Dictionary<KeyInput, SkillId>();          // 게임기능키와 스킬 연결맵
     bool[] _keyInput = new bool[Enum.GetValues(typeof(KeyInput)).Length];
 
-    protected override void Init()
-    {
-        base.Init();
-    }
 
 
     public void Init(S_EnterGame packet)
     {
+        base.Init(packet.Object);
+
         // 키보드키 매핑 설정
         KeyMap.Add(KeyCode.W, KeyInput.Up);
         KeyMap.Add(KeyCode.A, KeyInput.Left);
@@ -50,12 +48,6 @@ public class MyPlayerController : SPUMController
         KeyMap.Add(KeyCode.Alpha6, KeyInput.SkillK);
         KeyMap.Add(KeyCode.P, KeyInput.Auto);
 
-        // 데이터 초기화
-        ObjectInfo info = packet.Object;
-        Info = info;
-        PosInfo = info.PosInfo;
-        Stat = info.StatInfo;
-
         // 스킬셋 등록
         foreach (SkillId skillId in packet.SkillIds)
         {
@@ -67,6 +59,7 @@ public class MyPlayerController : SPUMController
         // 키 스킬 매핑 등록
         for(int i=0; i< packet.SkillIds.Count; i++)
             KeySkillMap.Add(KeyInput.Attack + i, packet.SkillIds[i]);
+
     }
 
 
@@ -250,96 +243,7 @@ public class MyPlayerController : SPUMController
     }
 
 
-    enum AutoState
-    { 
-        AutoIdle,
-        AutoChasing,
-        AutoMoving,
-        AutoSkill,
-        AutoWait,
-    }
-    BaseController _target = null;
-    Vector2Int _prevTargetCell;
-    AutoState _state = AutoState.AutoIdle;
-    SkillData _nextSkill = Managers.Data.DefaultSkill;
-    List<Vector2> _path;
-    int _nextPathIndex = 1;
-    int _waitTime = 0;
-    void UpdateIdle_AIAuto()
-    {
-        switch(_state)
-        {
-            case AutoState.AutoIdle:
-                {
-                    _target = Managers.Map.FindObjectNearbyCell(Cell, exceptObject:this);
-                    if(_target != null)
-                    {
-                        _prevTargetCell = _target.Cell;
-                        _path = Managers.Map.SearchPath(Cell, _target.Cell);
-                        _nextPathIndex = 1;
-                        _state = AutoState.AutoChasing;
-                    }
-                }
-                break;
-            case AutoState.AutoChasing:
-                {
-                    if (_target == null || _target.State == CreatureState.Dead)
-                    {
-                        _target = null;
-                        _state = AutoState.AutoIdle;
-                    }
 
-                    if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(_nextSkill.rangeX, _nextSkill.rangeY), _target.Pos))
-                    {
-                        // 스킬범위 내라면 스킬사용
-                        _state = AutoState.AutoSkill;
-                    }
-                    else
-                    {
-                        // 타겟이 이동했으면 경로 재계산
-                        if (_prevTargetCell != _target.Cell)
-                        {
-                            _path = Managers.Map.SearchPath(Cell, _target.Cell);
-                            _nextPathIndex = 1;
-                        }
-
-                        // Dest에 도착했다면 다음 목적지 지정
-                        if(Util.Equals(Pos, Dest))
-                        {
-                            if (_nextPathIndex < _path.Count)
-                            {
-                                Dest = _path[_nextPathIndex];
-                                _nextPathIndex++;
-                            }
-                            else
-                            {
-                                Dest = _path.Last();
-                            }
-
-                        }
-                    }
-                }
-                break;
-            case AutoState.AutoSkill:
-                {
-                    // 스킬키 입력
-                    _keyInput[(int)KeyInput.Attack] = true;
-
-                    // wait 상태로 변경
-                    _waitTime = Environment.TickCount + 1000;
-                    _state = AutoState.AutoWait;
-                }
-                break;
-            case AutoState.AutoWait:
-                {
-                    // wait 후 chase 상태로 변경
-                    int tick = Environment.TickCount;
-                    if (tick > _waitTime)
-                        _state = AutoState.AutoChasing;
-                }
-                break;
-        }
-    }
 
 
     protected override void UpdateMoving()
@@ -399,17 +303,18 @@ public class MyPlayerController : SPUMController
             }
             else
             {
-                Vector2 stopPos;
-                if (Managers.Map.TryStop(this, Dest, out stopPos))
-                {
-                    Pos = stopPos;
-                    Dest = stopPos;
-                }
-                else
-                {
-                    Dest = Pos;
-                }
-                State = CreatureState.Idle;
+                //Vector2 stopPos;
+                //if (Managers.Map.TryStop(this, Dest, out stopPos))
+                //{
+                //    Pos = stopPos;
+                //    Dest = stopPos;
+                //}
+                //else
+                //{
+                //    Dest = Pos;
+                //}
+                //State = CreatureState.Idle;
+                StopAt(Dest);
             }
         }
         // 위치 이동

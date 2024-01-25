@@ -66,6 +66,32 @@ namespace Server.Game
             return new Vector2(pos.x + CellWidth / 2f, pos.y + CellHeight / 2f);
         }
 
+        // 1개의 cell 내에서, cell의 중심을 기준으로 dir 방향의 좌표를 구한다.
+        public Vector2 CellToDirectionPos(Vector2Int cell, MoveDir moveDir)
+        {
+            Vector2 pos = CellToCenterPos(cell);
+            Vector2 dir = Util.GetDirectionVector(moveDir);
+            float distance = 0;
+            float distanceRate = 0.9f;
+            switch (moveDir)
+            {
+                case MoveDir.Up:
+                case MoveDir.Down:
+                case MoveDir.Left:
+                case MoveDir.Right:
+                    distance = (float)Math.Sqrt((CellWidth / 2f) * (CellWidth / 2f) + (CellHeight / 2f) * (CellHeight / 2f));
+                    break;
+                case MoveDir.LeftDown:
+                case MoveDir.RightUp:
+                    distance = CellWidth / 2f;
+                    break;
+                case MoveDir.LeftUp:
+                case MoveDir.RightDown:
+                    distance = CellHeight / 2f;
+                    break;
+            }
+            return pos + dir * (distance * distanceRate);
+        }
 
 
         // check
@@ -85,7 +111,9 @@ namespace Server.Game
         {
             return new Vector2Int(Math.Clamp(cell.x, 0, CellMaxX - 1), Math.Clamp(cell.y, 0, CellMaxY - 1));
         }
+
         // 비어있는 cell인지 확인
+        // checkObjects : true일 경우 collider와 object 둘다 검사, false일 경우 collider만 검사함
         public bool IsEmptyCell(Vector2Int cell, bool checkObjects = true)
         {
             if (IsInvalidCell(cell))
@@ -101,9 +129,26 @@ namespace Server.Game
             return IsEmptyCell(PosToCell(pos), checkObjects);
         }
 
+        // cell이 비어있거나 내가 위치해있는지 확인함
+        public bool IsEmptyCellOrMe(Vector2Int cell, GameObject me)
+        {
+            if (IsInvalidCell(cell))
+                return false;
+            if (_cells[cell.y, cell.x].Collider == true)
+                return false;
+            if (_cells[cell.y, cell.x].Object != null && _cells[cell.y, cell.x].Object != me)
+                return false;
+            return true;
+        }
+        public bool IsEmptyCellOrMe(Vector2 pos, GameObject me)
+        {
+            return IsEmptyCellOrMe(PosToCell(pos), me);
+        }
 
 
-        // 랜덤 포지션 얻기 (텔레포트 위치 제외)
+
+
+        // 비어있는 랜덤 포지션 얻기 (텔레포트 위치 제외)
         public Vector2 GetRandomEmptyPos()
         {
             Vector2 pos;
@@ -394,12 +439,14 @@ namespace Server.Game
             }
 
             // dest 위치가 비어있지 않을 경우 비어있는 가장 가까운 위치를 찾는다.
-            Vector2Int emptyCell;
-            if (FindEmptyCellOfDirection(obj, Util.GetOppositeDirection(obj.Dir), dest, out emptyCell) == false)
-            {
-                stopPos = obj.Pos;
-                return false;
-            }
+            //Vector2Int emptyCell;
+            //if (FindEmptyCellOfDirection(obj, Util.GetOppositeDirection(obj.Dir), dest, out emptyCell) == false)
+            //{
+            //    stopPos = obj.Pos;
+            //    return false;
+            //}
+
+            Vector2Int emptyCell = FindStopCell(obj, targetPos, destCell.Object.Pos, out stopPos);
 
             // 비어있는 가장 가까운 cell로 이동
             if (isMovingobject)
@@ -412,69 +459,93 @@ namespace Server.Game
         }
 
 
-        // origin을 기준으로 dir 방향의 cell을 찾는다.
-        public Vector2Int FindCellOfDirection(MoveDir dir, Vector2Int origin)
-        {
-            Vector2Int cell;
-            switch (dir)
-            {
-                case MoveDir.Up:
-                    cell = new Vector2Int(origin.x + 1, origin.y - 1);
-                    break;
-                case MoveDir.Down:
-                    cell = new Vector2Int(origin.x - 1, origin.y + 1);
-                    break;
-                case MoveDir.Left:
-                    cell = new Vector2Int(origin.x - 1, origin.y - 1);
-                    break;
-                case MoveDir.Right:
-                    cell = new Vector2Int(origin.x + 1, origin.y + 1);
-                    break;
-                case MoveDir.LeftUp:
-                    cell = new Vector2Int(origin.x, origin.y - 1);
-                    break;
-                case MoveDir.LeftDown:
-                    cell = new Vector2Int(origin.x - 1, origin.y);
-                    break;
-                case MoveDir.RightUp:
-                    cell = new Vector2Int(origin.x + 1, origin.y);
-                    break;
-                case MoveDir.RightDown:
-                    cell = new Vector2Int(origin.x, origin.y + 1);
-                    break;
-                default:
-                    cell = origin;
-                    break;
-            }
-            return cell;
-        }
-
         // origin을 기준으로 dir 방향의 비어있는 cell을 찾는다.
-        public bool FindEmptyCellOfDirection(GameObject me, MoveDir dir, Vector2Int origin, out Vector2Int emptyCell)
+        //public bool FindEmptyCellOfDirection(GameObject me, MoveDir dir, Vector2Int origin, out Vector2Int emptyCell)
+        //{
+        //    Vector2Int cell = origin;
+        //    while (true)
+        //    {
+        //        cell = Util.FindCellOfDirection(dir, cell);
+        //        if (IsInvalidCell(cell))
+        //        {
+        //            emptyCell = cell;
+        //            return false;
+        //        }
+        //        if (IsEmptyCell(cell))
+        //        {
+        //            emptyCell = cell;
+        //            return true;
+        //        }
+        //        if (me != null && _cells[cell.y, cell.x].Object == me)
+        //        {
+        //            emptyCell = cell;
+        //            return true;
+        //        }
+        //    }
+        //}
+
+
+        // 내가 posMe 위치에 있고 posOther 위치에 있는 상대방과 부딪혔다고 할 때, 상대방과의 방향을 고려하여 posOther 위치 근처에 멈출 적절한 cell을 찾는다.
+        // return : 정지할 cell
+        // out param stopPos : 정지할 position
+        struct _NearCell : IComparable<_NearCell>
         {
-            Vector2Int cell = origin;
-            while (true)
-            {
-                cell = FindCellOfDirection(dir, cell);
-                if (IsInvalidCell(cell))
-                {
-                    emptyCell = cell;
-                    return false;
-                }
-                if (IsEmptyCell(cell))
-                {
-                    emptyCell = cell;
-                    return true;
-                }
-                if (me != null && _cells[cell.y, cell.x].Object == me)
-                {
-                    emptyCell = cell;
-                    return true;
-                }
-            }
+            public float distance;
+            public Vector2Int cell;
+            public int CompareTo(_NearCell other) { return this.distance < other.distance ? -1 : 1; }
         }
+        List<_NearCell> _nearCells = new List<_NearCell>();
+        public Vector2Int FindStopCell(GameObject me, Vector2 posMe, Vector2 posOther, out Vector2 stopPos)
+        {
+            // 상대방이 나를 바라볼때의 방향 계산
+            MoveDir direction = Util.GetDirectionToDest(posOther, posMe);
+            // 계산한 방향의 cell을 찾음
+            Vector2Int cellOther = PosToCell(posOther);
+            Vector2Int stopCell = Util.FindCellOfDirection(direction, cellOther);
+            // cell이 비어있다면 성공
+            if(IsEmptyCellOrMe(stopCell, me))
+            {
+                stopPos = CellToDirectionPos(stopCell, Util.GetOppositeDirection(direction));
+                return stopCell;
+            }
 
+            // cell이 비어있지 않다면 주변 cell을 더 탐색한다. (우선 주변 +- 2 범위 만큼의 cell만 탐색함)
+            for (int range = 1; range < 3; range++)
+            {
+                _nearCells.Clear();
+                // 상대방이 위치한 cell 주변에서 비어있는 cell을 찾는다.
+                // 그런다음 cell과 나와의 거리를 계산하여 _nearCells 에 저장한다.
+                for (int y = cellOther.y - range; y < cellOther.y + range; y++)
+                {
+                    for (int x = cellOther.x - range; x < cellOther.x + range; x++)
+                    {
+                        Vector2Int cell = new Vector2Int(x, y);
+                        if (IsEmptyCellOrMe(cell, me))
+                        {
+                            Vector2 posCenter = CellToCenterPos(cell);
+                            float distance = (posMe - posCenter).squareMagnitude;
+                            _nearCells.Add(new _NearCell { distance = distance, cell = cell });
+                        }
+                    }
+                }
 
+                if (_nearCells.Count == 0)
+                    continue;
+                
+                // 비어있는 주변 cell을 거리가 가까운 순으로 정렬한다.
+                _nearCells.Sort();
+                // 거리가 가장 가까운 cell을 멈출 cell로 선택한다.
+                stopCell = _nearCells[0].cell;
+                MoveDir dirFromCell = Util.GetDirectionToDest(CellToCenterPos(stopCell), posMe);
+                stopPos = CellToDirectionPos(stopCell, Util.GetOppositeDirection(dirFromCell));
+                return stopCell;
+            }
+
+            // 아직 비어있는 cell을 찾지 못했다면 주변 아무 cell이나 비어있는 곳에 멈춘다.
+            FindEmptyCell(cellOther, checkObjects: true, out stopCell);
+            stopPos = CellToCenterPos(stopCell);
+            return stopCell;
+        }
 
 
 
@@ -589,7 +660,7 @@ namespace Server.Game
         }
 
 
-        // center를 기준으로 가장 가까운 오브젝트를 찾는다.
+        // center를 기준으로 가장 가까운 살아있는 오브젝트를 찾는다.
         // 찾지 못했으면 null을 리턴함
         public GameObject FindObjectNearbyCell(Vector2Int center, GameObject exceptObject = null)
         {

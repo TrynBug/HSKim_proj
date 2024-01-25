@@ -87,9 +87,9 @@ public class ObjectManager
             PlayerController player = Util.FindChild(go, "UnitRoot").GetOrAddComponent<PlayerController>();
             SortingGroup sort = player.GetOrAddComponent<SortingGroup>();
             sort.sortingOrder = 2;
-            player.Info = info;
-            player.PosInfo = info.PosInfo;
-            player.Stat = info.StatInfo;
+
+            // 초기화
+            player.Init(info);
 
             // object 추가
             _players.Add(info.ObjectId, player);

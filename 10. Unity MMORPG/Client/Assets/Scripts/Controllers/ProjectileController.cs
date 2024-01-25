@@ -40,19 +40,12 @@ public class ProjectileController : BaseController
     protected float Speed { get { return Skill.projectile.speed; } }
 
 
-    protected override void Init()
-    {
-        ObjectType = GameObjectType.Projectile;
-        if(_sprite == null)
-            _sprite = gameObject.GetComponent<SpriteRenderer>();
-        base.Init();
-    }
-
-
     public void Init(int objectId, Data.SkillData skill, BaseController owner, BaseController target)
     {
-        if (_sprite == null)
-            _sprite = gameObject.GetComponent<SpriteRenderer>();
+        base.Init();
+        ObjectType = GameObjectType.Projectile;
+        _sprite = gameObject.GetComponent<SpriteRenderer>();
+
 
         Info.ObjectId = objectId;
         Skill = skill;

@@ -121,6 +121,44 @@ namespace Server
             return opposite;
         }
 
+
+        // origin을 기준으로 dir 방향의 cell을 찾는다.
+        public static Vector2Int FindCellOfDirection(MoveDir dir, Vector2Int origin)
+        {
+            Vector2Int cell;
+            switch (dir)
+            {
+                case MoveDir.Up:
+                    cell = new Vector2Int(origin.x + 1, origin.y - 1);
+                    break;
+                case MoveDir.Down:
+                    cell = new Vector2Int(origin.x - 1, origin.y + 1);
+                    break;
+                case MoveDir.Left:
+                    cell = new Vector2Int(origin.x - 1, origin.y - 1);
+                    break;
+                case MoveDir.Right:
+                    cell = new Vector2Int(origin.x + 1, origin.y + 1);
+                    break;
+                case MoveDir.LeftUp:
+                    cell = new Vector2Int(origin.x, origin.y - 1);
+                    break;
+                case MoveDir.LeftDown:
+                    cell = new Vector2Int(origin.x - 1, origin.y);
+                    break;
+                case MoveDir.RightUp:
+                    cell = new Vector2Int(origin.x + 1, origin.y);
+                    break;
+                case MoveDir.RightDown:
+                    cell = new Vector2Int(origin.x, origin.y + 1);
+                    break;
+                default:
+                    cell = origin;
+                    break;
+            }
+            return cell;
+        }
+
         // pos에서 dest로의 방향 얻기
         public static MoveDir GetDirectionToDest(Vector2 pos, Vector2 dest)
         {

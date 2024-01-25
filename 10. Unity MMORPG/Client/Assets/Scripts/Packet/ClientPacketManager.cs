@@ -65,12 +65,10 @@ class PacketManager
 		_handler.Add((ushort)MsgId.SSetAutoResponse, PacketHandler.S_SetAutoResponseHandler);		
 		_makeFunc.Add((ushort)MsgId.SStop, MakePacket<S_Stop>);
 		_handler.Add((ushort)MsgId.SStop, PacketHandler.S_StopHandler);		
-		_makeFunc.Add((ushort)MsgId.SAutoChase, MakePacket<S_AutoChase>);
-		_handler.Add((ushort)MsgId.SAutoChase, PacketHandler.S_AutoChaseHandler);		
-		_makeFunc.Add((ushort)MsgId.SAutoWait, MakePacket<S_AutoWait>);
-		_handler.Add((ushort)MsgId.SAutoWait, PacketHandler.S_AutoWaitHandler);		
-		_makeFunc.Add((ushort)MsgId.SAutoSkill, MakePacket<S_AutoSkill>);
-		_handler.Add((ushort)MsgId.SAutoSkill, PacketHandler.S_AutoSkillHandler);
+		_makeFunc.Add((ushort)MsgId.SAutoMove, MakePacket<S_AutoMove>);
+		_handler.Add((ushort)MsgId.SAutoMove, PacketHandler.S_AutoMoveHandler);		
+		_makeFunc.Add((ushort)MsgId.SLoadFinished, MakePacket<S_LoadFinished>);
+		_handler.Add((ushort)MsgId.SLoadFinished, PacketHandler.S_LoadFinishedHandler);
 	}
 
     // buffer에서 패킷ID를 추출하고, 패킷ID에 해당하는 패킷을 생성한다(_makeFunc에서 찾은 MakePacket<T> 함수를 호출하여).
