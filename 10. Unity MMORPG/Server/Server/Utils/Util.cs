@@ -202,21 +202,38 @@ namespace Server
             }
         }
 
+
+        // pos 에서 target을 바라보는 방향 얻기
+        public static LookDir GetLookToTarget(Vector2 pos, Vector2 target)
+        {
+            // pos를 원점으로 하여 target의 위치를 옮긴다.
+            // 만약 target의 위치가 -x < y 일 경우 오른쪽이다.
+            Vector2 targetAdj = target - pos;
+            if (-targetAdj.x < targetAdj.y)
+                return LookDir.LookRight;
+            else
+                return LookDir.LookLeft;
+        }
+
+
+
         // posOrigin을 기준으로, look 방향으로 사각형의 range 범위 내에 target이 위치하는지를 확인함
         public static bool IsTargetInRectRange(Vector2 posOrigin, LookDir look, Vector2 range, Vector2 posTarget)
         {
             // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
             Vector2 R;
             if (look == LookDir.LookLeft)
-                R = new Vector2((float)Math.Cos(Math.PI / 180 * 135), (float)Math.Sin(Math.PI / 180 * 135));
+                R = new Vector2(-0.70710678118654746f, 0.70710678118654757f);
+                // R의 값은 다음과 동일 : new Vector2((float)Math.Cos(Math.PI / 180 * 135), (float)Math.Sin(Math.PI / 180 * 135));
             else
-                R = new Vector2((float)Math.Cos(Math.PI / 180 * 315), (float)Math.Sin(Math.PI / 180 * 315));
+                R = new Vector2(0.70710678118654735f, -0.70710678118654768f);
+                // R의 값은 다음과 동일 : new Vector2((float)Math.Cos(Math.PI / 180 * 315), (float)Math.Sin(Math.PI / 180 * 315));
 
             // target이 range 범위의 사각형 안에 존재하는지 확인
             Vector2 objectPos;
             objectPos.x = (posTarget.x - posOrigin.x) * R.x - (posTarget.y - posOrigin.y) * R.y;
             objectPos.y = (posTarget.x - posOrigin.x) * R.y + (posTarget.y - posOrigin.y) * R.x;
-            if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+            if (objectPos.x > -0.2 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
             {
                 return true;
             }

@@ -56,58 +56,64 @@ namespace Google.Protobuf.Protocol {
             "bmZvGAIgASgLMhYuUHJvdG9jb2wuUG9zaXRpb25JbmZvEiQKCGF1dG9JbmZv",
             "GAMgASgLMhIuUHJvdG9jb2wuQXV0b0luZm8iIQoOQ19Mb2FkRmluaXNoZWQS",
             "DwoHYkxvYWRlZBgBIAEoCCIiCg5TX0xvYWRGaW5pc2hlZBIQCghvYmplY3RJ",
-            "ZBgBIAEoBSLXAQoKT2JqZWN0SW5mbxIQCghvYmplY3RJZBgBIAEoBRIMCgRu",
-            "YW1lGAIgASgJEicKB3Bvc0luZm8YAyABKAsyFi5Qcm90b2NvbC5Qb3NpdGlv",
-            "bkluZm8SJAoIc3RhdEluZm8YBCABKAsyEi5Qcm90b2NvbC5TdGF0SW5mbxIk",
-            "CghhdXRvSW5mbxgFIAEoCzISLlByb3RvY29sLkF1dG9JbmZvEg4KBlNQVU1J",
-            "ZBgGIAEoBRIkCghhdXRvTW9kZRgHIAEoDjISLlByb3RvY29sLkF1dG9Nb2Rl",
-            "Is0BCgxQb3NpdGlvbkluZm8SJgoFc3RhdGUYASABKA4yFy5Qcm90b2NvbC5D",
-            "cmVhdHVyZVN0YXRlEiIKB21vdmVEaXIYAiABKA4yES5Qcm90b2NvbC5Nb3Zl",
-            "RGlyEiIKB2xvb2tEaXIYAyABKA4yES5Qcm90b2NvbC5Mb29rRGlyEgwKBHBv",
-            "c1gYBCABKAISDAoEcG9zWRgFIAEoAhINCgVkZXN0WBgGIAEoAhINCgVkZXN0",
-            "WRgHIAEoAhITCgttb3ZlS2V5RG93bhgIIAEoCCLmAgoIU3RhdEluZm8SEgoF",
-            "bGV2ZWwYASABKAVIAIgBARIPCgJocBgCIAEoBUgBiAEBEhIKBW1heEhwGAMg",
-            "ASgFSAKIAQESEwoGZGFtYWdlGAQgASgFSAOIAQESFAoHZGVmZW5jZRgFIAEo",
-            "BUgEiAEBEhMKBnJhbmdlWBgGIAEoAkgFiAEBEhMKBnJhbmdlWRgHIAEoAkgG",
-            "iAEBEhgKC2F0dGFja1NwZWVkGAggASgCSAeIAQESEgoFc3BlZWQYCSABKAJI",
-            "CIgBARIQCgNleHAYCiABKAVICYgBARIVCgh0b3RhbEV4cBgLIAEoBUgKiAEB",
-            "QggKBl9sZXZlbEIFCgNfaHBCCAoGX21heEhwQgkKB19kYW1hZ2VCCgoIX2Rl",
-            "ZmVuY2VCCQoHX3JhbmdlWEIJCgdfcmFuZ2VZQg4KDF9hdHRhY2tTcGVlZEII",
-            "CgZfc3BlZWRCBgoEX2V4cEILCglfdG90YWxFeHAimwIKCEF1dG9JbmZvEiYK",
-            "CWF1dG9TdGF0ZRgBIAEoDjITLlByb3RvY29sLkF1dG9TdGF0ZRIRCglzdGFy",
-            "dFBvc1gYAiABKAISEQoJc3RhcnRQb3NZGAMgASgCEhAKCHRhcmdldElkGAQg",
-            "ASgFEhIKCnRhcmdldFBvc1gYBSABKAISEgoKdGFyZ2V0UG9zWRgGIAEoAhIT",
-            "Cgt0YXJnZXREaXN0WBgHIAEoAhITCgt0YXJnZXREaXN0WRgIIAEoAhIRCgl3",
-            "YWl0VW50aWwYCSABKAMSJgoJbmV4dFN0YXRlGAogASgOMhMuUHJvdG9jb2wu",
-            "QXV0b1N0YXRlEiIKB3NraWxsSWQYCyABKA4yES5Qcm90b2NvbC5Ta2lsbElk",
-            "KokDCgVNc2dJZBIQCgxTX0VOVEVSX0dBTUUQABIQCgxTX0xFQVZFX0dBTUUQ",
-            "ARIQCgxTX0VOVEVSX1JPT00QAhIQCgxTX0xFQVZFX1JPT00QAxILCgdTX1NQ",
-            "QVdOEAQSDQoJU19ERVNQQVdOEAUSEQoNU19TUEFXTl9TS0lMTBAGEgoKBkNf",
-            "TU9WRRAHEgoKBlNfTU9WRRAIEgsKB0NfU0tJTEwQCRILCgdTX1NLSUxMEAoS",
-            "DwoLQ19TS0lMTF9ISVQQCxIPCgtTX1NLSUxMX0hJVBAMEg8KC1NfQ0hBTkdF",
-            "X0hQEA0SCQoFU19ESUUQDhIPCgtDX1NZTkNfVElNRRAPEhgKFFNfU1lOQ19U",
-            "SU1FX1JFU1BPTlNFEBASDgoKQ19TRVRfQVVUTxAREhcKE1NfU0VUX0FVVE9f",
-            "UkVTUE9OU0UQEhIKCgZTX1NUT1AQFBIPCgtTX0FVVE9fTU9WRRAVEhMKD0Nf",
-            "TE9BRF9GSU5JU0hFRBAWEhMKD1NfTE9BRF9GSU5JU0hFRBAXKjwKDUNyZWF0",
-            "dXJlU3RhdGUSCAoESURMRRAAEgoKBk1PVklORxABEggKBERFQUQQAhILCgdM",
-            "T0FESU5HEAMqagoHTW92ZURpchIGCgJVUBAAEggKBERPV04QARIICgRMRUZU",
-            "EAISCQoFUklHSFQQAxILCgdMRUZUX1VQEAQSDQoJTEVGVF9ET1dOEAUSDAoI",
-            "UklHSFRfVVAQBhIOCgpSSUdIVF9ET1dOEAcqKAoHTG9va0RpchINCglMT09L",
-            "X0xFRlQQABIOCgpMT09LX1JJR0hUEAEqTwoOR2FtZU9iamVjdFR5cGUSCAoE",
-            "Tk9ORRAAEgoKBlBMQVlFUhABEgsKB01PTlNURVIQAhIOCgpQUk9KRUNUSUxF",
-            "EAMSCgoGRUZGRUNUEAQqRQoJU2tpbGxUeXBlEg8KC1NLSUxMX01FTEVFEAAS",
-            "FAoQU0tJTExfUFJPSkVDVElMRRABEhEKDVNLSUxMX0lOU1RBTlQQAirOAQoH",
-            "U2tpbGxJZBIOCgpTS0lMTF9OT05FEAASEAoMU0tJTExfQVRUQUNLEAESDwoL",
-            "U0tJTExfQVJST1cQAhISCg5TS0lMTF9GSVJFQkFMTBADEhEKDVNLSUxMX1RI",
-            "VU5ERVIQBBIWChJTS0lMTF9IRUFWWV9BVFRBQ0sQBRIZChVTS0lMTF9NQUdJ",
-            "Q19FWFBMT1NJT04QBhIXChNTS0lMTF9SRURfRVhQTE9TSU9OEAcSHQoZU0tJ",
-            "TExfTElHSFROSU5HX0VYUExPU0lPThAIKksKDlN0YXRDaGFuZ2VUeXBlEg8K",
-            "C0NIQU5HRV9OT05FEAASEwoPQ0hBTkdFX1BPU0lUSVZFEAESEwoPQ0hBTkdF",
-            "X05FR0FUSVZFEAIqKAoIQXV0b01vZGUSDQoJTU9ERV9OT05FEAASDQoJTU9E",
-            "RV9BVVRPEAEqawoJQXV0b1N0YXRlEg0KCUFVVE9fSURMRRAAEhAKDEFVVE9f",
-            "Q0hBU0lORxABEg8KC0FVVE9fTU9WSU5HEAISDgoKQVVUT19TS0lMTBADEg0K",
-            "CUFVVE9fREVBRBAEEg0KCUFVVE9fV0FJVBAFQhuqAhhHb29nbGUuUHJvdG9i",
-            "dWYuUHJvdG9jb2xiBnByb3RvMw=="));
+            "ZBgBIAEoBSIdCglDX1Jlc3Bhd24SEAoIYlJlc3Bhd24YASABKAgi1wEKCk9i",
+            "amVjdEluZm8SEAoIb2JqZWN0SWQYASABKAUSDAoEbmFtZRgCIAEoCRInCgdw",
+            "b3NJbmZvGAMgASgLMhYuUHJvdG9jb2wuUG9zaXRpb25JbmZvEiQKCHN0YXRJ",
+            "bmZvGAQgASgLMhIuUHJvdG9jb2wuU3RhdEluZm8SJAoIYXV0b0luZm8YBSAB",
+            "KAsyEi5Qcm90b2NvbC5BdXRvSW5mbxIOCgZTUFVNSWQYBiABKAUSJAoIYXV0",
+            "b01vZGUYByABKA4yEi5Qcm90b2NvbC5BdXRvTW9kZSLNAQoMUG9zaXRpb25J",
+            "bmZvEiYKBXN0YXRlGAEgASgOMhcuUHJvdG9jb2wuQ3JlYXR1cmVTdGF0ZRIi",
+            "Cgdtb3ZlRGlyGAIgASgOMhEuUHJvdG9jb2wuTW92ZURpchIiCgdsb29rRGly",
+            "GAMgASgOMhEuUHJvdG9jb2wuTG9va0RpchIMCgRwb3NYGAQgASgCEgwKBHBv",
+            "c1kYBSABKAISDQoFZGVzdFgYBiABKAISDQoFZGVzdFkYByABKAISEwoLbW92",
+            "ZUtleURvd24YCCABKAgi5gIKCFN0YXRJbmZvEhIKBWxldmVsGAEgASgFSACI",
+            "AQESDwoCaHAYAiABKAVIAYgBARISCgVtYXhIcBgDIAEoBUgCiAEBEhMKBmRh",
+            "bWFnZRgEIAEoBUgDiAEBEhQKB2RlZmVuY2UYBSABKAVIBIgBARITCgZyYW5n",
+            "ZVgYBiABKAJIBYgBARITCgZyYW5nZVkYByABKAJIBogBARIYCgthdHRhY2tT",
+            "cGVlZBgIIAEoAkgHiAEBEhIKBXNwZWVkGAkgASgCSAiIAQESEAoDZXhwGAog",
+            "ASgFSAmIAQESFQoIdG90YWxFeHAYCyABKAVICogBAUIICgZfbGV2ZWxCBQoD",
+            "X2hwQggKBl9tYXhIcEIJCgdfZGFtYWdlQgoKCF9kZWZlbmNlQgkKB19yYW5n",
+            "ZVhCCQoHX3JhbmdlWUIOCgxfYXR0YWNrU3BlZWRCCAoGX3NwZWVkQgYKBF9l",
+            "eHBCCwoJX3RvdGFsRXhwIu8DCghBdXRvSW5mbxIrCglhdXRvU3RhdGUYASAB",
+            "KA4yEy5Qcm90b2NvbC5BdXRvU3RhdGVIAIgBARIWCglzdGFydFBvc1gYAiAB",
+            "KAJIAYgBARIWCglzdGFydFBvc1kYAyABKAJIAogBARIVCgh0YXJnZXRJZBgE",
+            "IAEoBUgDiAEBEhcKCnRhcmdldFBvc1gYBSABKAJIBIgBARIXCgp0YXJnZXRQ",
+            "b3NZGAYgASgCSAWIAQESGAoLdGFyZ2V0RGlzdFgYByABKAJIBogBARIYCgt0",
+            "YXJnZXREaXN0WRgIIAEoAkgHiAEBEhYKCXdhaXRVbnRpbBgJIAEoA0gIiAEB",
+            "EisKCW5leHRTdGF0ZRgKIAEoDjITLlByb3RvY29sLkF1dG9TdGF0ZUgJiAEB",
+            "EicKB3NraWxsSWQYCyABKA4yES5Qcm90b2NvbC5Ta2lsbElkSAqIAQFCDAoK",
+            "X2F1dG9TdGF0ZUIMCgpfc3RhcnRQb3NYQgwKCl9zdGFydFBvc1lCCwoJX3Rh",
+            "cmdldElkQg0KC190YXJnZXRQb3NYQg0KC190YXJnZXRQb3NZQg4KDF90YXJn",
+            "ZXREaXN0WEIOCgxfdGFyZ2V0RGlzdFlCDAoKX3dhaXRVbnRpbEIMCgpfbmV4",
+            "dFN0YXRlQgoKCF9za2lsbElkKpgDCgVNc2dJZBIQCgxTX0VOVEVSX0dBTUUQ",
+            "ABIQCgxTX0xFQVZFX0dBTUUQARIQCgxTX0VOVEVSX1JPT00QAhIQCgxTX0xF",
+            "QVZFX1JPT00QAxILCgdTX1NQQVdOEAQSDQoJU19ERVNQQVdOEAUSEQoNU19T",
+            "UEFXTl9TS0lMTBAGEgoKBkNfTU9WRRAHEgoKBlNfTU9WRRAIEgsKB0NfU0tJ",
+            "TEwQCRILCgdTX1NLSUxMEAoSDwoLQ19TS0lMTF9ISVQQCxIPCgtTX1NLSUxM",
+            "X0hJVBAMEg8KC1NfQ0hBTkdFX0hQEA0SCQoFU19ESUUQDhIPCgtDX1NZTkNf",
+            "VElNRRAPEhgKFFNfU1lOQ19USU1FX1JFU1BPTlNFEBASDgoKQ19TRVRfQVVU",
+            "TxAREhcKE1NfU0VUX0FVVE9fUkVTUE9OU0UQEhIKCgZTX1NUT1AQFBIPCgtT",
+            "X0FVVE9fTU9WRRAVEhMKD0NfTE9BRF9GSU5JU0hFRBAWEhMKD1NfTE9BRF9G",
+            "SU5JU0hFRBAXEg0KCUNfUkVTUEFXThAYKjwKDUNyZWF0dXJlU3RhdGUSCAoE",
+            "SURMRRAAEgoKBk1PVklORxABEggKBERFQUQQAhILCgdMT0FESU5HEAMqagoH",
+            "TW92ZURpchIGCgJVUBAAEggKBERPV04QARIICgRMRUZUEAISCQoFUklHSFQQ",
+            "AxILCgdMRUZUX1VQEAQSDQoJTEVGVF9ET1dOEAUSDAoIUklHSFRfVVAQBhIO",
+            "CgpSSUdIVF9ET1dOEAcqKAoHTG9va0RpchINCglMT09LX0xFRlQQABIOCgpM",
+            "T09LX1JJR0hUEAEqTwoOR2FtZU9iamVjdFR5cGUSCAoETk9ORRAAEgoKBlBM",
+            "QVlFUhABEgsKB01PTlNURVIQAhIOCgpQUk9KRUNUSUxFEAMSCgoGRUZGRUNU",
+            "EAQqRQoJU2tpbGxUeXBlEg8KC1NLSUxMX01FTEVFEAASFAoQU0tJTExfUFJP",
+            "SkVDVElMRRABEhEKDVNLSUxMX0lOU1RBTlQQAirOAQoHU2tpbGxJZBIOCgpT",
+            "S0lMTF9OT05FEAASEAoMU0tJTExfQVRUQUNLEAESDwoLU0tJTExfQVJST1cQ",
+            "AhISCg5TS0lMTF9GSVJFQkFMTBADEhEKDVNLSUxMX1RIVU5ERVIQBBIWChJT",
+            "S0lMTF9IRUFWWV9BVFRBQ0sQBRIZChVTS0lMTF9NQUdJQ19FWFBMT1NJT04Q",
+            "BhIXChNTS0lMTF9SRURfRVhQTE9TSU9OEAcSHQoZU0tJTExfTElHSFROSU5H",
+            "X0VYUExPU0lPThAIKksKDlN0YXRDaGFuZ2VUeXBlEg8KC0NIQU5HRV9OT05F",
+            "EAASEwoPQ0hBTkdFX1BPU0lUSVZFEAESEwoPQ0hBTkdFX05FR0FUSVZFEAIq",
+            "KAoIQXV0b01vZGUSDQoJTU9ERV9OT05FEAASDQoJTU9ERV9BVVRPEAEqawoJ",
+            "QXV0b1N0YXRlEg0KCUFVVE9fSURMRRAAEhAKDEFVVE9fQ0hBU0lORxABEg8K",
+            "C0FVVE9fTU9WSU5HEAISDgoKQVVUT19TS0lMTBADEg0KCUFVVE9fREVBRBAE",
+            "Eg0KCUFVVE9fV0FJVBAFQhuqAhhHb29nbGUuUHJvdG9idWYuUHJvdG9jb2xi",
+            "BnByb3RvMw=="));
       descriptor = pbr::FileDescriptor.FromGeneratedCode(descriptorData,
           new pbr::FileDescriptor[] { global::Google.Protobuf.WellKnownTypes.TimestampReflection.Descriptor, },
           new pbr::GeneratedClrTypeInfo(new[] {typeof(global::Google.Protobuf.Protocol.MsgId), typeof(global::Google.Protobuf.Protocol.CreatureState), typeof(global::Google.Protobuf.Protocol.MoveDir), typeof(global::Google.Protobuf.Protocol.LookDir), typeof(global::Google.Protobuf.Protocol.GameObjectType), typeof(global::Google.Protobuf.Protocol.SkillType), typeof(global::Google.Protobuf.Protocol.SkillId), typeof(global::Google.Protobuf.Protocol.StatChangeType), typeof(global::Google.Protobuf.Protocol.AutoMode), typeof(global::Google.Protobuf.Protocol.AutoState), }, null, new pbr::GeneratedClrTypeInfo[] {
@@ -134,10 +140,11 @@ namespace Google.Protobuf.Protocol {
             new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.S_AutoMove), global::Google.Protobuf.Protocol.S_AutoMove.Parser, new[]{ "ObjectId", "PosInfo", "AutoInfo" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.C_LoadFinished), global::Google.Protobuf.Protocol.C_LoadFinished.Parser, new[]{ "BLoaded" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.S_LoadFinished), global::Google.Protobuf.Protocol.S_LoadFinished.Parser, new[]{ "ObjectId" }, null, null, null, null),
+            new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.C_Respawn), global::Google.Protobuf.Protocol.C_Respawn.Parser, new[]{ "BRespawn" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.ObjectInfo), global::Google.Protobuf.Protocol.ObjectInfo.Parser, new[]{ "ObjectId", "Name", "PosInfo", "StatInfo", "AutoInfo", "SPUMId", "AutoMode" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.PositionInfo), global::Google.Protobuf.Protocol.PositionInfo.Parser, new[]{ "State", "MoveDir", "LookDir", "PosX", "PosY", "DestX", "DestY", "MoveKeyDown" }, null, null, null, null),
             new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.StatInfo), global::Google.Protobuf.Protocol.StatInfo.Parser, new[]{ "Level", "Hp", "MaxHp", "Damage", "Defence", "RangeX", "RangeY", "AttackSpeed", "Speed", "Exp", "TotalExp" }, new[]{ "Level", "Hp", "MaxHp", "Damage", "Defence", "RangeX", "RangeY", "AttackSpeed", "Speed", "Exp", "TotalExp" }, null, null, null),
-            new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.AutoInfo), global::Google.Protobuf.Protocol.AutoInfo.Parser, new[]{ "AutoState", "StartPosX", "StartPosY", "TargetId", "TargetPosX", "TargetPosY", "TargetDistX", "TargetDistY", "WaitUntil", "NextState", "SkillId" }, null, null, null, null)
+            new pbr::GeneratedClrTypeInfo(typeof(global::Google.Protobuf.Protocol.AutoInfo), global::Google.Protobuf.Protocol.AutoInfo.Parser, new[]{ "AutoState", "StartPosX", "StartPosY", "TargetId", "TargetPosX", "TargetPosY", "TargetDistX", "TargetDistY", "WaitUntil", "NextState", "SkillId" }, new[]{ "AutoState", "StartPosX", "StartPosY", "TargetId", "TargetPosX", "TargetPosY", "TargetDistX", "TargetDistY", "WaitUntil", "NextState", "SkillId" }, null, null, null)
           }));
     }
     #endregion
@@ -168,6 +175,7 @@ namespace Google.Protobuf.Protocol {
     [pbr::OriginalName("S_AUTO_MOVE")] SAutoMove = 21,
     [pbr::OriginalName("C_LOAD_FINISHED")] CLoadFinished = 22,
     [pbr::OriginalName("S_LOAD_FINISHED")] SLoadFinished = 23,
+    [pbr::OriginalName("C_RESPAWN")] CRespawn = 24,
   }
 
   public enum CreatureState {
@@ -5351,6 +5359,196 @@ namespace Google.Protobuf.Protocol {
   }
 
   [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
+  public sealed partial class C_Respawn : pb::IMessage<C_Respawn>
+  #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      , pb::IBufferMessage
+  #endif
+  {
+    private static readonly pb::MessageParser<C_Respawn> _parser = new pb::MessageParser<C_Respawn>(() => new C_Respawn());
+    private pb::UnknownFieldSet _unknownFields;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pb::MessageParser<C_Respawn> Parser { get { return _parser; } }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public static pbr::MessageDescriptor Descriptor {
+      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[23]; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    pbr::MessageDescriptor pb::IMessage.Descriptor {
+      get { return Descriptor; }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public C_Respawn() {
+      OnConstruction();
+    }
+
+    partial void OnConstruction();
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public C_Respawn(C_Respawn other) : this() {
+      bRespawn_ = other.bRespawn_;
+      _unknownFields = pb::UnknownFieldSet.Clone(other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public C_Respawn Clone() {
+      return new C_Respawn(this);
+    }
+
+    /// <summary>Field number for the "bRespawn" field.</summary>
+    public const int BRespawnFieldNumber = 1;
+    private bool bRespawn_;
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool BRespawn {
+      get { return bRespawn_; }
+      set {
+        bRespawn_ = value;
+      }
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override bool Equals(object other) {
+      return Equals(other as C_Respawn);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool Equals(C_Respawn other) {
+      if (ReferenceEquals(other, null)) {
+        return false;
+      }
+      if (ReferenceEquals(other, this)) {
+        return true;
+      }
+      if (BRespawn != other.BRespawn) return false;
+      return Equals(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override int GetHashCode() {
+      int hash = 1;
+      if (BRespawn != false) hash ^= BRespawn.GetHashCode();
+      if (_unknownFields != null) {
+        hash ^= _unknownFields.GetHashCode();
+      }
+      return hash;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public override string ToString() {
+      return pb::JsonFormatter.ToDiagnosticString(this);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void WriteTo(pb::CodedOutputStream output) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      output.WriteRawMessage(this);
+    #else
+      if (BRespawn != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(BRespawn);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(output);
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
+      if (BRespawn != false) {
+        output.WriteRawTag(8);
+        output.WriteBool(BRespawn);
+      }
+      if (_unknownFields != null) {
+        _unknownFields.WriteTo(ref output);
+      }
+    }
+    #endif
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public int CalculateSize() {
+      int size = 0;
+      if (BRespawn != false) {
+        size += 1 + 1;
+      }
+      if (_unknownFields != null) {
+        size += _unknownFields.CalculateSize();
+      }
+      return size;
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(C_Respawn other) {
+      if (other == null) {
+        return;
+      }
+      if (other.BRespawn != false) {
+        BRespawn = other.BRespawn;
+      }
+      _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);
+    }
+
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void MergeFrom(pb::CodedInputStream input) {
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+      input.ReadRawMessage(this);
+    #else
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, input);
+            break;
+          case 8: {
+            BRespawn = input.ReadBool();
+            break;
+          }
+        }
+      }
+    #endif
+    }
+
+    #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    void pb::IBufferMessage.InternalMergeFrom(ref pb::ParseContext input) {
+      uint tag;
+      while ((tag = input.ReadTag()) != 0) {
+        switch(tag) {
+          default:
+            _unknownFields = pb::UnknownFieldSet.MergeFieldFrom(_unknownFields, ref input);
+            break;
+          case 8: {
+            BRespawn = input.ReadBool();
+            break;
+          }
+        }
+      }
+    }
+    #endif
+
+  }
+
+  [global::System.Diagnostics.DebuggerDisplayAttribute("{ToString(),nq}")]
   public sealed partial class ObjectInfo : pb::IMessage<ObjectInfo>
   #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       , pb::IBufferMessage
@@ -5365,7 +5563,7 @@ namespace Google.Protobuf.Protocol {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[23]; }
+      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[24]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -5804,7 +6002,7 @@ namespace Google.Protobuf.Protocol {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[24]; }
+      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[25]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6254,7 +6452,7 @@ namespace Google.Protobuf.Protocol {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[25]; }
+      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[26]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -6973,6 +7171,7 @@ namespace Google.Protobuf.Protocol {
   {
     private static readonly pb::MessageParser<AutoInfo> _parser = new pb::MessageParser<AutoInfo>(() => new AutoInfo());
     private pb::UnknownFieldSet _unknownFields;
+    private int _hasBits0;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pb::MessageParser<AutoInfo> Parser { get { return _parser; } }
@@ -6980,7 +7179,7 @@ namespace Google.Protobuf.Protocol {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public static pbr::MessageDescriptor Descriptor {
-      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[26]; }
+      get { return global::Google.Protobuf.Protocol.ProtocolReflection.Descriptor.MessageTypes[27]; }
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7000,6 +7199,7 @@ namespace Google.Protobuf.Protocol {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public AutoInfo(AutoInfo other) : this() {
+      _hasBits0 = other._hasBits0;
       autoState_ = other.autoState_;
       startPosX_ = other.startPosX_;
       startPosY_ = other.startPosY_;
@@ -7022,134 +7222,299 @@ namespace Google.Protobuf.Protocol {
 
     /// <summary>Field number for the "autoState" field.</summary>
     public const int AutoStateFieldNumber = 1;
-    private global::Google.Protobuf.Protocol.AutoState autoState_ = global::Google.Protobuf.Protocol.AutoState.AutoIdle;
+    private readonly static global::Google.Protobuf.Protocol.AutoState AutoStateDefaultValue = global::Google.Protobuf.Protocol.AutoState.AutoIdle;
+
+    private global::Google.Protobuf.Protocol.AutoState autoState_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Google.Protobuf.Protocol.AutoState AutoState {
-      get { return autoState_; }
+      get { if ((_hasBits0 & 1) != 0) { return autoState_; } else { return AutoStateDefaultValue; } }
       set {
+        _hasBits0 |= 1;
         autoState_ = value;
       }
+    }
+    /// <summary>Gets whether the "autoState" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasAutoState {
+      get { return (_hasBits0 & 1) != 0; }
+    }
+    /// <summary>Clears the value of the "autoState" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearAutoState() {
+      _hasBits0 &= ~1;
     }
 
     /// <summary>Field number for the "startPosX" field.</summary>
     public const int StartPosXFieldNumber = 2;
+    private readonly static float StartPosXDefaultValue = 0F;
+
     private float startPosX_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public float StartPosX {
-      get { return startPosX_; }
+      get { if ((_hasBits0 & 2) != 0) { return startPosX_; } else { return StartPosXDefaultValue; } }
       set {
+        _hasBits0 |= 2;
         startPosX_ = value;
       }
+    }
+    /// <summary>Gets whether the "startPosX" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasStartPosX {
+      get { return (_hasBits0 & 2) != 0; }
+    }
+    /// <summary>Clears the value of the "startPosX" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearStartPosX() {
+      _hasBits0 &= ~2;
     }
 
     /// <summary>Field number for the "startPosY" field.</summary>
     public const int StartPosYFieldNumber = 3;
+    private readonly static float StartPosYDefaultValue = 0F;
+
     private float startPosY_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public float StartPosY {
-      get { return startPosY_; }
+      get { if ((_hasBits0 & 4) != 0) { return startPosY_; } else { return StartPosYDefaultValue; } }
       set {
+        _hasBits0 |= 4;
         startPosY_ = value;
       }
+    }
+    /// <summary>Gets whether the "startPosY" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasStartPosY {
+      get { return (_hasBits0 & 4) != 0; }
+    }
+    /// <summary>Clears the value of the "startPosY" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearStartPosY() {
+      _hasBits0 &= ~4;
     }
 
     /// <summary>Field number for the "targetId" field.</summary>
     public const int TargetIdFieldNumber = 4;
+    private readonly static int TargetIdDefaultValue = 0;
+
     private int targetId_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int TargetId {
-      get { return targetId_; }
+      get { if ((_hasBits0 & 8) != 0) { return targetId_; } else { return TargetIdDefaultValue; } }
       set {
+        _hasBits0 |= 8;
         targetId_ = value;
       }
+    }
+    /// <summary>Gets whether the "targetId" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasTargetId {
+      get { return (_hasBits0 & 8) != 0; }
+    }
+    /// <summary>Clears the value of the "targetId" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearTargetId() {
+      _hasBits0 &= ~8;
     }
 
     /// <summary>Field number for the "targetPosX" field.</summary>
     public const int TargetPosXFieldNumber = 5;
+    private readonly static float TargetPosXDefaultValue = 0F;
+
     private float targetPosX_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public float TargetPosX {
-      get { return targetPosX_; }
+      get { if ((_hasBits0 & 16) != 0) { return targetPosX_; } else { return TargetPosXDefaultValue; } }
       set {
+        _hasBits0 |= 16;
         targetPosX_ = value;
       }
+    }
+    /// <summary>Gets whether the "targetPosX" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasTargetPosX {
+      get { return (_hasBits0 & 16) != 0; }
+    }
+    /// <summary>Clears the value of the "targetPosX" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearTargetPosX() {
+      _hasBits0 &= ~16;
     }
 
     /// <summary>Field number for the "targetPosY" field.</summary>
     public const int TargetPosYFieldNumber = 6;
+    private readonly static float TargetPosYDefaultValue = 0F;
+
     private float targetPosY_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public float TargetPosY {
-      get { return targetPosY_; }
+      get { if ((_hasBits0 & 32) != 0) { return targetPosY_; } else { return TargetPosYDefaultValue; } }
       set {
+        _hasBits0 |= 32;
         targetPosY_ = value;
       }
+    }
+    /// <summary>Gets whether the "targetPosY" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasTargetPosY {
+      get { return (_hasBits0 & 32) != 0; }
+    }
+    /// <summary>Clears the value of the "targetPosY" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearTargetPosY() {
+      _hasBits0 &= ~32;
     }
 
     /// <summary>Field number for the "targetDistX" field.</summary>
     public const int TargetDistXFieldNumber = 7;
+    private readonly static float TargetDistXDefaultValue = 0F;
+
     private float targetDistX_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public float TargetDistX {
-      get { return targetDistX_; }
+      get { if ((_hasBits0 & 64) != 0) { return targetDistX_; } else { return TargetDistXDefaultValue; } }
       set {
+        _hasBits0 |= 64;
         targetDistX_ = value;
       }
+    }
+    /// <summary>Gets whether the "targetDistX" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasTargetDistX {
+      get { return (_hasBits0 & 64) != 0; }
+    }
+    /// <summary>Clears the value of the "targetDistX" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearTargetDistX() {
+      _hasBits0 &= ~64;
     }
 
     /// <summary>Field number for the "targetDistY" field.</summary>
     public const int TargetDistYFieldNumber = 8;
+    private readonly static float TargetDistYDefaultValue = 0F;
+
     private float targetDistY_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public float TargetDistY {
-      get { return targetDistY_; }
+      get { if ((_hasBits0 & 128) != 0) { return targetDistY_; } else { return TargetDistYDefaultValue; } }
       set {
+        _hasBits0 |= 128;
         targetDistY_ = value;
       }
+    }
+    /// <summary>Gets whether the "targetDistY" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasTargetDistY {
+      get { return (_hasBits0 & 128) != 0; }
+    }
+    /// <summary>Clears the value of the "targetDistY" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearTargetDistY() {
+      _hasBits0 &= ~128;
     }
 
     /// <summary>Field number for the "waitUntil" field.</summary>
     public const int WaitUntilFieldNumber = 9;
+    private readonly static long WaitUntilDefaultValue = 0L;
+
     private long waitUntil_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public long WaitUntil {
-      get { return waitUntil_; }
+      get { if ((_hasBits0 & 256) != 0) { return waitUntil_; } else { return WaitUntilDefaultValue; } }
       set {
+        _hasBits0 |= 256;
         waitUntil_ = value;
       }
+    }
+    /// <summary>Gets whether the "waitUntil" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasWaitUntil {
+      get { return (_hasBits0 & 256) != 0; }
+    }
+    /// <summary>Clears the value of the "waitUntil" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearWaitUntil() {
+      _hasBits0 &= ~256;
     }
 
     /// <summary>Field number for the "nextState" field.</summary>
     public const int NextStateFieldNumber = 10;
-    private global::Google.Protobuf.Protocol.AutoState nextState_ = global::Google.Protobuf.Protocol.AutoState.AutoIdle;
+    private readonly static global::Google.Protobuf.Protocol.AutoState NextStateDefaultValue = global::Google.Protobuf.Protocol.AutoState.AutoIdle;
+
+    private global::Google.Protobuf.Protocol.AutoState nextState_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Google.Protobuf.Protocol.AutoState NextState {
-      get { return nextState_; }
+      get { if ((_hasBits0 & 512) != 0) { return nextState_; } else { return NextStateDefaultValue; } }
       set {
+        _hasBits0 |= 512;
         nextState_ = value;
       }
+    }
+    /// <summary>Gets whether the "nextState" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasNextState {
+      get { return (_hasBits0 & 512) != 0; }
+    }
+    /// <summary>Clears the value of the "nextState" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearNextState() {
+      _hasBits0 &= ~512;
     }
 
     /// <summary>Field number for the "skillId" field.</summary>
     public const int SkillIdFieldNumber = 11;
-    private global::Google.Protobuf.Protocol.SkillId skillId_ = global::Google.Protobuf.Protocol.SkillId.SkillNone;
+    private readonly static global::Google.Protobuf.Protocol.SkillId SkillIdDefaultValue = global::Google.Protobuf.Protocol.SkillId.SkillNone;
+
+    private global::Google.Protobuf.Protocol.SkillId skillId_;
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public global::Google.Protobuf.Protocol.SkillId SkillId {
-      get { return skillId_; }
+      get { if ((_hasBits0 & 1024) != 0) { return skillId_; } else { return SkillIdDefaultValue; } }
       set {
+        _hasBits0 |= 1024;
         skillId_ = value;
       }
+    }
+    /// <summary>Gets whether the "skillId" field is set</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public bool HasSkillId {
+      get { return (_hasBits0 & 1024) != 0; }
+    }
+    /// <summary>Clears the value of the "skillId" field</summary>
+    [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
+    [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
+    public void ClearSkillId() {
+      _hasBits0 &= ~1024;
     }
 
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
@@ -7185,17 +7550,17 @@ namespace Google.Protobuf.Protocol {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public override int GetHashCode() {
       int hash = 1;
-      if (AutoState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) hash ^= AutoState.GetHashCode();
-      if (StartPosX != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(StartPosX);
-      if (StartPosY != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(StartPosY);
-      if (TargetId != 0) hash ^= TargetId.GetHashCode();
-      if (TargetPosX != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(TargetPosX);
-      if (TargetPosY != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(TargetPosY);
-      if (TargetDistX != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(TargetDistX);
-      if (TargetDistY != 0F) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(TargetDistY);
-      if (WaitUntil != 0L) hash ^= WaitUntil.GetHashCode();
-      if (NextState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) hash ^= NextState.GetHashCode();
-      if (SkillId != global::Google.Protobuf.Protocol.SkillId.SkillNone) hash ^= SkillId.GetHashCode();
+      if (HasAutoState) hash ^= AutoState.GetHashCode();
+      if (HasStartPosX) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(StartPosX);
+      if (HasStartPosY) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(StartPosY);
+      if (HasTargetId) hash ^= TargetId.GetHashCode();
+      if (HasTargetPosX) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(TargetPosX);
+      if (HasTargetPosY) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(TargetPosY);
+      if (HasTargetDistX) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(TargetDistX);
+      if (HasTargetDistY) hash ^= pbc::ProtobufEqualityComparers.BitwiseSingleEqualityComparer.GetHashCode(TargetDistY);
+      if (HasWaitUntil) hash ^= WaitUntil.GetHashCode();
+      if (HasNextState) hash ^= NextState.GetHashCode();
+      if (HasSkillId) hash ^= SkillId.GetHashCode();
       if (_unknownFields != null) {
         hash ^= _unknownFields.GetHashCode();
       }
@@ -7214,47 +7579,47 @@ namespace Google.Protobuf.Protocol {
     #if !GOOGLE_PROTOBUF_REFSTRUCT_COMPATIBILITY_MODE
       output.WriteRawMessage(this);
     #else
-      if (AutoState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) {
+      if (HasAutoState) {
         output.WriteRawTag(8);
         output.WriteEnum((int) AutoState);
       }
-      if (StartPosX != 0F) {
+      if (HasStartPosX) {
         output.WriteRawTag(21);
         output.WriteFloat(StartPosX);
       }
-      if (StartPosY != 0F) {
+      if (HasStartPosY) {
         output.WriteRawTag(29);
         output.WriteFloat(StartPosY);
       }
-      if (TargetId != 0) {
+      if (HasTargetId) {
         output.WriteRawTag(32);
         output.WriteInt32(TargetId);
       }
-      if (TargetPosX != 0F) {
+      if (HasTargetPosX) {
         output.WriteRawTag(45);
         output.WriteFloat(TargetPosX);
       }
-      if (TargetPosY != 0F) {
+      if (HasTargetPosY) {
         output.WriteRawTag(53);
         output.WriteFloat(TargetPosY);
       }
-      if (TargetDistX != 0F) {
+      if (HasTargetDistX) {
         output.WriteRawTag(61);
         output.WriteFloat(TargetDistX);
       }
-      if (TargetDistY != 0F) {
+      if (HasTargetDistY) {
         output.WriteRawTag(69);
         output.WriteFloat(TargetDistY);
       }
-      if (WaitUntil != 0L) {
+      if (HasWaitUntil) {
         output.WriteRawTag(72);
         output.WriteInt64(WaitUntil);
       }
-      if (NextState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) {
+      if (HasNextState) {
         output.WriteRawTag(80);
         output.WriteEnum((int) NextState);
       }
-      if (SkillId != global::Google.Protobuf.Protocol.SkillId.SkillNone) {
+      if (HasSkillId) {
         output.WriteRawTag(88);
         output.WriteEnum((int) SkillId);
       }
@@ -7268,47 +7633,47 @@ namespace Google.Protobuf.Protocol {
     [global::System.Diagnostics.DebuggerNonUserCodeAttribute]
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     void pb::IBufferMessage.InternalWriteTo(ref pb::WriteContext output) {
-      if (AutoState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) {
+      if (HasAutoState) {
         output.WriteRawTag(8);
         output.WriteEnum((int) AutoState);
       }
-      if (StartPosX != 0F) {
+      if (HasStartPosX) {
         output.WriteRawTag(21);
         output.WriteFloat(StartPosX);
       }
-      if (StartPosY != 0F) {
+      if (HasStartPosY) {
         output.WriteRawTag(29);
         output.WriteFloat(StartPosY);
       }
-      if (TargetId != 0) {
+      if (HasTargetId) {
         output.WriteRawTag(32);
         output.WriteInt32(TargetId);
       }
-      if (TargetPosX != 0F) {
+      if (HasTargetPosX) {
         output.WriteRawTag(45);
         output.WriteFloat(TargetPosX);
       }
-      if (TargetPosY != 0F) {
+      if (HasTargetPosY) {
         output.WriteRawTag(53);
         output.WriteFloat(TargetPosY);
       }
-      if (TargetDistX != 0F) {
+      if (HasTargetDistX) {
         output.WriteRawTag(61);
         output.WriteFloat(TargetDistX);
       }
-      if (TargetDistY != 0F) {
+      if (HasTargetDistY) {
         output.WriteRawTag(69);
         output.WriteFloat(TargetDistY);
       }
-      if (WaitUntil != 0L) {
+      if (HasWaitUntil) {
         output.WriteRawTag(72);
         output.WriteInt64(WaitUntil);
       }
-      if (NextState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) {
+      if (HasNextState) {
         output.WriteRawTag(80);
         output.WriteEnum((int) NextState);
       }
-      if (SkillId != global::Google.Protobuf.Protocol.SkillId.SkillNone) {
+      if (HasSkillId) {
         output.WriteRawTag(88);
         output.WriteEnum((int) SkillId);
       }
@@ -7322,37 +7687,37 @@ namespace Google.Protobuf.Protocol {
     [global::System.CodeDom.Compiler.GeneratedCode("protoc", null)]
     public int CalculateSize() {
       int size = 0;
-      if (AutoState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) {
+      if (HasAutoState) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) AutoState);
       }
-      if (StartPosX != 0F) {
+      if (HasStartPosX) {
         size += 1 + 4;
       }
-      if (StartPosY != 0F) {
+      if (HasStartPosY) {
         size += 1 + 4;
       }
-      if (TargetId != 0) {
+      if (HasTargetId) {
         size += 1 + pb::CodedOutputStream.ComputeInt32Size(TargetId);
       }
-      if (TargetPosX != 0F) {
+      if (HasTargetPosX) {
         size += 1 + 4;
       }
-      if (TargetPosY != 0F) {
+      if (HasTargetPosY) {
         size += 1 + 4;
       }
-      if (TargetDistX != 0F) {
+      if (HasTargetDistX) {
         size += 1 + 4;
       }
-      if (TargetDistY != 0F) {
+      if (HasTargetDistY) {
         size += 1 + 4;
       }
-      if (WaitUntil != 0L) {
+      if (HasWaitUntil) {
         size += 1 + pb::CodedOutputStream.ComputeInt64Size(WaitUntil);
       }
-      if (NextState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) {
+      if (HasNextState) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) NextState);
       }
-      if (SkillId != global::Google.Protobuf.Protocol.SkillId.SkillNone) {
+      if (HasSkillId) {
         size += 1 + pb::CodedOutputStream.ComputeEnumSize((int) SkillId);
       }
       if (_unknownFields != null) {
@@ -7367,37 +7732,37 @@ namespace Google.Protobuf.Protocol {
       if (other == null) {
         return;
       }
-      if (other.AutoState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) {
+      if (other.HasAutoState) {
         AutoState = other.AutoState;
       }
-      if (other.StartPosX != 0F) {
+      if (other.HasStartPosX) {
         StartPosX = other.StartPosX;
       }
-      if (other.StartPosY != 0F) {
+      if (other.HasStartPosY) {
         StartPosY = other.StartPosY;
       }
-      if (other.TargetId != 0) {
+      if (other.HasTargetId) {
         TargetId = other.TargetId;
       }
-      if (other.TargetPosX != 0F) {
+      if (other.HasTargetPosX) {
         TargetPosX = other.TargetPosX;
       }
-      if (other.TargetPosY != 0F) {
+      if (other.HasTargetPosY) {
         TargetPosY = other.TargetPosY;
       }
-      if (other.TargetDistX != 0F) {
+      if (other.HasTargetDistX) {
         TargetDistX = other.TargetDistX;
       }
-      if (other.TargetDistY != 0F) {
+      if (other.HasTargetDistY) {
         TargetDistY = other.TargetDistY;
       }
-      if (other.WaitUntil != 0L) {
+      if (other.HasWaitUntil) {
         WaitUntil = other.WaitUntil;
       }
-      if (other.NextState != global::Google.Protobuf.Protocol.AutoState.AutoIdle) {
+      if (other.HasNextState) {
         NextState = other.NextState;
       }
-      if (other.SkillId != global::Google.Protobuf.Protocol.SkillId.SkillNone) {
+      if (other.HasSkillId) {
         SkillId = other.SkillId;
       }
       _unknownFields = pb::UnknownFieldSet.MergeFrom(_unknownFields, other._unknownFields);

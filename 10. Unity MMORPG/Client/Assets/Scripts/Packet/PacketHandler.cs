@@ -114,6 +114,17 @@ class PacketHandler
             Managers.Object.AddOtherPlayer(info);
         }
 
+        // 오브젝트 초기 설정
+        // 모든 오브젝트가 추가된 다음 세팅해야하는 요소라서 여기서 함
+        foreach (ObjectInfo info in spawnPacket.Objects)
+        {
+            CreatureController creature = Managers.Object.FindById(info.ObjectId) as CreatureController;
+            if (creature.AutoMode == AutoMode.ModeAuto)
+            {
+                creature.SetAutoMove(creature.AutoInfo, creature.PosInfo);
+            }
+        }
+
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SpawnHandler. objects:{spawnPacket.Objects}");
     }
 
@@ -329,7 +340,8 @@ class PacketHandler
             return;
         }
 
-        cc.StopAt(new Vector2(stopPacket.PosX, stopPacket.PosY));
+
+        cc.SyncStop(new Vector2(stopPacket.PosX, stopPacket.PosY));
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_StopHandler. id:{stopPacket.ObjectId}, pos:({stopPacket.PosX},{stopPacket.PosY})");
     }

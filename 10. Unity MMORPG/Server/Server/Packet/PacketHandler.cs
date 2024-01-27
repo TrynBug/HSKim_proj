@@ -144,5 +144,24 @@ internal class PacketHandler
 
         Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_LoadFinishedHandler. {player}");
     }
+
+
+    // 부활 요청 처리
+    public static void C_RespawnHandler(PacketSession session, IMessage packet)
+    {
+        C_Respawn respawnPacket = packet as C_Respawn;
+        ClientSession clientSession = session as ClientSession;
+
+        Player player = clientSession.MyPlayer;
+        if (player.Room == null)
+        {
+            Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_RespawnHandler. Player has no room. {player}");
+            return;
+        }
+
+        clientSession.MyPlayer.Room.HandleRespawn(player, respawnPacket);
+
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_RespawnHandler. {player}");
+    }
 }
 

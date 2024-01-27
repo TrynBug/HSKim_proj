@@ -51,36 +51,41 @@ namespace Server.Game
         public Vector2 PosCenter { get { return Map.PosCenter; } }
         public Vector2Int CellCenter { get { return Map.CellCenter; } }
 
-
-
-        // push job
+        /* push job */
         public void Init(int mapId) { Push(_init, mapId); }
         public void EnterGame(GameObject gameObject) { Push(_enterGame, gameObject); }
         public void EnterGame(RoomTransferInfo transferInfo) { Push(_enterGame, transferInfo); }
         public void LeaveGame(int objectId) { Push(_leaveGame, objectId); }
-        //public void Update() { Push(_update); }
         public void Broadcast(IMessage packet, Player except = null) { Push(_broadcast, packet, except); }
         public void HandleMove(Player player, C_Move movePacket) { Push(_handleMove, player, movePacket); }
         public void HandleSkill(Player player, C_Skill skillPacket) { Push(_handleSkill, player, skillPacket); }
         public void HandleSkillHit(Player player, C_SkillHit hitPacket) { Push(_handleSkillHit, player, hitPacket); }
         public void HandleLoadFinish(Player player, C_LoadFinished loadPacket) { Push(_handleLoadFinish, player, loadPacket); }
+        public void HandleRespawn(Player player, C_Respawn rdspawnPacket) { Push(_handleRespawn, player, rdspawnPacket); }
 
-
-
-        // 조건에 맞는 플레이어 찾기
-        // TODO. thread unsafe
-        public Player FindPlayer(Func<GameObject, bool> condition)
+        /* util */
+        public bool IsValidTarget(GameObject target)
         {
-            foreach (Player player in _players.Values)
+            if (target == null)
+                return false;
+            if (target.Room.RoomId != RoomId || target.IsAlive == false)
+                return false;
+            if(target.ObjectType == GameObjectType.Player)
             {
-                if (condition.Invoke(player))
-                    return player;
+                Player player = target as Player;
+                if (player == null)
+                    return false;
+                if (player.Session.IsDisconnected == true)
+                    return false;
             }
-            
-            return null;
+            return true;
         }
 
-        
+
+
+
+
+
         // FPS에 맞추어 게임룸을 주기적으로 업데이트한다.
         public void Run()
         {
@@ -116,15 +121,36 @@ namespace Server.Game
 
 
         // frame update
+        List<Player> _disconnectedPlayers = new List<Player>();
+        List<Player> _respawnPlayers = new List<Player>();
+        List<RoomTransferInfo> _leavingPlayers = new List<RoomTransferInfo>();
+        List<Projectile> _deadProjectiles = new List<Projectile>();
         public void _update()
         {
             Flush();  // job queue 내의 모든 job 실행
 
             // 플레이어 업데이트
-            List<RoomTransferInfo> leavingPlayers = new List<RoomTransferInfo>();
+            _leavingPlayers.Clear();
+            _disconnectedPlayers.Clear();
+            _respawnPlayers.Clear();
             foreach (Player player in _players.Values)
             {
+                // 연결끊긴 플레이어는 따로처리함
+                if(player.Session.IsDisconnected == true)
+                {
+                    _disconnectedPlayers.Add(player);
+                    continue;
+                }
+
+                // 업데이트
                 player.Update();
+
+                // 리스폰 확인
+                if(player.Respawn == true)
+                {
+                    _respawnPlayers.Add(player);
+                    continue;
+                }    
 
                 // 텔레포트 확인
                 TeleportData teleport = Map.GetTeleportUnderObject(player);
@@ -136,12 +162,65 @@ namespace Server.Game
                     else
                         nextRoomId = (RoomId + 1) % DataManager.MapDict.Count;
                     nextRoomId = nextRoomId < 0 ? DataManager.MapDict.Count - 1 : nextRoomId;
-                    leavingPlayers.Add(new RoomTransferInfo { prevRoomId = RoomId, prevTeleportId = teleport.number, nextRoomId = nextRoomId, player = player });
+                    _leavingPlayers.Add(new RoomTransferInfo { prevRoomId = RoomId, prevTeleportId = teleport.number, nextRoomId = nextRoomId, player = player });
                 }
             }
 
+            foreach (Monster monster in _monsters.Values)
+            {
+                monster.Update();
+            }
+
+            // 투사체 업데이트
+            _deadProjectiles.Clear();
+            foreach (Projectile projectile in _projectiles.Values)
+            {
+                projectile.Update();
+
+                // 삭제 확인
+                if (projectile.State == CreatureState.Dead)
+                    _deadProjectiles.Add(projectile);
+            }
+
+            // 삭제될 투사체 삭제
+            foreach (Projectile projectile in _deadProjectiles)
+            {
+                _projectiles.Remove(projectile.Id);
+            }
+
+
+
+
+            // 연결끊긴 플레이어 처리
+            foreach (Player player in _disconnectedPlayers)
+            {
+                _leaveGame(player.Id);
+                ObjectManager.Instance.Remove(player.Id);
+                SessionManager.Instance.Remove(player.Session);
+            }
+
+            // 리스폰 플레이어 처리
+            foreach (Player player in _respawnPlayers)
+            {
+                // 현재 room에서 나감
+                _leaveGame(player.Id);
+
+                // 스탯 초기화
+                player.RecalculateStat();
+                player.State = CreatureState.Loading;
+                player.Respawn = false;
+
+                // room 변경
+                player.Room = RoomManager.Instance.GetRandomRoom();
+
+                // 다음 room에 들어감
+                player.Room.EnterGame(player);
+            }
+
+
+
             // 이동할 플레이어를 이동시킴
-            foreach (RoomTransferInfo transfer in leavingPlayers)
+            foreach (RoomTransferInfo transfer in _leavingPlayers)
             {
                 GameRoom nextRoom = RoomManager.Instance.Find(transfer.nextRoomId);
                 if (nextRoom == null)
@@ -151,36 +230,16 @@ namespace Server.Game
                 }
 
                 // 현재 room에서 나감
-               _leaveGame(transfer.player.Id);
+                _leaveGame(transfer.player.Id);
+
+                // 상태를 Loading으로 변경
+                transfer.player.State = CreatureState.Loading;
+
+                // room 변경
+                transfer.player.Room = nextRoom;
 
                 // 다음 room에 들어감
                 nextRoom.EnterGame(transfer);
-            }
-
-
-
-
-
-            foreach (Monster monster in _monsters.Values)
-            {
-                monster.Update();
-            }
-
-            // 투사체 업데이트
-            List<Projectile> deadProjectiles = new List<Projectile>();
-            foreach (Projectile projectile in _projectiles.Values)
-            {
-                projectile.Update();
-
-                // 삭제 확인
-                if (projectile.State == CreatureState.Dead)
-                    deadProjectiles.Add(projectile);
-            }
-
-            // 삭제될 투사체 삭제
-            foreach (Projectile projectile in deadProjectiles)
-            {
-                _projectiles.Remove(projectile.Id);
             }
 
 
@@ -298,8 +357,7 @@ namespace Server.Game
                     spawnPacket.SkillId = proj.Skill.id;
                     spawnPacket.DestX = proj.Dest.x;
                     spawnPacket.DestY = proj.Dest.y;
-                    foreach (Player p in _players.Values)
-                        p.Session.Send(spawnPacket);
+                    _broadcast(spawnPacket);
                 }
             }
 
@@ -308,6 +366,7 @@ namespace Server.Game
             Logger.WriteLog(LogLevel.Debug, $"GameRoom.EnterGame. {gameObject.ToString(InfoLevel.All)}");   
         }
 
+        // room 이동으로 플레이어가 들어왔을때 호출됨
         public void _enterGame(RoomTransferInfo transferInfo)
         {
             // 이동할 적절한 위치를 찾음
@@ -316,7 +375,7 @@ namespace Server.Game
             player.Room = this;
             player.Pos = posEnterZone;
             player.Dest = posEnterZone;
-            player.State = CreatureState.Idle;
+            player.State = CreatureState.Loading;
 
             // 이동
             _enterGame(player);
@@ -336,7 +395,6 @@ namespace Server.Game
                     Logger.WriteLog(LogLevel.Error, $"GameRoom.LeaveGame. Can't find player. id:{objectId}");
                     return;
                 }
-                player.Room = null;
 
                 // 맵에서 제거
                 Map.Remove(player);
@@ -564,12 +622,35 @@ namespace Server.Game
                 _broadcast(resPacket);
             }
 
+            // 만약 사망한 상태라면 사망패킷 전송
+            if(player.Hp <= 0)
+                player.OnDead(player);
+
 
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleLoadFinish. {player}");
         }
 
 
 
+        // 클라이언트의 부활요청 처리
+        public void _handleRespawn(Player player, C_Respawn respawnPacket)
+        {
+            _handleRespawn(player);
+        }
+        public void _handleRespawn(Player player)
+        {
+            if (player == null)
+                return;
+
+            if (player.IsDead == false)
+                return;
+
+            // respawn flag 세팅
+            // GameRoom의 update 함수에서 나중에 respawn을 처리함
+            player.Respawn = true;
+
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleRespawn. {player}");
+        }
 
 
 

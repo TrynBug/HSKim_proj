@@ -40,9 +40,13 @@ namespace Server
         public override void OnConnected(EndPoint endPoint)
         {
             // 플레이어 생성
+            Player myPlayer = new Player();
             GameRoom room = RoomManager.Instance.Find(0);
-            MyPlayer = ObjectManager.Instance.Add<Player>();
+            MyPlayer = myPlayer;
             MyPlayer.Init(this, room);
+
+            ObjectManager.Instance.AddPlayer(myPlayer);
+            
             Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnConnected. sessionId:{SessionId}, playerId:{MyPlayer.Info.ObjectId}, endPoint:{endPoint}");
 
             // 1번 게임룸에 플레이어 추가
@@ -51,14 +55,10 @@ namespace Server
 
         public override void OnDisconnected(EndPoint endPoint)
         {
+            // 플레이어는 반드시 하나의 room에 속한다.
+            // 연결끊긴 플레이어는 room에서 감지하고 제거한다.
+
             Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnDisconnected. sessionId:{SessionId}, playerId:{MyPlayer.Info.ObjectId}, endPoint:{endPoint}");
-            GameRoom room = RoomManager.Instance.Find(MyPlayer.Room.RoomId);
-            if (room != null)
-            {
-                room.LeaveGame(MyPlayer.Info.ObjectId);
-            }
-            ObjectManager.Instance.Remove(MyPlayer.Info.ObjectId);
-            SessionManager.Instance.Remove(this);
         }
 
         public override void OnRecvPacket(ArraySegment<byte> buffer)

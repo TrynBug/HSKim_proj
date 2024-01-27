@@ -148,12 +148,6 @@ public class AutoMove
     public void Init(CreatureController owner)
     {
         Owner = owner;
-
-        Path.Clear();
-        PathIndex = 0;
-        Target = null;
-        PrevTargetCell = new Vector2Int(0, 0);
-        Skill = null;
     }
 
     // 경로 지정

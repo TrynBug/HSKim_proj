@@ -31,26 +31,9 @@ namespace Server.Game
 
 
         // 오브젝트 추가
-        public T Add<T>() where T : GameObject, new()
+        public void AddPlayer(Player player)
         {
-            T gameObject = new T();
-            gameObject.Init();
-
-            lock(_lock)
-            {
-                if(gameObject.ObjectType == GameObjectType.Player)
-                {
-                    Player player = gameObject as Player;
-                    if(player == null)
-                    {
-                        Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. object is not a player type. objectId:{gameObject.Id}, type:{gameObject.GetType()}");
-                        return null;
-                    }
-                    _players.Add(gameObject.Id, player);
-                }
-            }
-
-            return gameObject;
+            _players.Add(player.Id, player);
         }
 
         // 오브젝트 제거

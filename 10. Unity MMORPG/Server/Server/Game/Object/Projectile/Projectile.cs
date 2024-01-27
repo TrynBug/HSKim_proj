@@ -57,7 +57,7 @@ namespace Server.Game
 
         protected override void UpdateMoving()
         {
-            if (Target?.Room != Room)
+            if (Target == null || Target.Room != Room)
                 Target = null;
 
             if(Target != null)
@@ -71,7 +71,8 @@ namespace Server.Game
             if (diff.magnitude <= Room.Time.DeltaTime * Speed)
             {
                 State = CreatureState.Dead;
-                Target?.OnDamaged(this, Owner.Stat.Damage + Skill.damage);
+                if(Target != null)
+                    Target.OnDamaged(this, Owner.Stat.Damage + Skill.damage);
             }
             else
             {

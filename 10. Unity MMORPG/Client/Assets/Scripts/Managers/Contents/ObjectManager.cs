@@ -49,14 +49,12 @@ public class ObjectManager
         int spumId = info.SPUMId;
         SPUMData spum = Managers.Data.SPUMDict.GetValueOrDefault(spumId, Managers.Data.DefaultSPUM);
         GameObject go = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
-        go.transform.position = Vector3.zero;
+        go.transform.position = new Vector3(0, 0, Config.ObjectDefaultZ);
         go.name = "MyPlayer";
 
         // MyPlayer 등록
-        MyPlayerController player = Util.FindChild(go, "UnitRoot").GetOrAddComponent<MyPlayerController>();
+        MyPlayerController player = go.GetOrAddComponent<MyPlayerController>();
         MyPlayer = player;
-        SortingGroup sort = player.GetOrAddComponent<SortingGroup>();
-        sort.sortingOrder = 2;
 
         // 객체 초기화
         MyPlayer.Init(packet);
@@ -81,12 +79,10 @@ public class ObjectManager
             int spumId = info.SPUMId;
             SPUMData spum = Managers.Data.SPUMDict.GetValueOrDefault(spumId, Managers.Data.DefaultSPUM);
             GameObject go = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
-            go.transform.position = Vector3.zero;
+            go.transform.position = new Vector3(0, 0, Config.ObjectDefaultZ);
             go.name = info.Name;
 
-            PlayerController player = Util.FindChild(go, "UnitRoot").GetOrAddComponent<PlayerController>();
-            SortingGroup sort = player.GetOrAddComponent<SortingGroup>();
-            sort.sortingOrder = 2;
+            PlayerController player = go.GetOrAddComponent<PlayerController>();
 
             // 초기화
             player.Init(info);

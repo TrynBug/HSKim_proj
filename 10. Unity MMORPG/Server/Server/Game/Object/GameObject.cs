@@ -110,6 +110,7 @@ namespace Server.Game
                 {
                     ClientSideLoading = false;
                     ServerSideLoading = false;
+                    MoveKeyDown = false;
                 }
             }
         }
@@ -170,17 +171,43 @@ namespace Server.Game
         {
             get
             {
-                switch (State)
+                if (AutoMode == AutoMode.ModeNone)
                 {
-                    case CreatureState.Dead:
-                    case CreatureState.Loading:
+                    switch (State)
+                    {
+                        case CreatureState.Dead:
+                        case CreatureState.Loading:
+                            return false;
+                        default:
+                            return true;
+                    }
+                }
+                else
+                {
+                    if (State == CreatureState.Loading)
                         return false;
-                    default:
-                        return true;
+                    if (Auto.State == AutoState.AutoDead)
+                        return false;
+                    return true;
                 }
             }
         }
-        public bool IsDead { get { return !IsAlive; } }
+        public bool IsDead
+        {
+            get
+            {
+                if (AutoMode == AutoMode.ModeNone && State == CreatureState.Dead)
+                    return true;
+                else if (AutoMode == AutoMode.ModeAuto && Auto.State == AutoState.AutoDead)
+                    return true;
+                return false;
+            }
+        }
+        public bool IsLoading { get { return State == CreatureState.Loading; } }
+
+        /* etc */
+        public bool Respawn { get; set; } = false;
+        public int DeadTime { get; set; }
 
 
         // 생성자
@@ -254,7 +281,7 @@ namespace Server.Game
                         break;
                 }
             }
-            else if(AutoMode == AutoMode.ModeAuto)
+            else
             {
                 switch (Auto.State)
                 {
@@ -373,7 +400,8 @@ namespace Server.Game
         {
             // 상태 변경
             State = CreatureState.Dead;
-
+            Auto.State = AutoState.AutoDead;
+            DeadTime = Environment.TickCount;
 
             // 사망 패킷 전송
             S_Die diePacket = new S_Die();
@@ -383,6 +411,36 @@ namespace Server.Game
 
             Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDead. me:[{this.ToString(InfoLevel.Stat)}], attacker:[{attacker.ToString(InfoLevel.Stat)}]");
         }
+
+
+
+        /* stop */
+        // 위치에 멈춤
+        public void StopAt(Vector2 dest)
+        {
+            State = CreatureState.Idle;
+
+            Vector2 stopPos;
+            if (Room.Map.TryStop(this, dest, out stopPos) == false)
+            {
+                Dest = Pos;
+            }
+            else
+            {
+                Pos = stopPos;
+                Dest = stopPos;
+            }
+
+            // stop 패킷 전송
+            S_Stop stopPacket = new S_Stop();
+            stopPacket.ObjectId = Id;
+            stopPacket.PosX = Pos.x;
+            stopPacket.PosY = Pos.y;
+            Room._broadcast(stopPacket);
+
+            Logger.WriteLog(LogLevel.Debug, $"GameObject.StopAt. stop:{dest}, {this.ToString(InfoLevel.Position)}");
+        }
+
 
 
         // Set Auto

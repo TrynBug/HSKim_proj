@@ -438,15 +438,12 @@ namespace Server.Game
                 return true;
             }
 
-            // dest 위치가 비어있지 않을 경우 비어있는 가장 가까운 위치를 찾는다.
-            //Vector2Int emptyCell;
-            //if (FindEmptyCellOfDirection(obj, Util.GetOppositeDirection(obj.Dir), dest, out emptyCell) == false)
-            //{
-            //    stopPos = obj.Pos;
-            //    return false;
-            //}
-
-            Vector2Int emptyCell = FindStopCell(obj, targetPos, destCell.Object.Pos, out stopPos);
+            // 주변의 비어있는 다른 위치를 찾는다
+            Vector2Int emptyCell;
+            if (destCell.Object == null)  // destCell에 collider만 있을 경우가 있음
+                emptyCell = FindStopCell(obj, obj.Pos, targetPos, out stopPos);
+            else
+                emptyCell = FindStopCell(obj, targetPos, destCell.Object.Pos, out stopPos);
 
             // 비어있는 가장 가까운 cell로 이동
             if (isMovingobject)
@@ -454,35 +451,8 @@ namespace Server.Game
             else
                 currCell.Object = null;
             _cells[emptyCell.y, emptyCell.x].Object = obj;
-            stopPos = CellToCenterPos(emptyCell);
             return true;
         }
-
-
-        // origin을 기준으로 dir 방향의 비어있는 cell을 찾는다.
-        //public bool FindEmptyCellOfDirection(GameObject me, MoveDir dir, Vector2Int origin, out Vector2Int emptyCell)
-        //{
-        //    Vector2Int cell = origin;
-        //    while (true)
-        //    {
-        //        cell = Util.FindCellOfDirection(dir, cell);
-        //        if (IsInvalidCell(cell))
-        //        {
-        //            emptyCell = cell;
-        //            return false;
-        //        }
-        //        if (IsEmptyCell(cell))
-        //        {
-        //            emptyCell = cell;
-        //            return true;
-        //        }
-        //        if (me != null && _cells[cell.y, cell.x].Object == me)
-        //        {
-        //            emptyCell = cell;
-        //            return true;
-        //        }
-        //    }
-        //}
 
 
         // 내가 posMe 위치에 있고 posOther 위치에 있는 상대방과 부딪혔다고 할 때, 상대방과의 방향을 고려하여 posOther 위치 근처에 멈출 적절한 cell을 찾는다.
@@ -662,7 +632,7 @@ namespace Server.Game
 
         // center를 기준으로 가장 가까운 살아있는 오브젝트를 찾는다.
         // 찾지 못했으면 null을 리턴함
-        public GameObject FindObjectNearbyCell(Vector2Int center, GameObject exceptObject = null)
+        public GameObject FindAliveObjectNearbyCell(Vector2Int center, GameObject exceptObject = null)
         {
             center = GetValidCell(center);
 
@@ -692,7 +662,7 @@ namespace Server.Game
                 for (int x = from.x; x <= to.x; x++)
                 {
                     GameObject obj = _cells[from.y, x].GetObject();
-                    if (obj != null && obj != exceptObject)
+                    if (obj != null && obj != exceptObject && obj.IsAlive)
                         return obj;
                 }
 
@@ -700,10 +670,10 @@ namespace Server.Game
                 for (int y = from.y + 1; y <= to.y - 1; y++)
                 {
                     GameObject obj = _cells[y, from.x].GetObject();
-                    if (obj != null && obj != exceptObject)
+                    if (obj != null && obj != exceptObject && obj.IsAlive)
                         return obj;
                     obj = _cells[y, to.x].GetObject();
-                    if (obj != null && obj != exceptObject)
+                    if (obj != null && obj != exceptObject && obj.IsAlive)
                         return obj;
                 }
 
@@ -711,7 +681,7 @@ namespace Server.Game
                 for (int x = from.x; x <= to.x; x++)
                 {
                     GameObject obj = _cells[to.y, x].GetObject();
-                    if (obj != null && obj != exceptObject)
+                    if (obj != null && obj != exceptObject && obj.IsAlive)
                         return obj;
                 }
             }
@@ -821,16 +791,16 @@ namespace Server.Game
 
 
 
-        // pos 위치를 기준으로 dir 방향의 사각형 range 범위에 있는 오브젝트를 찾아 리턴한다.
-        public List<GameObject> FindObjectsInRect(Vector2 pos, Vector2 range, LookDir dir)
+        // pos 위치를 기준으로 look 방향의 사각형 range 범위에 있는 살아있는 오브젝트를 찾아 리턴한다.
+        public List<GameObject> FindObjectsInRect(Vector2 pos, Vector2 range, LookDir look, GameObject except)
         {
-            List<GameObject> objects = new List<GameObject>();
+            List<GameObject> listObjects = new List<GameObject>();
 
             // 공격범위를 조사할 cell 찾기
-            // 공격범위: pos 위치에서 dir 방향으로 너비 range.x, 높이 range.y 사각형
+            // 공격범위: pos 위치에서 look 방향으로 너비 range.x, 높이 range.y 사각형
             Vector2 targetPosMin;
             Vector2 targetPosMax;
-            if (dir == LookDir.LookLeft)
+            if (look == LookDir.LookLeft)
             {
                 targetPosMin.x = pos.x + (Util.GetDirectionVector(MoveDir.Left) * range.x + Util.GetDirectionVector(MoveDir.Down) * range.y / 2f).x;
                 targetPosMax.x = pos.x + (Util.GetDirectionVector(MoveDir.Up) * range.y / 2f).x;
@@ -849,14 +819,6 @@ namespace Server.Game
             Vector2Int targetCellMin = PosToCell(targetPosMin);
             Vector2Int targetCellMax = PosToCell(targetPosMax);
 
-
-            // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
-            Vector2 R;
-            if (dir == LookDir.LookLeft)
-                R = new Vector2((float)Math.Cos(Math.PI / 180 * 135), (float)Math.Sin(Math.PI / 180 * 135));
-            else
-                R = new Vector2((float)Math.Cos(Math.PI / 180 * 315), (float)Math.Sin(Math.PI / 180 * 315));
-
             // 범위 내의 object 찾기
             for (int y = targetCellMin.y; y <= targetCellMax.y; y++)
             {
@@ -865,24 +827,26 @@ namespace Server.Game
                     Cell cell = _cells[y, x];
                     if (cell.Object != null)
                     {
-                        Vector2 objectPos;
-                        objectPos.x = (cell.Object.Pos.x - pos.x) * R.x - (cell.Object.Pos.y - pos.y) * R.y;
-                        objectPos.y = (cell.Object.Pos.x - pos.x) * R.y + (cell.Object.Pos.y - pos.y) * R.x;
-                        if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
-                            objects.Add(cell.Object);
+                        if (cell.Object == except)
+                            continue;
+                        if (cell.Object.IsAlive == false)
+                            continue;
+                        if (Util.IsTargetInRectRange(pos, look, range, cell.Object.Pos) == true)
+                            listObjects.Add(cell.Object);
                     }
-                    foreach (GameObject obj in cell.MovingObjects)
+                    foreach (GameObject objMove in cell.MovingObjects)
                     {
-                        Vector2 objectPos;
-                        objectPos.x = (obj.Pos.x - pos.x) * R.x - (obj.Pos.y - pos.y) * R.y;
-                        objectPos.y = (obj.Pos.x - pos.x) * R.y + (obj.Pos.y - pos.y) * R.x;
-                        if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
-                            objects.Add(cell.Object);
+                        if (objMove == except)
+                            continue;
+                        if (objMove.IsAlive == false)
+                            continue;
+                        if (Util.IsTargetInRectRange(pos, look, range, objMove.Pos) == true)
+                            listObjects.Add(objMove);
                     }
                 }
             }
 
-            return objects;
+            return listObjects;
         }
 
 

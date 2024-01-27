@@ -47,6 +47,7 @@ public class MyPlayerController : SPUMController
         KeyMap.Add(KeyCode.Alpha5, KeyInput.SkillJ);
         KeyMap.Add(KeyCode.Alpha6, KeyInput.SkillK);
         KeyMap.Add(KeyCode.P, KeyInput.Auto);
+        KeyMap.Add(KeyCode.Return, KeyInput.Enter);
 
         // 스킬셋 등록
         foreach (SkillId skillId in packet.SkillIds)
@@ -109,6 +110,12 @@ public class MyPlayerController : SPUMController
     // 현재 키보드 입력 얻기
     void GetKeyInput()
     {
+        if (IsLoading)
+        {
+            Array.Fill(_keyInput, false);
+            return;
+        }
+
         // 키보드 입력을 얻음
         foreach (var pair in KeyMap)
         {
@@ -179,7 +186,7 @@ public class MyPlayerController : SPUMController
     // 스킬 사용이 가능한지 검사함
     public bool CanUseSkill(SkillId skillId)
     {
-        if (State == CreatureState.Dead)
+        if (IsAlive == false)
             return false;
 
         if (skillId == SkillId.SkillNone)
@@ -303,17 +310,6 @@ public class MyPlayerController : SPUMController
             }
             else
             {
-                //Vector2 stopPos;
-                //if (Managers.Map.TryStop(this, Dest, out stopPos))
-                //{
-                //    Pos = stopPos;
-                //    Dest = stopPos;
-                //}
-                //else
-                //{
-                //    Dest = Pos;
-                //}
-                //State = CreatureState.Idle;
                 StopAt(Dest);
             }
         }
@@ -358,9 +354,14 @@ public class MyPlayerController : SPUMController
 
 
 
+
+
     // 스킬 사용에 대한 업데이트
     void UpdateSkill()
     {
+        if (IsAlive == false)
+            return;
+
         // 스킬 입력 확인
         SkillId skillInput = GetSkillInput();
         if (CanUseSkill(skillInput))
@@ -468,19 +469,19 @@ public class MyPlayerController : SPUMController
         {
             case SkillType.SkillMelee:
                 {
-                    listHitObjects = Managers.Map.FindObjectsInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir);
+                    listHitObjects = Managers.Map.FindObjectsInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir, this);
                     break;
                 }
             case SkillType.SkillProjectile:
                 {
-                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir);
+                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir, this);
                     if (hitObj != null)
                         listHitObjects.Add(hitObj);
                     break;
                 }
             case SkillType.SkillInstant:
                 {
-                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir);
+                    BaseController hitObj = Managers.Map.FindObjectInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir, this);
                     if (hitObj != null)
                         listHitObjects.Add(hitObj);
                     break;
@@ -492,7 +493,7 @@ public class MyPlayerController : SPUMController
         hitPacket.SkillId = skill.id;
         foreach (BaseController obj in listHitObjects)
         {
-            if (obj.State == CreatureState.Dead)
+            if (obj.IsAlive == false)
                 continue;
             hitPacket.HitObjectIds.Add(obj.Id);
         }
@@ -509,12 +510,56 @@ public class MyPlayerController : SPUMController
 
 
     // 자동사냥 시작 패킷 전송
+    bool _autoRequestSent = false;
     void SendAutoRequest()
     {
-        C_SetAuto autoPacket = new C_SetAuto();
-        autoPacket.Mode = AutoMode.ModeAuto;
-        Managers.Network.Send(autoPacket);
+        if (_autoRequestSent == false)
+        {
+            _autoRequestSent = true;
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.SendAutoRequest. mode:{autoPacket.Mode}");
+            C_SetAuto autoPacket = new C_SetAuto();
+            autoPacket.Mode = AutoMode.ModeAuto;
+            Managers.Network.Send(autoPacket);
+
+            StartCoroutine("CoAutoRequestCooltime", 1f);
+
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.SendAutoRequest. mode:{autoPacket.Mode}");
+        }
+    }
+
+
+
+    // update dead
+    bool _respawnSent = false;
+    protected override void UpdateDead()
+    {
+        if (_keyInput[(int)KeyInput.Enter] == true)
+        {
+            if (_respawnSent == false)
+            {
+                _respawnSent = true;
+
+                C_Respawn packet = new C_Respawn();
+                packet.BRespawn = true;
+                Managers.Network.Send(packet);
+
+                StartCoroutine("CoRespawnCooltime", 1f);
+
+                ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.UpdateDead. Send respawn packet.");
+            }
+        }
+    }
+
+
+    IEnumerator CoRespawnCooltime(float time)
+    {
+        yield return new WaitForSeconds(time);
+        _respawnSent = false;
+    }
+
+    IEnumerator CoAutoRequestCooltime(float time)
+    {
+        yield return new WaitForSeconds(time);
+        _autoRequestSent = false;
     }
 }

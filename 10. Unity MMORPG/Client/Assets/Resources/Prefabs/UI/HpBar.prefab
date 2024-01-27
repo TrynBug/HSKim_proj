@@ -178,6 +178,7 @@ GameObject:
   m_Component:
   - component: {fileID: 5156636330944618213}
   - component: {fileID: 7092415792639128241}
+  - component: {fileID: -7951269698845784391}
   m_Layer: 0
   m_Name: HpBar
   m_TagString: Untagged
@@ -215,6 +216,18 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _hpBar: {fileID: 588750798649323481}
+--- !u!210 &-7951269698845784391
+SortingGroup:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5365394213813222566}
+  m_Enabled: 1
+  m_SortingLayerID: 0
+  m_SortingLayer: 0
+  m_SortingOrder: 10
+  m_SortAtRoot: 0
 --- !u!1 &8686215850478391084
 GameObject:
   m_ObjectHideFlags: 0

@@ -22,7 +22,8 @@ public class ProjectileController : BaseController
         set
         {
             base.Pos = value;
-            gameObject.transform.position += new Vector3(0, Skill.projectile.offsetY, 0);
+            if(Skill != null)
+                gameObject.transform.position += new Vector3(0, Skill.projectile.offsetY, 0);
         }
     }
     public override LookDir LookDir

@@ -28,6 +28,7 @@ enum MsgId {
     S_AUTO_MOVE = 21;
     C_LOAD_FINISHED = 22;
     S_LOAD_FINISHED = 23;
+    C_RESPAWN = 24;
 }
 
 enum CreatureState
@@ -224,6 +225,11 @@ message S_LoadFinished
     int32 objectId = 1;
 }
 
+message C_Respawn
+{
+    bool bRespawn = 1;
+}
+
 
 
 
@@ -264,16 +270,16 @@ message StatInfo {
 }
 
 message AutoInfo {
-    AutoState autoState = 1;
-    float startPosX = 2;
-    float startPosY = 3;
-    int32 targetId = 4;
-    float targetPosX = 5;
-    float targetPosY = 6;
-    float targetDistX = 7;
-    float targetDistY = 8;
-    int64 waitUntil = 9;
-    AutoState nextState = 10;
-    SkillId skillId = 11;
+    optional AutoState autoState = 1;
+    optional float startPosX = 2;
+    optional float startPosY = 3;
+    optional int32 targetId = 4;
+    optional float targetPosX = 5;
+    optional float targetPosY = 6;
+    optional float targetDistX = 7;
+    optional float targetDistY = 8;
+    optional int64 waitUntil = 9;
+    optional AutoState nextState = 10;
+    optional SkillId skillId = 11;
 }
 

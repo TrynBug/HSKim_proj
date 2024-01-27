@@ -6,7 +6,7 @@ using static Define;
 using Data;
 using UnityEditor;
 using System;
-using Unity.VisualScripting;
+using ServerCore;
 
 // 모든 컨트롤러의 부모 컨트롤러
 // 상태와 이동방향을 정의한다.
@@ -15,7 +15,7 @@ public class BaseController : MonoBehaviour
 
     public GameObjectType ObjectType { get; protected set; } = GameObjectType.None;
 
-    ObjectInfo _info = new ObjectInfo();
+    protected ObjectInfo _info = new ObjectInfo();
     public virtual ObjectInfo Info {
         get { return _info; }
         set 
@@ -145,7 +145,7 @@ public class BaseController : MonoBehaviour
 
 
     /* util */
-    public bool IsAlive
+    public virtual bool IsAlive
     {
         get
         {
@@ -159,7 +159,8 @@ public class BaseController : MonoBehaviour
             }
         }
     }
-    public bool IsDead { get { return !IsAlive; } }
+    public virtual bool IsDead { get { return State == CreatureState.Dead; } }
+    public bool IsLoading { get { return State == CreatureState.Loading; } }
 
     // 현재 방향에 해당하는 벡터 얻기
     public Vector2 GetDirectionVector(MoveDir dir)
@@ -172,7 +173,6 @@ public class BaseController : MonoBehaviour
 
     /* init */
     // Init 은 객체를 생성한 뒤 1가지 Init 함수만 호출하면 됨
-    // 그리고 반드시 base.Init 을 먼저 호출해야한다.
     public virtual void Init()
     {
         _info.PosInfo = _posInfo;
@@ -184,7 +184,6 @@ public class BaseController : MonoBehaviour
         _info.PosInfo = _posInfo;
 
         Info = info;
-        PosInfo = info.PosInfo;
     }
 
 
@@ -248,25 +247,52 @@ public class BaseController : MonoBehaviour
 
 
     /* stop */
-    // 위치에 멈춤
+    // 서버와 정지 위치를 동기화시킨다.
+    // 만약 서버 cell과 클라이언트 cell이 동일하다면 세부적인 위치는 변경하지 않는다.
+    public void SyncStop(Vector2 serverPos)
+    {
+        Vector2Int serverCell = Managers.Map.PosToCell(serverPos);
+
+        // 내가 멈출 위치에 다른 오브젝트가 있는지 확인한다.
+        BaseController objOther = Managers.Map.GetStopObjectAt(serverCell);
+        if (objOther != null && objOther != this)
+        {
+            // 다른 오브젝트가 있다면 나를 해당 위치에 멈추고 다른 오브젝트는 근처에 위치시킨다.
+            Managers.Map.TryMoving(objOther, objOther.Pos, checkCollider: false);
+            StopAt(serverPos);
+            objOther.StopAt(serverPos);
+        }
+        else
+        {
+            if(Cell == serverCell)
+            {
+                // 다른 오브젝트가 없고 내 cell과 서버의 cell이 동일하다면 내 위치에 멈춘다.
+                StopAt(Pos);
+            }
+            else
+            {
+                // 다른 오브젝트가 없고 내 cell과 서버의 cell이 다르다면 서버 위치에 멈춘다.
+                StopAt(serverPos);
+            }
+        }
+    }
+
+    // dest 위치에 멈춤
+    // dest 위치에 멈출 수 없다면 주변 위치에 멈춘다.
     public void StopAt(Vector2 dest)
     {
-        State = CreatureState.Idle;
-
-        Vector2 stopPos;
-        if (Managers.Map.TryStop(this, dest, out stopPos) == false)
-        {
-            Dest = Pos;
-            return;
-        }
-
         Vector2 prevPos = Pos;
+        Vector2 stopPos;
+
+        // dest 위치에 멈춘다.
+        Managers.Map.TryStop(this, dest, out stopPos);
+        State = CreatureState.Idle;
         Pos = stopPos;
         Dest = stopPos;
-        
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"BaseController.StopAt. stop:{dest}, {this.ToString(InfoLevel.Position)}");
+
         _bSoftStop = true;
-
-
         _stopStartPos = Managers.Map.ServerPosToClientPos(prevPos);
         _stopEndPos = gameObject.transform.position;
         _totalStopTime = 0.4f;
@@ -289,7 +315,7 @@ public class BaseController : MonoBehaviour
         _stopTimeAcc += Time.deltaTime;
         if (_stopTimeAcc > _totalStopTime)
         {
-            gameObject.transform.position = _stopEndPos;
+            gameObject.transform.position = new Vector3(_stopEndPos.x, _stopEndPos.y, Config.ObjectDefaultZ); ;
             _bSoftStop = false;
         }
         else

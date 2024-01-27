@@ -46,6 +46,9 @@ namespace ServerCore
     // 세션
     public abstract class Session
     {
+        public bool IsDisconnected { get { return _disconnected != 0; } }
+
+
         Socket _socket;
         int _disconnected = 0;   // disconnect 됨 여부
 

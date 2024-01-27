@@ -272,6 +272,17 @@ public static class Util
             return LookDir.LookRight;
     }
 
+    // pos 에서 target을 바라보는 방향 얻기
+    public static LookDir GetLookToTarget(Vector2 pos, Vector2 target)
+    {
+        // pos를 원점으로 하여 target의 위치를 옮긴다.
+        // 만약 target의 위치가 -x < y 일 경우 오른쪽이다.
+        Vector2 targetAdj = target - pos;
+        if (-targetAdj.x < targetAdj.y)
+            return LookDir.LookRight;
+        else
+            return LookDir.LookLeft;
+    }
 
 
     // id 에서 타입 얻기
@@ -289,15 +300,17 @@ public static class Util
         // 점을 0도 방향으로 회전시키기 위한 cos, sin 값
         Vector2 R;
         if (look == LookDir.LookLeft)
-            R = new Vector2(Mathf.Cos(Mathf.PI / 180f * 135f), Mathf.Sin(Mathf.PI / 180f * 135f));
+            R = new Vector2(-0.70710678118654746f, 0.70710678118654757f);
+            // R의 값은 다음과 동일 : new Vector2((float)Math.Cos(Math.PI / 180 * 135), (float)Math.Sin(Math.PI / 180 * 135));
         else
-            R = new Vector2(Mathf.Cos(Mathf.PI / 180f * 315f), Mathf.Sin(Mathf.PI / 180f * 315f));
+            R = new Vector2(0.70710678118654735f, -0.70710678118654768f);
+            // R의 값은 다음과 동일 : new Vector2((float)Math.Cos(Math.PI / 180 * 315), (float)Math.Sin(Math.PI / 180 * 315));
 
         // target이 range 범위의 사각형 안에 존재하는지 확인
         Vector2 objectPos;
         objectPos.x = (posTarget.x - posOrigin.x) * R.x - (posTarget.y - posOrigin.y) * R.y;
         objectPos.y = (posTarget.x - posOrigin.x) * R.y + (posTarget.y - posOrigin.y) * R.x;
-        if (objectPos.x > 0 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
+        if (objectPos.x > -0.2 && objectPos.x < range.x && objectPos.y > -range.y / 2 && objectPos.y < range.y / 2)
         {
             return true;
         }

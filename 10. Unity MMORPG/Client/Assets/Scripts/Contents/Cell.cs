@@ -14,7 +14,6 @@ public class Cell
     public BaseController Object { get; set; } = null;
     public LinkedList<BaseController> MovingObjects { get { return _movingObjects; } }
 
-
     public bool HasObject(BaseController obj)
     {
         return (Object == obj || HasMovingObject(obj));

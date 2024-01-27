@@ -13,12 +13,6 @@ public class PlayerController : SPUMController
         base.Init(info);
 
         ObjectType = GameObjectType.Player;
-
-        // auto move 상태일 경우 세팅
-        if(Info.AutoMode == AutoMode.ModeAuto)
-        {
-            SetAutoMove(AutoInfo, PosInfo);
-        }
     }
 
 

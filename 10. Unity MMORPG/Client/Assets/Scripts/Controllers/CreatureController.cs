@@ -61,9 +61,10 @@ public abstract class CreatureController : BaseController
         get { return _stat; }
         set
         {
+            if (_stat == value)
+                return;
+            _stat.MergeFrom(value);
             Hp = value.Hp;
-            _stat.MaxHp = value.MaxHp;
-            Speed = value.Speed;
         }
     }
 
@@ -84,6 +85,45 @@ public abstract class CreatureController : BaseController
     }
 
 
+    /* util */
+    public override bool IsAlive
+    {
+        get
+        {
+            if (AutoMode == AutoMode.ModeNone)
+            {
+                switch (State)
+                {
+                    case CreatureState.Dead:
+                    case CreatureState.Loading:
+                        return false;
+                    default:
+                        return true;
+                }
+            }
+            else
+            {
+                if (State == CreatureState.Loading)
+                    return false;
+                if (Auto.State == AutoState.AutoDead)
+                    return false;
+                return true;
+            }
+        }
+    }
+    public override bool IsDead { 
+        get 
+        {
+            if (AutoMode == AutoMode.ModeNone && State == CreatureState.Dead)
+                return true;
+            else if (AutoMode == AutoMode.ModeAuto && Auto.State == AutoState.AutoDead)
+                return true;
+            return false;
+        } 
+    }
+
+
+
 
     /* 스킬 */
     // 사용가능한 스킬정보
@@ -97,13 +137,18 @@ public abstract class CreatureController : BaseController
     public AutoInfo AutoInfo
     {
         get { return _autoInfo; }
-        set { _autoInfo = value; }
+        set 
+        {
+            if (_autoInfo == value)
+                return;
+            _autoInfo.MergeFrom(value);
+        }
     }
     public AutoMove Auto { get; private set; } = new AutoMove();     // 자동이동 할 때 사용할 데이터
 
 
     /* component */
-    protected Animator _animator;
+    protected Animator _animator = null;
     HpBar _hpBar;
     DebugText _debugText;
 
@@ -111,14 +156,12 @@ public abstract class CreatureController : BaseController
 
     public override void Init(ObjectInfo info)
     {
-        _animator = GetComponent<Animator>();
+        if(_animator == null)
+            _animator = GetComponent<Animator>();
+        _info.StatInfo = _stat;
+        _info.AutoInfo = _autoInfo;
 
         base.Init(info);
-        Info.StatInfo = _stat;
-        Info.AutoInfo = _autoInfo;
-
-        Stat = info.StatInfo;
-        AutoInfo = info.AutoInfo;
         
         Auto.Init(this);
 
@@ -239,17 +282,7 @@ public abstract class CreatureController : BaseController
             }
             else
             {
-                Vector2 stopPos;
-                if (Managers.Map.TryStop(this, Dest, out stopPos))
-                {
-                    Pos = stopPos;
-                    Dest = stopPos;
-                }
-                else
-                {
-                    Dest = Pos;
-                }
-                State = CreatureState.Idle;
+                StopAt(Dest);
             }
         }
         // 위치 이동
@@ -343,10 +376,7 @@ public abstract class CreatureController : BaseController
             case AutoState.AutoSkill:
                 {
                     // 현재위치에 멈춤
-                    Vector2 stopPos;
-                    Managers.Map.TryStop(this, Pos, out stopPos);
-                    Pos = stopPos;
-                    Dest = stopPos;
+                    StopAt(Pos);
 
                     // 방향 수정
                     Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
@@ -381,29 +411,28 @@ public abstract class CreatureController : BaseController
     protected virtual void UpdateAutoChasing()
     {
         // 타겟이 없다면 Idle 상태로 돌아감
-        if (Auto.Target == null || Auto.Target.IsDead)
+        if (Auto.Target == null || Auto.Target.IsAlive == false)
         {
+            StopAt(Pos);
+
             Auto.WaitTime = 1000;
             Auto.NextState = AutoState.AutoIdle;
             Auto.State = AutoState.AutoWait;
             Auto.Target = null;
+
             return;
         }
 
         // 타겟과의 거리 확인 
         Vector2 dist = Auto.Target.Pos - Pos;
         Vector2 distAbs = new Vector2(Mathf.Abs(dist.x), Mathf.Abs(dist.y));
+        LookDir lookToTarget = Util.GetLookToTarget(Pos, Auto.Target.Pos);
         // 추적범위 내에 있고 동시에 스킬범위 내에 있으면 움직이지 않음
         if (distAbs.x < Auto.TargetDistance.x && distAbs.y < Auto.TargetDistance.y
-            && Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.Skill.rangeX, Auto.Skill.rangeY), Auto.Target.Pos))
+            && Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.Skill.rangeX, Auto.Skill.rangeY), Auto.Target.Pos))
         {
-            State = CreatureState.Idle;
-
             // 현재위치에 멈춤
-            Vector2 stopPos;
-            Managers.Map.TryStop(this, Pos, out stopPos);
-            Pos = stopPos;
-            Dest = stopPos;
+            StopAt(Pos);
 
             // 방향 수정
             Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
@@ -488,6 +517,7 @@ public abstract class CreatureController : BaseController
     public virtual void OnDead()
     {
         State = CreatureState.Dead;
+        Auto.State = AutoState.AutoDead;
 
         //// effect 생성
         //GameObject effect = Managers.Resource.Instantiate("Effect/DieEffect");
@@ -518,7 +548,7 @@ public abstract class CreatureController : BaseController
             ratio = (float)Hp / (float)Stat.MaxHp;
         }
         _hpBar.SetHpBar(ratio);
-        _hpBar.transform.localScale = gameObject.transform.localScale;
+        //_hpBar.transform.localScale = gameObject.transform.localScale;
     }
 
     // Debug Text 추가
@@ -537,6 +567,6 @@ public abstract class CreatureController : BaseController
         if (_debugText == null)
             return;
         _debugText.SetText($"({Pos.x:f1},{Pos.y:f1}) ({Cell.x},{Cell.y})");
-        _debugText.transform.localScale = gameObject.transform.localScale;
+        //_debugText.transform.localScale = gameObject.transform.localScale;
     }
 }

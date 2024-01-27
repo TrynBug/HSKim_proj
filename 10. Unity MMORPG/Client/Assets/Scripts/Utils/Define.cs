@@ -80,6 +80,7 @@ public class Define
         SkillJ,
         SkillK,
         Auto,
+        Enter,
     }
 
 

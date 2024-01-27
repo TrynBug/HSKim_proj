@@ -14,7 +14,7 @@ namespace Server.Game
 {
     public class Player : GameObject
     {
-        public ClientSession Session { get; set; }
+        public ClientSession Session { get; private set; }
 
         public CreatureState RemoteState { get; set; } = CreatureState.Idle;
         public MoveDir RemoteDir { get; set; } = MoveDir.Down;
@@ -156,17 +156,7 @@ namespace Server.Game
                 }
                 else
                 {
-                    Vector2 stopPos;
-                    if (Room.Map.TryStop(this, Dest, out stopPos))
-                    {
-                        Pos = stopPos;
-                        Dest = stopPos;
-                    }
-                    else
-                    {
-                        Dest = Pos;
-                    }
-                    State = CreatureState.Idle;
+                    StopAt(Dest);
                 }
             }
             // 위치 이동
@@ -235,7 +225,7 @@ namespace Server.Game
             State = CreatureState.Idle;
 
             // 타겟 찾기
-            Auto.Target = Room.Map.FindObjectNearbyCell(Cell, exceptObject: this);
+            Auto.Target = Room.Map.FindAliveObjectNearbyCell(Cell, exceptObject: this);
 
             // 타겟이 지정됨
             if (Auto.Target != null)
@@ -259,8 +249,10 @@ namespace Server.Game
         protected override void UpdateAutoChasing()
         {
             // 타겟이 없다면 Idle 상태로 돌아감
-            if(Auto.Target == null || Room.RoomId != Auto.Target.Room.RoomId || Auto.Target.IsDead)
+            if(Room.IsValidTarget(Auto.Target) == false)
             {
+                StopAt(Pos);
+
                 Auto.WaitTime = TimeSpan.TicksPerSecond;
                 Auto.NextState = AutoState.AutoIdle;
                 Auto.State = AutoState.AutoWait;
@@ -274,24 +266,20 @@ namespace Server.Game
             // 타겟과의 거리 확인 
             Vector2 dist = Auto.Target.Pos - Pos;
             Vector2 distAbs = dist.Abs;
-            // 추적범위 내에 있고 동시에 스킬범위 내에 있으면 움직이지 않음
+            LookDir lookToTarget = Util.GetLookToTarget(Pos, Auto.Target.Pos);
+            // 타겟이 추적범위 내에 있고 동시에 스킬범위 내에 있으면 움직이지 않음
             if (distAbs.x < Auto.TargetDistance.x && distAbs.y < Auto.TargetDistance.y
-                && Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
+                && Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
             {
-                State = CreatureState.Idle;
-
                 // 현재위치에 멈춤
-                Vector2 stopPos;
-                Room.Map.TryStop(this, Pos, out stopPos);
-                Pos = stopPos;
-                Dest = stopPos;
+                StopAt(Pos);
 
                 // 방향 수정
                 Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
 
                 Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoChasing. Stop. {this.ToString(InfoLevel.Position)}");
             }
-            // 추적범위 밖이면 움직임
+            // 타겟이 추적범위 밖이면 움직임
             else
             {
                 // 타겟이 cell을 이동했으면 경로 재계산
@@ -309,13 +297,10 @@ namespace Server.Game
             // 스킬을 사용할 수 있고 타겟이 스킬범위내에 있을 경우
             if (CanUseSkill(Auto.SkillUse))
             {
-                if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
+                if (Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
                 {
                     // 현재위치에 멈춤
-                    Vector2 stopPos;
-                    Room.Map.TryStop(this, Pos, out stopPos);
-                    Pos = stopPos;
-                    Dest = stopPos;
+                    StopAt(Pos);
 
                     // 방향 수정
                     Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
@@ -376,6 +361,18 @@ namespace Server.Game
             }
         }
 
+        protected override void UpdateAutoDead()
+        {
+            int tick = Environment.TickCount;
+            if(tick - DeadTime > 60000)
+            {
+                Room._handleRespawn(this);
+                DeadTime = int.MaxValue;
+
+                Logger.WriteLog(LogLevel.Debug, $"GameObject.UpdateAutoDead. Revive.");
+            }
+        }
+
 
 
 
@@ -403,10 +400,12 @@ namespace Server.Game
                 case SkillType.SkillMelee:
                     {
                         // 스킬범위내의 오브젝트를 찾는다.
-                        List<GameObject> objects = Room.Map.FindObjectsInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir);
+                        List<GameObject> objects = Room.Map.FindObjectsInRect(Pos, new Vector2(skill.rangeX, skill.rangeY), LookDir, this);
                         // 피격됨
                         foreach (GameObject obj in objects)
                         {
+                            if (obj.IsAlive == false)
+                                continue;
                             obj.OnDamaged(this, Stat.Damage + skill.damage);
                             resHitPacket.HitObjectIds.Add(obj.Id);
                         }
@@ -415,7 +414,7 @@ namespace Server.Game
 
                 case SkillType.SkillProjectile:
                     {
-                        if (target == null)
+                        if (target == null || target.IsAlive == false)
                             break;
 
                         // target이 스킬범위내에 존재하는지 확인
@@ -431,7 +430,7 @@ namespace Server.Game
 
                 case SkillType.SkillInstant:
                     {
-                        if (target == null)
+                        if (target == null || target.IsAlive == false)
                             break;
 
                         // target이 스킬범위내에 존재하면 피격판정
@@ -492,19 +491,6 @@ namespace Server.Game
             OnSkill(useInfo);
         }
 
-        // 피격됨
-        public override int OnDamaged(GameObject attacker, int damage)
-        {
-            return base.OnDamaged(attacker, damage);
-        }
-
-        // 사망함
-        public override void OnDead(GameObject attacker)
-        {
-            base.OnDead(attacker);
-        }
-
-
 
 
 
@@ -514,14 +500,14 @@ namespace Server.Game
         public virtual bool CanUseSkill(SkillId skillId, out SkillUseInfo skillUseInfo)
         {
             skillUseInfo = null;
-            if (State == CreatureState.Dead)
+            if (IsAlive == false)
                 return false;
             if (skillId == SkillId.SkillNone)
                 return false;
 
             // 이전에 사용한 스킬의 딜레이가 끝났는지 확인
             int tick = Environment.TickCount;
-            if (tick - _lastUseSkill.lastUseTime < _lastUseSkill.skill.skillTime)
+            if (tick - _lastUseSkill.lastUseTime < (_lastUseSkill.skill.skillTime - 50))
                 return false;
 
             // 사용할 스킬 데이터 얻기
@@ -541,12 +527,12 @@ namespace Server.Game
         {
             if (skillUseInfo == null)
                 return false;
-            if (State == CreatureState.Dead)
+            if (IsAlive == false)
                 return false;
 
             // 이전에 사용한 스킬의 딜레이가 끝났는지 확인
             int tick = Environment.TickCount;
-            if (tick - _lastUseSkill.lastUseTime < _lastUseSkill.skill.skillTime)
+            if (tick - _lastUseSkill.lastUseTime < (_lastUseSkill.skill.skillTime - 50))
                 return false;
 
             // 쿨타임 검사
@@ -562,7 +548,7 @@ namespace Server.Game
         {
             skill = null;
 
-            if (State == CreatureState.Dead)
+            if (IsAlive == false)
                 return false;
             if (skillId == SkillId.SkillNone)
                 return false;
@@ -573,7 +559,7 @@ namespace Server.Game
 
             // 스킬 시전이 끝났는지 검사함
             int tick = Environment.TickCount;
-            if (tick - _usingSkill.lastUseTime > _usingSkill.skill.castingTime)
+            if (tick - _usingSkill.lastUseTime > (_usingSkill.skill.castingTime - 50))
             {
                 _usingSkill.casted = true;
             }
@@ -586,7 +572,7 @@ namespace Server.Game
 
 
         // 장비 데이터를 참고하여 Stat을 재계산한다.
-        private void RecalculateStat()
+        public void RecalculateStat()
         {
             if (StatOrigin == null || SPUM == null || Stat == null)
                 return;
