@@ -21,6 +21,7 @@ namespace Server.Game
     public class GameRoom : JobSerializer
     {
         public int RoomId { get; set; }
+        public int MapId { get; private set; }
 
         // FPS, Delta Time
         public Time Time { get; private set; } = new Time();
@@ -62,6 +63,7 @@ namespace Server.Game
         public void HandleSkillHit(Player player, C_SkillHit hitPacket) { Push(_handleSkillHit, player, hitPacket); }
         public void HandleLoadFinish(Player player, C_LoadFinished loadPacket) { Push(_handleLoadFinish, player, loadPacket); }
         public void HandleRespawn(Player player, C_Respawn rdspawnPacket) { Push(_handleRespawn, player, rdspawnPacket); }
+        public void HandleSetAuto(Player player, C_SetAuto autoPacket) { Push(_handleSetAuto, player, autoPacket); }
 
         /* util */
         public bool IsValidTarget(GameObject target)
@@ -81,7 +83,34 @@ namespace Server.Game
             return true;
         }
 
+        // center를 기준으로 가장 가까운 살아있는 오브젝트를 찾는다.
+        // 찾지 못했으면 null을 리턴함
+        public GameObject FindObjectNearbyCell(Vector2Int center, GameObject exceptObject = null)
+        {
+            // 현재 room에 플레이어가 5명 이하이면 전수조사하여 거리가 가장 가까운 플레이어를 리턴함
+            float minDistance = float.MaxValue;
+            GameObject obj = null;
+            if(_players.Count <= 5)
+            {
+                foreach(Player player in _players.Values)
+                {
+                    if (player == exceptObject)
+                        continue;
+                    if (player.IsAlive == false)
+                        continue;
+                    float dist = (player.Cell - center).sqrtMagnitude;
+                    if(dist < minDistance)
+                    {
+                        minDistance = dist;
+                        obj = player;
+                    }
+                }
+                return obj;
+            }
 
+            // center를 기준으로 가장 가까운 오브젝트를 찾는다.
+            return Map._findObjectNearbyCell(center, exceptObject);
+        }
 
 
 
@@ -93,7 +122,14 @@ namespace Server.Game
             _calcFrame.logicStartTime = _calcFrame.logicEndTime + (_sleepMilliseconds * (TimeSpan.TicksPerSecond / 1000));
             Time.Update();
 
-            _update();
+            try
+            {
+                _update();
+            }
+            catch (Exception ex)
+            {
+                Logger.WriteLog(LogLevel.Error, $"GameRoom Update Error. room:{this}, error:{ex}");
+            }
             _sleepMilliseconds = _calcSleepTime();
             //Logger.WriteLog(LogLevel.Debug, $"room:{RoomId}, DT:{Time.DeltaTime}, FPS:{Time.AvgFPS1m}, sleep:{_sleepMilliseconds}, thread:{Thread.CurrentThread.ManagedThreadId}");
 
@@ -107,7 +143,8 @@ namespace Server.Game
 
         public void _init(int mapId)
         {
-            Map.LoadMap(mapId);
+            MapId = mapId;
+            Map.LoadMap(this);
 
             // temp
             //Monster monster = ObjectManager.Instance.Add<Monster>();
@@ -653,7 +690,22 @@ namespace Server.Game
         }
 
 
+        // Auto 설정요청 처리
+        public void _handleSetAuto(Player player, C_SetAuto autoPacket)
+        {
+            if (player == null)
+                return;
 
+            if (player.SetAutoMode(autoPacket.Mode) == false)
+                return;
+
+            S_SetAutoResponse responsePacket = new S_SetAutoResponse();
+            responsePacket.ObjectId = player.Id;
+            responsePacket.Mode = autoPacket.Mode;
+            _broadcast(responsePacket);
+
+            Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SetAutoHandler. objectId:{player.Id}, mode:{autoPacket.Mode}");
+        }
 
 
 

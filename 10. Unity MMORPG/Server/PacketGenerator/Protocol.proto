@@ -199,7 +199,8 @@ message C_SetAuto {
 }
 
 message S_SetAutoResponse {
-    AutoMode mode = 1;
+    int32 objectId = 1;
+    AutoMode mode = 2;
 }
 
 message S_Stop {

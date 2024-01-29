@@ -5,6 +5,7 @@ using ServerCore;
 using System;
 using System.Collections.Generic;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Numerics;
 using System.Text;
@@ -225,7 +226,7 @@ namespace Server.Game
             State = CreatureState.Idle;
 
             // 타겟 찾기
-            Auto.Target = Room.Map.FindAliveObjectNearbyCell(Cell, exceptObject: this);
+            Auto.Target = Room.FindObjectNearbyCell(Cell, exceptObject: this);
 
             // 타겟이 지정됨
             if (Auto.Target != null)
@@ -243,6 +244,33 @@ namespace Server.Game
                 Auto.SendAutoPacket();
 
                 Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoIdle. me:[{this.ToString(InfoLevel.Position)}], target:[{Auto.Target?.ToString(InfoLevel.Position)}]");
+            }
+            // 타겟이 없다면 Moving 상태로 전환
+            else
+            {
+                if (Auto.MovingCount > 5)
+                {
+                    // 일정횟수 이상 moving한 경우에는 텔레포트 위치로 이동함
+                    Auto.State = AutoState.AutoMoving;
+                    TeleportData teleport = Room.Map.GetRandomTeleport();
+                    Auto.SetPath(new Vector2(teleport.posX, teleport.posY));
+
+                    Auto.SendAutoPacket();
+                }
+                else
+                {
+                    // 랜덤 경로 지정
+                    Auto.State = AutoState.AutoMoving;
+                    Auto.SetPathRandom();
+
+                    // 패킷 전송
+                    Auto.SendAutoPacket();
+                }
+
+
+
+
+                Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoIdle. {this.ToString(InfoLevel.Position)}");
             }
         }
 
@@ -322,8 +350,28 @@ namespace Server.Game
 
         protected override void UpdateAutoMoving()
         {
+            // 경로를 따라 이동함
+            Auto.MoveThroughPath();
 
-            Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoMoving. {this.ToString(InfoLevel.Position)}");
+            // 경로를 모두 이동한 경우
+            if(Auto.IsPathEnd)
+            {
+                // 잠시 기다렸다 Idle 상태로 전환
+                int tick = Environment.TickCount;
+                if (tick - Auto.PathEndTime > Config.AutoMoveRoamingWaitTime)
+                {
+                    Auto.WaitTime = TimeSpan.TicksPerSecond;
+                    Auto.NextState = AutoState.AutoIdle;
+                    Auto.State = AutoState.AutoWait;
+                    Auto.Target = null;
+
+                    // wait 패킷 전송
+                    Auto.SendAutoPacket();
+                    return;
+                }
+            }
+
+            //Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoMoving. {this.ToString(InfoLevel.Position)}");
         }
 
         protected override void UpdateAutoSkill()
@@ -364,7 +412,7 @@ namespace Server.Game
         protected override void UpdateAutoDead()
         {
             int tick = Environment.TickCount;
-            if(tick - DeadTime > 60000)
+            if(tick - DeadTime > 20000)
             {
                 Room._handleRespawn(this);
                 DeadTime = int.MaxValue;
@@ -507,7 +555,7 @@ namespace Server.Game
 
             // 이전에 사용한 스킬의 딜레이가 끝났는지 확인
             int tick = Environment.TickCount;
-            if (tick - _lastUseSkill.lastUseTime < (_lastUseSkill.skill.skillTime - 50))
+            if (tick - _lastUseSkill.lastUseTime < (_lastUseSkill.skill.skillTime - Config.SkillTimeCorrection))
                 return false;
 
             // 사용할 스킬 데이터 얻기
@@ -532,7 +580,7 @@ namespace Server.Game
 
             // 이전에 사용한 스킬의 딜레이가 끝났는지 확인
             int tick = Environment.TickCount;
-            if (tick - _lastUseSkill.lastUseTime < (_lastUseSkill.skill.skillTime - 50))
+            if (tick - _lastUseSkill.lastUseTime < (_lastUseSkill.skill.skillTime - Config.SkillTimeCorrection))
                 return false;
 
             // 쿨타임 검사
@@ -559,7 +607,7 @@ namespace Server.Game
 
             // 스킬 시전이 끝났는지 검사함
             int tick = Environment.TickCount;
-            if (tick - _usingSkill.lastUseTime > (_usingSkill.skill.castingTime - 50))
+            if (tick - _usingSkill.lastUseTime > (_usingSkill.skill.castingTime - Config.SkillTimeCorrection))
             {
                 _usingSkill.casted = true;
             }

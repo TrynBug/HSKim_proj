@@ -333,7 +333,6 @@ public abstract class CreatureController : BaseController
     { 
         if (AutoMode != AutoMode.ModeAuto)
             AutoMode = AutoMode.ModeAuto;
-        Speed = 7f;
 
         // set data
         AutoInfo = autoInfo;
@@ -348,7 +347,9 @@ public abstract class CreatureController : BaseController
         switch (autoInfo.AutoState)
         {
             case AutoState.AutoIdle:
-                Auto.State = AutoState.AutoIdle;
+                {
+                    Auto.State = AutoState.AutoIdle;
+                }
                 break;
             case AutoState.AutoChasing:
                 {
@@ -358,7 +359,7 @@ public abstract class CreatureController : BaseController
                         // 경로 찾기
                         // 길찾기의 시작좌표는 서버의 현재 Dest, 도착좌표는 서버에서 보내준 타겟 Pos 이다.
                         // 서버와 클라가 항상 동일한 경로를 찾기 위함임
-                        Auto.SetPathToTarget(new Vector2(posInfo.DestX, posInfo.DestY), new Vector2(autoInfo.TargetPosX, autoInfo.TargetPosY));
+                        Auto.SetPath(new Vector2(posInfo.DestX, posInfo.DestY), new Vector2(autoInfo.TargetPosX, autoInfo.TargetPosY));
 
                         // chasing 상태로 변경
                         Auto.State = AutoState.AutoChasing;
@@ -371,7 +372,12 @@ public abstract class CreatureController : BaseController
                 }
                 break;
             case AutoState.AutoMoving:
-                Auto.State = AutoState.AutoMoving;
+                {
+                    Auto.State = AutoState.AutoMoving;
+
+                    // 경로 지정
+                    Auto.SetPath(new Vector2(posInfo.DestX, posInfo.DestY), new Vector2(autoInfo.TargetPosX, autoInfo.TargetPosY));
+                }
                 break;
             case AutoState.AutoSkill:
                 {
@@ -395,7 +401,9 @@ public abstract class CreatureController : BaseController
                 }
                 break;
             case AutoState.AutoDead:
-                Auto.State = AutoState.AutoDead;
+                {
+                    Auto.State = AutoState.AutoDead;
+                }
                 break;
         }
 
@@ -445,7 +453,7 @@ public abstract class CreatureController : BaseController
             // 타겟이 cell을 이동했으면 경로 재계산
             if (Auto.PrevTargetCell != Auto.Target.Cell)
             {
-                Auto.SetPathToTarget(Pos, Auto.Target.Pos);   // TBD. 서버와 클라의 타겟 cell이 틀리면 어떻게?
+                Auto.SetPath(Pos, Auto.Target.Pos);
             }
 
             // 경로를 따라 이동함
@@ -456,6 +464,7 @@ public abstract class CreatureController : BaseController
 
     protected virtual void UpdateAutoMoving()
     {
+        Auto.MoveThroughPath();
     }
 
     protected virtual void UpdateAutoSkill()
@@ -465,6 +474,7 @@ public abstract class CreatureController : BaseController
 
     protected virtual void UpdateAutoDead()
     {
+
     }
 
 

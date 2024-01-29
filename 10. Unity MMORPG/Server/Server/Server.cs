@@ -25,7 +25,8 @@ namespace Server
             WinApi.TimeBeginPeriod(1);
 
             // logger 설정
-            Logger.Level = LogLevel.Debug;
+            Logger.Level = LogLevel.System;
+            //Logger.Level = LogLevel.Debug;
 
             // 데이터 파일 로드
             ConfigManager.LoadConfig();
@@ -57,13 +58,13 @@ namespace Server
 
                 Thread.Sleep(10000);
                 //Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}, delta:{room.Time.DeltaTime}");
-                Logger.WriteLog(LogLevel.Debug, $"object players:{ObjectManager.Instance.PlayerCount}");
+                Logger.WriteLog(LogLevel.System, $"object players:{ObjectManager.Instance.PlayerCount}");
                 for (int i=0; i<RoomManager.Instance.RoomCount; i++)
                 {
                     GameRoom room = RoomManager.Instance.Find(i);
                     if (room == null)
                         continue;
-                    Logger.WriteLog(LogLevel.Debug, $"{room}, players:{room.PlayerCount}, proj:{room.ProjectileCount}, delta:{room.Time.DeltaTime}");
+                    Logger.WriteLog(LogLevel.System, $"{room}, players:{room.PlayerCount}, proj:{room.ProjectileCount}, delta:{room.Time.DeltaTime}");
                 }
 
 

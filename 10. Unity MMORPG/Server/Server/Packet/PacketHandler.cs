@@ -109,20 +109,13 @@ internal class PacketHandler
     }
 
 
-    // AI 설정요청 처리
+    // Auto 설정요청 처리
     public static void C_SetAutoHandler(PacketSession session, IMessage packet)
     {
         C_SetAuto autoPacket = packet as C_SetAuto;
         ClientSession clientSession = session as ClientSession;
 
-        if (clientSession.MyPlayer.SetAutoMode(autoPacket.Mode) == false)
-            return;
-
-        S_SetAutoResponse responsePacket = new S_SetAutoResponse();
-        responsePacket.Mode = autoPacket.Mode;
-        clientSession.Send(responsePacket);
-
-        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SetAutoHandler. objectId:{clientSession.MyPlayer.Id}, mode:{autoPacket.Mode}");
+        clientSession.MyPlayer.Room.HandleSetAuto(clientSession.MyPlayer, autoPacket);
     }
 
 

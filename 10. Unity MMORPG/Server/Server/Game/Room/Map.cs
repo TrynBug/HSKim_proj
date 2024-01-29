@@ -179,11 +179,13 @@ namespace Server.Game
 
 
         // 맵 데이터 로드
-        public void LoadMap(int mapId)
+        public void LoadMap(GameRoom room)
         {
+            _room = room;
+
             // 맵 데이터 가져오기
             MapData mapData;
-            if(DataManager.MapDict.TryGetValue(mapId, out mapData) == false)
+            if(DataManager.MapDict.TryGetValue(_room.MapId, out mapData) == false)
             {
                 Logger.WriteLog(LogLevel.Error, $"Map.LoadMap. Invalid mapId. {this}");
                 return;
@@ -281,6 +283,12 @@ namespace Server.Game
                     return teleport;
             }
             return null;
+        }
+
+        // pos 위치의 텔레포트 얻기
+        public TeleportData GetRandomTeleport()
+        {
+            return _mapData.teleports[_random.Next(0, _mapData.teleports.Count)];
         }
 
         // enter zone 위치 얻기
@@ -632,7 +640,7 @@ namespace Server.Game
 
         // center를 기준으로 가장 가까운 살아있는 오브젝트를 찾는다.
         // 찾지 못했으면 null을 리턴함
-        public GameObject FindAliveObjectNearbyCell(Vector2Int center, GameObject exceptObject = null)
+        public GameObject _findObjectNearbyCell(Vector2Int center, GameObject exceptObject = null)
         {
             center = GetValidCell(center);
 

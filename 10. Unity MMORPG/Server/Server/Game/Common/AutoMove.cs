@@ -30,6 +30,7 @@ namespace Server.Game
                         break;
                     case AutoState.AutoMoving:
                         Owner.State = CreatureState.Moving;
+                        MovingCount++;
                         break;
                     case AutoState.AutoSkill:
                         Owner.State = CreatureState.Idle;
@@ -77,6 +78,8 @@ namespace Server.Game
             }
         }
         public int PathIndex { get; private set; }
+        public bool IsPathEnd { get { return PathIndex >= _path.Count; } }
+        public int PathEndTime { get; private set; }
 
         // 타겟
         GameObject _target;
@@ -99,6 +102,7 @@ namespace Server.Game
                     Info.TargetPosX = _target.Pos.x;
                     Info.TargetPosY = _target.Pos.y;
                     PrevTargetCell = _target.Cell;
+                    MovingCount = 0;
                 }
             }
         }
@@ -114,7 +118,6 @@ namespace Server.Game
             }
         }
 
-
         // 스킬
         SkillUseInfo _skillUse;
         public SkillUseInfo SkillUse
@@ -127,6 +130,9 @@ namespace Server.Game
                     Info.SkillId = _skillUse.skill.id;
             }
         }
+
+        // moving
+        public int MovingCount { get; private set; }
 
         // wait
         long _waitTime = 0;   // DateTime.Now.Ticks 기준의 시간
@@ -148,11 +154,13 @@ namespace Server.Game
         {
             Owner = owner;
 
+            Info.AutoState = AutoState.AutoIdle;
             Path.Clear();
             PathIndex = 1;
             Target = null;
             PrevTargetCell = new Vector2Int(0, 0);
             SkillUse = null;
+            MovingCount = 0;
         }
 
 
@@ -176,25 +184,41 @@ namespace Server.Game
             TargetDistance = (new Vector2(SkillUse.skill.rangeX, SkillUse.skill.rangeY / 2f)) * (3f / 4f);
         }
 
-        // 경로 지정
+        // 타겟으로의 경로 지정
         public void SetPathToTarget()
         {
-            Info.StartPosX = Owner.Pos.x;
-            Info.StartPosY = Owner.Pos.y;
-
             if (Target == null)
             {
+                Info.StartPosX = Owner.Pos.x;
+                Info.StartPosY = Owner.Pos.y;
+
                 Path.Clear();
                 Path.Add(Owner.Pos);
                 PathIndex = 1;
             }
             else
             {
-                Path = Owner.Room.Map.SearchPath(Owner.Pos, Target.Pos);
-                Info.TargetPosX = Target.Pos.x;
-                Info.TargetPosY = Target.Pos.y;
-                PrevTargetCell = Target.Cell;
+                SetPath(Target.Pos);
             }
+        }
+
+        public void SetPath(Vector2 dest)
+        {
+            Info.StartPosX = Owner.Pos.x;
+            Info.StartPosY = Owner.Pos.y;
+            Info.TargetPosX = dest.x;
+            Info.TargetPosY = dest.y;
+            PrevTargetCell = Room.Map.PosToCell(dest);
+
+            // 경로 찾기
+            Path = Owner.Room.Map.SearchPath(Owner.Pos, dest);
+        }
+
+        // 랜덤 경로 지정
+        public void SetPathRandom()
+        {
+            Vector2 randomPos = Owner.Room.Map.GetRandomEmptyPos();
+            SetPath(randomPos);
         }
 
 
@@ -220,6 +244,9 @@ namespace Server.Game
 
             // 목적지 지정
             Owner.Dest = Path[PathIndex];
+
+            // 방향 수정
+            Owner.Dir = Util.GetDirectionToDest(Pos, Dest);
 
             // 목적지에 도달했다면 현재위치를 목적지로 이동시킴
             Vector2 diff = (Dest - Pos);
@@ -248,10 +275,8 @@ namespace Server.Game
                 // 다음 경로가 없을 경우 현재위치에 정지함
                 else
                 {
-                    Vector2 stopPos;
-                    Room.Map.TryStop(Owner, Pos, out stopPos);
-                    Pos = stopPos;
-                    Dest = stopPos;
+                    Owner.StopAt(Pos);
+                    PathEndTime = Environment.TickCount;
                 }
             }
             // 현재위치 이동
@@ -261,9 +286,6 @@ namespace Server.Game
                 Room.Map.TryMoving(Owner, pos, checkCollider: false);
                 Pos = pos;
             }
-
-            // 방향 수정
-            Owner.Dir = Util.GetDirectionToDest(Pos, Dest);
 
             Logger.WriteLog(LogLevel.Debug, $"AutoMove.MoveThroughPath. {Owner.ToString(InfoLevel.Position)}");
         }

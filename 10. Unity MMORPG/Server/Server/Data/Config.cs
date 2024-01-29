@@ -14,6 +14,13 @@ namespace Server.Data
         /* map */
         public const int CellMultiple = 2;
 
+        /* float */
         public const float DifferenceTolerance = 0.001f;
+
+        /* Auto Move */
+        public const int AutoMoveRoamingWaitTime = 2000;
+
+        /* skill */
+        public const int SkillTimeCorrection = 50;
     }
 }

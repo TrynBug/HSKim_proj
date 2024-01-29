@@ -8,16 +8,23 @@ using System.Collections.Generic;
 using System.Threading;
 using Unity.VisualScripting;
 using UnityEngine;
+using UnityEngine.EventSystems;
 using UnityEngine.Rendering;
 
 // 맵 상의 오브젝트를 관리하는 매니저
 public class ObjectManager
 {
+    GameObject _root;
+    GameObject _rootPlayer;
+    GameObject _rootProjectile;
+    GameObject _rootEffect;
+    GameObject _rootNumber;
+
     public MyPlayerController MyPlayer { get; private set; }
     Dictionary<int, BaseController> _players = new Dictionary<int, BaseController>();
     Dictionary<int, BaseController> _projectiles = new Dictionary<int, BaseController>();
     Dictionary<int, BaseController> _effects = new Dictionary<int, BaseController>();
-    
+
     public ICollection<KeyValuePair<int, BaseController>> Players { get { return _players.AsReadOnlyCollection(); } }
     public ICollection<KeyValuePair<int, BaseController>> Projectiles { get { return _projectiles.AsReadOnlyCollection(); } }
     public ICollection<KeyValuePair<int, BaseController>> Effects { get { return _effects.AsReadOnlyCollection(); } }
@@ -25,6 +32,21 @@ public class ObjectManager
     public int PlayerCount { get { return _players.Count; } }
     public int ProjectileCount { get { return _projectiles.Count; } }
     public int EffectCount { get { return _effects.Count; } }
+
+    public void Init()
+    {
+        _root = new GameObject("@Objects");
+        UnityEngine.Object.DontDestroyOnLoad(_root);
+        _rootPlayer = new GameObject("@Players");
+        UnityEngine.Object.DontDestroyOnLoad(_rootPlayer);
+        _rootProjectile = new GameObject("@Projectiles");
+        UnityEngine.Object.DontDestroyOnLoad(_rootProjectile);
+        _rootEffect = new GameObject("@Effects");
+        UnityEngine.Object.DontDestroyOnLoad(_rootEffect);
+        _rootNumber = new GameObject("@Numbers");
+        UnityEngine.Object.DontDestroyOnLoad(_rootNumber);
+    }
+
 
 
 
@@ -51,6 +73,7 @@ public class ObjectManager
         GameObject go = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
         go.transform.position = new Vector3(0, 0, Config.ObjectDefaultZ);
         go.name = "MyPlayer";
+        go.transform.parent = _root.transform;
 
         // MyPlayer 등록
         MyPlayerController player = go.GetOrAddComponent<MyPlayerController>();
@@ -81,6 +104,7 @@ public class ObjectManager
             GameObject go = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
             go.transform.position = new Vector3(0, 0, Config.ObjectDefaultZ);
             go.name = info.Name;
+            go.transform.parent = _rootPlayer.transform;
 
             PlayerController player = go.GetOrAddComponent<PlayerController>();
 
@@ -132,6 +156,7 @@ public class ObjectManager
                         return null;
                     }
                     go.name = skill.projectile.name;
+                    go.transform.parent = _rootProjectile.transform;
 
                     ProjectileController fireball = go.GetOrAddComponent<ProjectileController>();
                     SpriteRenderer renderer = fireball.GetOrAddComponent<SpriteRenderer>();
@@ -167,6 +192,7 @@ public class ObjectManager
             ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.AddEffect. Can't find prefab. prefab:{prefab}");
             return null;
         }
+        go.transform.parent = _rootEffect.transform;
         EffectController effect = go.GetOrAddComponent<EffectController>();
         effect.Init(prefab, pos, offsetY);
 

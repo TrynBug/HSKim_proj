@@ -67,6 +67,7 @@ public class Managers : MonoBehaviour
 
             s_instance._data.Init();   // DataManager 초기화
             s_instance._sound.Init();  // SoundManager 초기화
+            s_instance._object.Init();
             s_instance._pool.Init();   // PoolManager 초기화
             s_instance._network.Init();
             s_instance._time.Init();

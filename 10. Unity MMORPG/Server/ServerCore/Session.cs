@@ -50,6 +50,7 @@ namespace ServerCore
 
 
         Socket _socket;
+        EndPoint _endPoint;    // _socket.RemoteEndPoint 를 사용하는 시점에는 _socket이 dispose 됐을 수 있기 때문에 RemoteEndPoint를 얻으려면 _endPoint 을 사용해야함
         int _disconnected = 0;   // disconnect 됨 여부
 
         object _lock = new object();                     // send용 lock
@@ -68,7 +69,7 @@ namespace ServerCore
 
         public string GetSocketInfo()
         {
-            return _socket.RemoteEndPoint.ToString();
+            return _endPoint.ToString();
         }
 
 
@@ -85,6 +86,7 @@ namespace ServerCore
         {
             // 소켓 생성
             _socket = socket;
+            _endPoint = socket.RemoteEndPoint;
 
             // send 준비
             _sendArgs.Completed += new EventHandler<SocketAsyncEventArgs>(OnSendCompleted);
@@ -126,8 +128,8 @@ namespace ServerCore
         {
             if (Interlocked.Exchange(ref _disconnected, 1) == 0)
             {
-                Logger.WriteLog(LogLevel.Debug, $"Session.Disconnect. remote:{_socket.RemoteEndPoint.ToString()}");
-                OnDisconnected(_socket.RemoteEndPoint);
+                Logger.WriteLog(LogLevel.Debug, $"Session.Disconnect. remote:{_endPoint}");
+                OnDisconnected(_endPoint);
 
                 _socket.Shutdown(SocketShutdown.Both);
                 _socket.Close();
@@ -155,7 +157,7 @@ namespace ServerCore
             }
             catch(Exception ex)
             {
-                Logger.WriteLog(LogLevel.Error, $"Session.RegisterRecv Exception. remote:{_socket.RemoteEndPoint.ToString()}, exception:{ex.ToString()}");
+                Logger.WriteLog(LogLevel.Error, $"Session.RegisterRecv Exception. remote:{_endPoint}, exception:{ex.ToString()}");
             }
         }
 
@@ -194,13 +196,13 @@ namespace ServerCore
                 }
                 catch (Exception ex)
                 {
-                    Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Exception. remote:{_socket.RemoteEndPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}, exception:{ex.ToString()}");
+                    Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Exception. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}, exception:{ex.ToString()}");
                 }
             }
             else
             {
                 if(!(args.BytesTransferred == 0 && args.SocketError == SocketError.Success))
-                    Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Error. remote:{_socket.RemoteEndPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
+                    Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Error. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
                 Disconnect();
             }
         }
@@ -235,7 +237,7 @@ namespace ServerCore
             }
             catch (Exception ex)
             {
-                Logger.WriteLog(LogLevel.Error, $"Session.RegisterSend Exception. remote:{_socket.RemoteEndPoint.ToString()}, exception:{ex.ToString()}");
+                Logger.WriteLog(LogLevel.Error, $"Session.RegisterSend Exception. remote:{_endPoint.ToString()}, exception:{ex.ToString()}");
             }
         }
 
@@ -261,12 +263,12 @@ namespace ServerCore
                     }
                     catch (Exception ex)
                     {
-                        Logger.WriteLog(LogLevel.Error, $"Session.OnSendCompleted Exception. remote:{_socket.RemoteEndPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}, exception:{ex.ToString()}");
+                        Logger.WriteLog(LogLevel.Error, $"Session.OnSendCompleted Exception. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}, exception:{ex.ToString()}");
                     }
                 }
                 else
                 {
-                    Logger.WriteLog(LogLevel.Error, $"Session.OnSendCompleted Error. remote:{_socket.RemoteEndPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
+                    Logger.WriteLog(LogLevel.Error, $"Session.OnSendCompleted Error. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
                     Disconnect();
                 }
             }

@@ -151,22 +151,24 @@ public class AutoMove
     }
 
     // 경로 지정
-    public void SetPathToTarget(Vector2 startPos, Vector2 endPos)
+    public void SetPath(Vector2 startPos, Vector2 endPos)
     {
-        if (Target == null)
-        {
-            Path.Clear();
-            Path.Add(startPos);
-            PathIndex = 0;
-            PrevTargetCell = Managers.Map.PosToCell(endPos);
-        }
-        else
-        {
-            Path = Managers.Map.SearchPath(startPos, endPos);
-            PrevTargetCell = Managers.Map.PosToCell(endPos);
-        }
-    }
+        //if (Target == null)
+        //{
+        //    Path.Clear();
+        //    Path.Add(startPos);
+        //    PathIndex = 0;
+        //    PrevTargetCell = Managers.Map.PosToCell(endPos);
+        //}
+        //else
+        //{
+        //    Path = Managers.Map.SearchPath(startPos, endPos);
+        //    PrevTargetCell = Managers.Map.PosToCell(endPos);
+        //}
 
+        Path = Managers.Map.SearchPath(startPos, endPos);
+        PrevTargetCell = Managers.Map.PosToCell(endPos);
+    }
 
 
     // 다음 경로로 움직임
@@ -177,6 +179,9 @@ public class AutoMove
 
         // 목적지 지정
         Owner.Dest = Path[PathIndex];
+
+        // 방향 수정
+        Owner.Dir = Util.GetDirectionToDest(Pos, Dest);
 
         // 목적지에 도달했다면 현재위치를 목적지로 이동시킴
         Vector2 diff = (Dest - Pos);
@@ -205,10 +210,7 @@ public class AutoMove
             // 다음 경로가 없을 경우 현재위치에 정지함
             else
             {
-                Vector2 stopPos;
-                Managers.Map.TryStop(Owner, Pos, out stopPos);
-                Pos = stopPos;
-                Dest = stopPos;
+                Owner.StopAt(Pos);
             }
         }
         // 현재위치 이동
@@ -218,9 +220,6 @@ public class AutoMove
             Managers.Map.TryMoving(Owner, pos, checkCollider: false);
             Pos = pos;
         }
-
-        // 방향 수정
-        Owner.Dir = Util.GetDirectionToDest(Pos, Dest);
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"AutoMove.MoveThroughPath. {Owner.ToString(InfoLevel.Position)}");
     }

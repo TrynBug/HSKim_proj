@@ -7,6 +7,7 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
+using static PlayerObj;
 
 // 패킷 타입별로 호출할 핸들러 함수를 관리하는 클래스
 // 서버에게 받은 패킷을 처리하는 핸들러이기 때문에 S_ 로 시작하는 패킷명에 대한 핸들러 함수만 작성한다.
@@ -315,9 +316,31 @@ class PacketHandler
         S_SetAutoResponse autoPacket = packet as S_SetAutoResponse;
         ServerSession serverSession = session as ServerSession;
 
-        Managers.Object.MyPlayer.AutoMode = autoPacket.Mode;
+        BaseController obj = Managers.Object.FindById(autoPacket.ObjectId);
+        if (obj == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_SetAutoResponseHandler. Can't find object. objectId:{autoPacket.ObjectId}");
+            return;
+        }
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SetAutoResponseHandler. mode:{autoPacket.Mode}, {Managers.Object.MyPlayer}");
+        CreatureController cc = obj as CreatureController;
+        if (cc == null)
+        {
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_SetAutoResponseHandler. Object has no CreatureController component. objectId:{autoPacket.ObjectId}");
+            return;
+        }
+
+        cc.AutoMode = autoPacket.Mode;
+        if (autoPacket.Mode == AutoMode.ModeNone)
+        {
+            cc.State = CreatureState.Idle;
+        }
+        else if (autoPacket.Mode == AutoMode.ModeAuto)
+        {
+            cc.Auto.Init(cc);
+        }
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SetAutoResponseHandler. mode:{autoPacket.Mode}, {cc}");
     }
 
 

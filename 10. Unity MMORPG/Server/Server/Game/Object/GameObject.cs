@@ -108,9 +108,7 @@ namespace Server.Game
                 PosInfo.State = value; 
                 if(value == CreatureState.Loading)
                 {
-                    ClientSideLoading = false;
-                    ServerSideLoading = false;
-                    MoveKeyDown = false;
+                    SetLoading();
                 }
             }
         }
@@ -227,7 +225,16 @@ namespace Server.Game
             Auto.Init(this);
         }
 
-        
+        public virtual void SetLoading()
+        {
+            PosInfo.State = CreatureState.Loading;
+
+            ClientSideLoading = false;
+            ServerSideLoading = false;
+            MoveKeyDown = false;
+
+            Auto.Init(this);
+        }
 
 
 
@@ -456,8 +463,7 @@ namespace Server.Game
             }
             else if (autoMode == AutoMode.ModeAuto)
             {
-                Speed = 7f;
-                Auto.State = AutoState.AutoIdle;
+                Auto.Init(this);
             }
 
             return true;

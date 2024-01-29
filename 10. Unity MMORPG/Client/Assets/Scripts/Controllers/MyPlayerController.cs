@@ -518,7 +518,10 @@ public class MyPlayerController : SPUMController
             _autoRequestSent = true;
 
             C_SetAuto autoPacket = new C_SetAuto();
-            autoPacket.Mode = AutoMode.ModeAuto;
+            if (AutoMode == AutoMode.ModeAuto)
+                autoPacket.Mode = AutoMode.ModeNone;
+            else
+                autoPacket.Mode = AutoMode.ModeAuto;
             Managers.Network.Send(autoPacket);
 
             StartCoroutine("CoAutoRequestCooltime", 1f);

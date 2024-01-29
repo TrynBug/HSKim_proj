@@ -33,7 +33,10 @@ namespace Server.Game
         // 오브젝트 추가
         public void AddPlayer(Player player)
         {
-            _players.Add(player.Id, player);
+            lock(_lock)
+            {
+                _players.Add(player.Id, player);
+            }
         }
 
         // 오브젝트 제거
