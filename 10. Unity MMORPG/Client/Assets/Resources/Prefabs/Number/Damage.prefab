@@ -349,6 +349,7 @@ GameObject:
   - component: {fileID: 7211529660073841482}
   - component: {fileID: 4805433422278017667}
   - component: {fileID: 9151140662766420516}
+  - component: {fileID: 1725273390208428853}
   m_Layer: 0
   m_Name: Damage
   m_TagString: Untagged
@@ -799,8 +800,8 @@ MonoBehaviour:
     radius: 3
     pushOffset: 1
   updateDelay: 0.0125
-  enablePooling: 0
-  poolSize: 50
+  enablePooling: 1
+  poolSize: 200
   disableOnSceneLoad: 1
   editorLastFont: Basic-Outline
   position: {x: 0, y: 0, z: 0}
@@ -833,3 +834,16 @@ MonoBehaviour:
   texts: []
   fonts: []
   randomColor: 0
+--- !u!114 &1725273390208428853
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8606965840872966445}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4706b754c89ea0d4ca3b3ca27d814fbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  IsUsing: 0

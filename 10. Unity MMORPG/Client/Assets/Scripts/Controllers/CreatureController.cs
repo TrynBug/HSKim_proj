@@ -32,10 +32,11 @@ public abstract class CreatureController : BaseController
         get { return base.State; }
         set
         {
-            if (base.State == value)
-                return;
+            //if (base.State == value)
+            //    return;
             base.State = value;
             UpdateAnimation();
+            UpdateHpBar();
         }
     }
 
@@ -166,7 +167,7 @@ public abstract class CreatureController : BaseController
         Auto.Init(this);
 
         AddHpBar();
-        AddDebugText();
+        //AddDebugText();
         UpdateAnimation();
     }
 
@@ -558,7 +559,12 @@ public abstract class CreatureController : BaseController
             ratio = (float)Hp / (float)Stat.MaxHp;
         }
         _hpBar.SetHpBar(ratio);
-        //_hpBar.transform.localScale = gameObject.transform.localScale;
+
+        // 사망시 hp바 비활성화
+        if (IsDead)
+        {
+            _hpBar.gameObject.SetActive(false);
+        }
     }
 
     // Debug Text 추가
@@ -577,6 +583,5 @@ public abstract class CreatureController : BaseController
         if (_debugText == null)
             return;
         _debugText.SetText($"({Pos.x:f1},{Pos.y:f1}) ({Cell.x},{Cell.y})");
-        //_debugText.transform.localScale = gameObject.transform.localScale;
     }
 }

@@ -12,22 +12,24 @@ using static Define;
 public class NumberManager
 {
     GameObject _root;
+    GameObject _rootOriginal;
+    GameObject _rootInstance;
 
     DamageNumber[] _numbers = new DamageNumber[Enum.GetValues(typeof(NumberType)).Length];
 
     public void Init()
     {
         // root 생성
-        _root = GameObject.Find("@Numbers");
-        if (_root == null)
-        {
-            _root = new GameObject();
-            _root.name = "@Numbers";
-        }
-        _root.SetActive(true);
+        _root = new GameObject("@Numbers");
+        UnityEngine.Object.DontDestroyOnLoad(_root);
+        _rootOriginal = new GameObject("@Original");
+        _rootOriginal.transform.SetParent(_root.transform);
+        _rootInstance = new GameObject("@Instance");
+        _rootInstance.transform.SetParent(_root.transform);
+
 
         // 숫자 prefab 생성
-        foreach(NumberType type in Enum.GetValues(typeof(NumberType)))
+        foreach (NumberType type in Enum.GetValues(typeof(NumberType)))
         {
             DamageNumber number = null;
             switch(type)
@@ -46,7 +48,7 @@ public class NumberManager
             if (number == null)
                 continue;
             number.gameObject.SetActive(false);
-            number.transform.parent = _root.transform;
+            number.transform.SetParent(_rootOriginal.transform);
             _numbers[(int)type] = number;
         }
 
@@ -65,7 +67,18 @@ public class NumberManager
             return;
 
         DamageNumber instance = number.Spawn(pos, amount);
-        instance.transform.parent = _root.transform;
+        instance.transform.SetParent(_rootInstance.transform);
 
+    }
+
+    public void Clear()
+    {
+        foreach(Transform child in _rootInstance.transform)
+        {
+            DamageNumber number = child.GetComponent<DamageNumber>();
+            if (number == null)
+                continue;
+            number.DestroyDNP();
+        }
     }
 }

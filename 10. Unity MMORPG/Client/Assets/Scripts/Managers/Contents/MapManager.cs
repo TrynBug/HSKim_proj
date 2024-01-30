@@ -11,6 +11,8 @@ using UnityEngine.Tilemaps;
 using TMPro;
 using Data;
 using System.Data;
+using Unity.VisualScripting;
+using UnityEngine.UIElements;
 
 public struct Pos
 {
@@ -39,6 +41,9 @@ public struct PQNode : IComparable<PQNode>
 // map collision 데이터를 참조하여 grid 상에서 특정 좌표가 이동 가능한 좌표인지를 판단해준다.
 public class MapManager
 {
+    // 배경
+    Background _background;
+
     // 맵
     public int MapId {get; private set; }
     GameObject _mapRoot = null;                   // 현재 맵 오브젝트
@@ -210,6 +215,11 @@ public class MapManager
         // 기존 맵 제거
         DestroyMap();
 
+        // 배경 생성
+        GameObject background = Managers.Resource.Instantiate($"Background/Background");
+        _background = background.GetOrAddComponent<Background>();
+
+
         // 맵 데이터 가져오기
         MapData mapData;
         if (Managers.Data.MapDict.TryGetValue(mapId, out mapData) == false)
@@ -290,6 +300,10 @@ public class MapManager
         // teleport 데이터 얻기
         foreach (TeleportData teleport in mapData.teleports)
             teleports.Add(teleport);
+
+        // enter zone 안보이게 하기
+        GameObject enterZone = Util.FindChild(_mapRoot, "EnterZone", true);
+        enterZone.SetActive(false);
 
         // search 알고리즘 초기화
         _search.Init(_cells, CellMaxX, CellMaxY);
@@ -386,6 +400,13 @@ public class MapManager
 
     public void DestroyMap()
     {
+        if(_background != null)
+        {
+            //GameObject.Destroy(_background);
+            Managers.Resource.Destroy(_background.gameObject);
+            _background = null;
+        }
+
         if(_mapRoot != null)
         {
             GameObject.Destroy(_mapRoot);

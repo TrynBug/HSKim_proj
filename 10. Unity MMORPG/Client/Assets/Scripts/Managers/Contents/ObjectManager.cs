@@ -18,7 +18,6 @@ public class ObjectManager
     GameObject _rootPlayer;
     GameObject _rootProjectile;
     GameObject _rootEffect;
-    GameObject _rootNumber;
 
     public MyPlayerController MyPlayer { get; private set; }
     Dictionary<int, BaseController> _players = new Dictionary<int, BaseController>();
@@ -38,13 +37,11 @@ public class ObjectManager
         _root = new GameObject("@Objects");
         UnityEngine.Object.DontDestroyOnLoad(_root);
         _rootPlayer = new GameObject("@Players");
-        UnityEngine.Object.DontDestroyOnLoad(_rootPlayer);
+        _rootPlayer.transform.SetParent(_root.transform);
         _rootProjectile = new GameObject("@Projectiles");
-        UnityEngine.Object.DontDestroyOnLoad(_rootProjectile);
+        _rootProjectile.transform.SetParent(_root.transform);
         _rootEffect = new GameObject("@Effects");
-        UnityEngine.Object.DontDestroyOnLoad(_rootEffect);
-        _rootNumber = new GameObject("@Numbers");
-        UnityEngine.Object.DontDestroyOnLoad(_rootNumber);
+        _rootEffect.transform.SetParent(_root.transform);
     }
 
 
@@ -73,7 +70,7 @@ public class ObjectManager
         GameObject go = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
         go.transform.position = new Vector3(0, 0, Config.ObjectDefaultZ);
         go.name = "MyPlayer";
-        go.transform.parent = _root.transform;
+        go.transform.SetParent(_root.transform);
 
         // MyPlayer 등록
         MyPlayerController player = go.GetOrAddComponent<MyPlayerController>();
@@ -104,7 +101,7 @@ public class ObjectManager
             GameObject go = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
             go.transform.position = new Vector3(0, 0, Config.ObjectDefaultZ);
             go.name = info.Name;
-            go.transform.parent = _rootPlayer.transform;
+            go.transform.SetParent(_rootPlayer.transform);
 
             PlayerController player = go.GetOrAddComponent<PlayerController>();
 
@@ -156,7 +153,7 @@ public class ObjectManager
                         return null;
                     }
                     go.name = skill.projectile.name;
-                    go.transform.parent = _rootProjectile.transform;
+                    go.transform.SetParent(_rootProjectile.transform);
 
                     ProjectileController fireball = go.GetOrAddComponent<ProjectileController>();
                     SpriteRenderer renderer = fireball.GetOrAddComponent<SpriteRenderer>();
@@ -192,7 +189,7 @@ public class ObjectManager
             ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.AddEffect. Can't find prefab. prefab:{prefab}");
             return null;
         }
-        go.transform.parent = _rootEffect.transform;
+        go.transform.SetParent(_rootEffect.transform);
         EffectController effect = go.GetOrAddComponent<EffectController>();
         effect.Init(prefab, pos, offsetY);
 

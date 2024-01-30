@@ -169,6 +169,11 @@ namespace Server
             bool isAccessible = true;
             loopCount = 0;
             List<Vector2> smoothPath = new List<Vector2>();
+            if(_path.Count == 0)
+            {
+                smoothPath.Add(_map.CellToCenterPos(_start));
+                return smoothPath;
+            }
             smoothPath.Add(_map.CellToCenterPos(_path[0]));
             for (int from = 0; from < _path.Count - 1;)
             {

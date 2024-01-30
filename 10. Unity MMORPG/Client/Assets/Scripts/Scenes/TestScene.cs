@@ -11,7 +11,8 @@ public class TestScene : BaseScene
         base.Awake();
 
         // 해상도 설정
-        Screen.SetResolution(640, 480, false);  // 해상도 640 x 480 으로 설정하고 fullscreen은 false로 한다.
+        //Screen.SetResolution(640, 480, false);  // 해상도 640 x 480 으로 설정하고 fullscreen은 false로 한다.
+        Screen.SetResolution(1024, 768, false);
 
         // 맵 데이터 로드
         Managers.Map.LoadMap(1);

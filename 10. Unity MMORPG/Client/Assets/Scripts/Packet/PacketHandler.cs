@@ -90,6 +90,7 @@ class PacketHandler
 
         // 모든 오브젝트를 파괴
         Managers.Object.Clear();
+        Managers.Number.Clear();
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_LeaveGameHandler");
     }

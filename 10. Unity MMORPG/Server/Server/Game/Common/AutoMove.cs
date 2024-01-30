@@ -92,9 +92,6 @@ namespace Server.Game
                 if (_target == null)
                 {
                     Info.TargetId = -1;
-                    Info.TargetPosX = 0;
-                    Info.TargetPosY = 0;
-                    PrevTargetCell = new Vector2Int(0, 0);
                 }
                 else
                 {

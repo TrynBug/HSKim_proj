@@ -12,6 +12,7 @@ GameObject:
   - component: {fileID: 3474439142158985095}
   - component: {fileID: 2063087093291245211}
   - component: {fileID: -6384214880474424383}
+  - component: {fileID: 1633315979979991416}
   m_Layer: 0
   m_Name: HeavyAttack
   m_TagString: Untagged
@@ -119,3 +120,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 622db3e4d65fe9a4ba6618861d8a58db, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+--- !u!114 &1633315979979991416
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 4935812409574498034}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 4706b754c89ea0d4ca3b3ca27d814fbb, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  IsUsing: 0
