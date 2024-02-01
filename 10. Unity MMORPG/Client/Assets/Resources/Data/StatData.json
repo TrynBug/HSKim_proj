@@ -1,25 +1,17 @@
 {
   "stats": [
     {
-      "level": "1",
-      "maxHp": "1200",
-      "attack": "20",
-	  "speed": "7.0",
-	  "totalExp": "0"
-    },
-    {
-      "level": "2",
-      "maxHp": "1250",
-      "attack": "25",
-	  "speed": "7.0",
-	  "totalExp": "10"
-    },
-    {
-      "level": "3",
-      "maxHp": "1300",
-      "attack": "30",
-	  "speed": "7.0",
-	  "totalExp": "20"
+		"level": "1",
+		"hp": "1200",
+		"maxHp": "1200",
+		"damage": "20",
+		"defence": "0",
+		"rangeX": "0",
+		"rangeY": "0",
+		"attackSpeed": "1000",
+		"speed": "7.0",
+		"exp": "0",
+		"totalExp": "1000"
     }
   ]
 }

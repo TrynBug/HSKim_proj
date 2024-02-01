@@ -6,6 +6,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Google.Protobuf;
+using Google.Protobuf.Collections;
 using Google.Protobuf.Protocol;
 using Google.Protobuf.WellKnownTypes;
 using Server.Data;
@@ -38,11 +39,10 @@ namespace Server.Game
 
         // object
         Dictionary<int, Player> _players = new Dictionary<int, Player>();
-        Dictionary<int, Monster> _monsters = new Dictionary<int, Monster>();
+        Dictionary<int, Skill> _skills = new Dictionary<int, Skill>();
         Dictionary<int, Projectile> _projectiles = new Dictionary<int, Projectile>();
 
         public int PlayerCount { get { return _players.Count; } }
-        public int MonsterCount { get { return _monsters.Count; } }
         public int ProjectileCount { get { return _projectiles.Count; } }
 
         // map
@@ -60,7 +60,6 @@ namespace Server.Game
         public void Broadcast(IMessage packet, Player except = null) { Push(_broadcast, packet, except); }
         public void HandleMove(Player player, C_Move movePacket) { Push(_handleMove, player, movePacket); }
         public void HandleSkill(Player player, C_Skill skillPacket) { Push(_handleSkill, player, skillPacket); }
-        public void HandleSkillHit(Player player, C_SkillHit hitPacket) { Push(_handleSkillHit, player, hitPacket); }
         public void HandleLoadFinish(Player player, C_LoadFinished loadPacket) { Push(_handleLoadFinish, player, loadPacket); }
         public void HandleRespawn(Player player, C_Respawn rdspawnPacket) { Push(_handleRespawn, player, rdspawnPacket); }
         public void HandleSetAuto(Player player, C_SetAuto autoPacket) { Push(_handleSetAuto, player, autoPacket); }
@@ -82,6 +81,11 @@ namespace Server.Game
             }
             return true;
         }
+        public Player FindPlayer(int playerId)
+        {
+            return _players.GetValueOrDefault(playerId, null);
+        }
+
 
         // center를 기준으로 가장 가까운 살아있는 오브젝트를 찾는다.
         // 찾지 못했으면 null을 리턴함
@@ -161,6 +165,7 @@ namespace Server.Game
         List<Player> _disconnectedPlayers = new List<Player>();
         List<Player> _respawnPlayers = new List<Player>();
         List<RoomTransferInfo> _leavingPlayers = new List<RoomTransferInfo>();
+        List<Skill> _deadSkills = new List<Skill>();
         List<Projectile> _deadProjectiles = new List<Projectile>();
         public void _update()
         {
@@ -203,10 +208,19 @@ namespace Server.Game
                 }
             }
 
-            foreach (Monster monster in _monsters.Values)
+            // 스킬 업데이트
+            _deadSkills.Clear();
+            foreach (Skill skill in _skills.Values)
             {
-                monster.Update();
+                skill.Update();
+
+                // 삭제 확인
+                if (skill.State == CreatureState.Dead)
+                    _deadSkills.Add(skill);
             }
+
+
+
 
             // 투사체 업데이트
             _deadProjectiles.Clear();
@@ -218,14 +232,6 @@ namespace Server.Game
                 if (projectile.State == CreatureState.Dead)
                     _deadProjectiles.Add(projectile);
             }
-
-            // 삭제될 투사체 삭제
-            foreach (Projectile projectile in _deadProjectiles)
-            {
-                _projectiles.Remove(projectile.Id);
-            }
-
-
 
 
             // 연결끊긴 플레이어 처리
@@ -279,6 +285,19 @@ namespace Server.Game
                 nextRoom.EnterGame(transfer);
             }
 
+
+
+            // 삭제될 스킬 삭제
+            foreach (Skill skill in _deadSkills)
+            {
+                _skills.Remove(skill.Id);
+            }
+
+            // 삭제될 투사체 삭제
+            foreach (Projectile projectile in _deadProjectiles)
+            {
+                _projectiles.Remove(projectile.Id);
+            }
 
             // debug
             InspectCell();
@@ -532,112 +551,134 @@ namespace Server.Game
             if (player.CanUseSkill(skillPacket.SkillId, out useInfo) == false)
                 return;
 
+            // 타겟 찾기. Melee 스킬 같은 경우에는 타겟이 없을 수 있다.
+            GameObject target = _players.GetValueOrDefault(skillPacket.TargetId, null);
+
+            // 타겟이 범위내에 있는지 확인. 범위내에 없다면 타겟을 null로 한다.
+            if (target != null)
+            {
+                if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(useInfo.skill.rangeX, useInfo.skill.rangeY), target.Pos) == false)
+                {
+                    target = null;
+                }
+            }
+
+            // 스킬 객체 생성
+            Skill skill = Skill.Generate(skillPacket.SkillId);
+            if (skill == null)
+                return;
+            skill.Init(useInfo, player, target, skillPacket.Hits);
+            _skills.Add(skill.Id, skill);
+
             // 스킬사용, 스킬사용패킷 broadcast
             player.OnSkill(useInfo);
+
 
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{skillPacket.SkillId}");
         }
 
 
-        // 스킬 피격요청 처리
-        public void _handleSkillHit(Player player, C_SkillHit hitPacket)
-        {
-            if (player == null)
-                return;
-
-            // 스킬 피격처리가 가능한지 확인
-            SkillData skill;
-            if (player.CanSkillHit(hitPacket.SkillId, out skill) == false)
-                return;
-
-            // 스킬 피격확인
-            ObjectInfo info = player.Info;
-            S_SkillHit resHitPacket = new S_SkillHit();
-            resHitPacket.ObjectId = info.ObjectId;
-            resHitPacket.SkillId = hitPacket.SkillId;
-            switch (skill.skillType)
-            {
-                case SkillType.SkillMelee:
-                    {
-                        // 대상이 공격범위 내에 있는지 확인
-                        Player target = null;
-                        foreach (int objectId in hitPacket.HitObjectIds)
-                        {
-                            if (_players.TryGetValue(objectId, out target) == false)
-                                continue;
-                            if (target.State == CreatureState.Dead)
-                                continue;
-
-                            // target이 스킬범위내에 존재하면 피격판정
-                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
-                            {
-                                // 피격됨
-                                int damage = target.OnDamaged(player, player.Stat.Damage);
-                                resHitPacket.HitObjectIds.Add(target.Id);
-                            }
-                        }
-                    }
-                    break;
-
-                case SkillType.SkillProjectile:
-                    {
-                        // 공격범위 내의 대상 찾기
-                        Player target = null;
-                        foreach (int objectId in hitPacket.HitObjectIds)
-                        {
-                            Player tempTarget = null;
-                            if (_players.TryGetValue(objectId, out tempTarget) == false)
-                                continue;
-                            if (tempTarget.State == CreatureState.Dead)
-                                continue;
-
-                            // target이 스킬범위내에 존재하는지 확인
-                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), tempTarget.Pos) == true)
-                            {
-                                // 타겟 찾음
-                                target = tempTarget;
-                                break;
-                            }
-                        }
-
-                        // projectile의 경우에는 여기에서 피격대상을 전송하지 않고 투사체만 생성한다.
-                        Projectile projectile = Projectile.CreateInstance(skill.id);
-                        projectile.Init(skill, player, target);
-                        _enterGame(projectile);
-                    }
-                    break;
-
-                case SkillType.SkillInstant:
-                    {
-                        // 대상이 공격범위 내에 있는지 확인
-                        Player target = null;
-                        foreach (int objectId in hitPacket.HitObjectIds)
-                        {
-                            if (_players.TryGetValue(objectId, out target) == false)
-                                continue;
-                            if (target.State == CreatureState.Dead)
-                                continue;
-
-                            // target이 스킬범위내에 존재하면 피격판정
-                            if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
-                            {
-                                // 피격됨
-                                int damage = target.OnDamaged(player, player.Stat.Damage + skill.damage);
-                                resHitPacket.HitObjectIds.Add(target.Id);
-                                break;
-                            }
-                        }
-                    }
-                    break;
-            }
 
 
-            // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
-            _broadcast(resHitPacket);
+        //// 스킬 피격요청 처리
+        //public void _handleSkillHit(Player player, C_SkillHit hitPacket)
+        //{
+        //    if (player == null)
+        //        return;
+
+        //    // 스킬 피격처리가 가능한지 확인
+        //    SkillData skill;
+        //    if (player.CanSkillHit(hitPacket.SkillId, out skill) == false)
+        //        return;
+
+        //    // 스킬 피격확인
+        //    ObjectInfo info = player.Info;
+        //    S_SkillHit resHitPacket = new S_SkillHit();
+        //    resHitPacket.ObjectId = info.ObjectId;
+        //    resHitPacket.SkillId = hitPacket.SkillId;
+        //    switch (skill.skillType)
+        //    {
+        //        case SkillType.SkillMelee:
+        //            {
+        //                // 대상이 공격범위 내에 있는지 확인
+        //                Player target = null;
+        //                foreach (int objectId in hitPacket.HitObjectIds)
+        //                {
+        //                    if (_players.TryGetValue(objectId, out target) == false)
+        //                        continue;
+        //                    if (target.State == CreatureState.Dead)
+        //                        continue;
+
+        //                    // target이 스킬범위내에 존재하면 피격판정
+        //                    if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
+        //                    {
+        //                        // 피격됨
+        //                        int damage = target.OnDamaged(player, player.Stat.Damage);
+        //                        resHitPacket.HitObjectIds.Add(target.Id);
+        //                    }
+        //                }
+        //            }
+        //            break;
+
+        //        case SkillType.SkillProjectile:
+        //            {
+        //                // 공격범위 내의 대상 찾기
+        //                Player target = null;
+        //                foreach (int objectId in hitPacket.HitObjectIds)
+        //                {
+        //                    Player tempTarget = null;
+        //                    if (_players.TryGetValue(objectId, out tempTarget) == false)
+        //                        continue;
+        //                    if (tempTarget.State == CreatureState.Dead)
+        //                        continue;
+
+        //                    // target이 스킬범위내에 존재하는지 확인
+        //                    if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), tempTarget.Pos) == true)
+        //                    {
+        //                        // 타겟 찾음
+        //                        target = tempTarget;
+        //                        break;
+        //                    }
+        //                }
+
+        //                // projectile의 경우에는 여기에서 피격대상을 전송하지 않고 투사체만 생성한다.
+        //                Projectile projectile = Projectile.CreateInstance(skill.id);
+        //                projectile.Init(skill, player, target);
+        //                _enterGame(projectile);
+        //            }
+        //            break;
+
+        //        case SkillType.SkillInstant:
+        //            {
+        //                // 대상이 공격범위 내에 있는지 확인
+        //                Player target = null;
+        //                foreach (int objectId in hitPacket.HitObjectIds)
+        //                {
+        //                    if (_players.TryGetValue(objectId, out target) == false)
+        //                        continue;
+        //                    if (target.State == CreatureState.Dead)
+        //                        continue;
+
+        //                    // target이 스킬범위내에 존재하면 피격판정
+        //                    if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
+        //                    {
+        //                        // 피격됨
+        //                        int damage = target.OnDamaged(player, player.Stat.Damage + skill.damage);
+        //                        resHitPacket.HitObjectIds.Add(target.Id);
+        //                        break;
+        //                    }
+        //                }
+        //            }
+        //            break;
+        //    }
 
 
-            ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{resHitPacket.SkillId}, hits:{resHitPacket.HitObjectIds.Count}");
-        }
+        //    // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
+        //    _broadcast(resHitPacket);
+
+
+        //    ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{resHitPacket.SkillId}, hits:{resHitPacket.HitObjectIds.Count}");
+        //}
 
 
 
@@ -715,39 +756,39 @@ namespace Server.Game
         volatile bool doCrash = false;
         public void InspectCell()
         {
-            void Crash()
-            {
-                ServerCore.Logger.WriteLog(LogLevel.Error, $"GameRoom.InspectCell. Cell integrity failed. {this}");
-                while (true)
-                {
-                    if (doCrash == false) break;
-                }
-            }
-            // cell 무결성 확인
-            setObj.Clear();
-            for (int y = 0; y < Map.CellMaxY; y++)
-            {
-                for (int x = 0; x < Map.CellMaxX; x++)
-                {
-                    Cell cell = Map._cells[y, x];
-                    if (cell.Object != null)
-                    {
-                        if (setObj.Add(cell.Object) == false)
-                            Crash();
-                    }
-                    var list = cell.MovingObjects;
-                    foreach (GameObject obj in list)
-                        if (setObj.Add(obj) == false)
-                            Crash();
-                }
-            }
-            if (setObj.Count != _players.Count)
-                Crash();
-            foreach (GameObject go in _players.Values)
-            {
-                if (Map._cells[go.Cell.y, go.Cell.x].Object != go && Map._cells[go.Cell.y, go.Cell.x].HasMovingObject(go) == false)
-                    Crash();
-            }
+            //void Crash()
+            //{
+            //    ServerCore.Logger.WriteLog(LogLevel.Error, $"GameRoom.InspectCell. Cell integrity failed. {this}");
+            //    while (true)
+            //    {
+            //        if (doCrash == false) break;
+            //    }
+            //}
+            //// cell 무결성 확인
+            //setObj.Clear();
+            //for (int y = 0; y < Map.CellMaxY; y++)
+            //{
+            //    for (int x = 0; x < Map.CellMaxX; x++)
+            //    {
+            //        Cell cell = Map._cells[y, x];
+            //        if (cell.Object != null)
+            //        {
+            //            if (setObj.Add(cell.Object) == false)
+            //                Crash();
+            //        }
+            //        var list = cell.MovingObjects;
+            //        foreach (GameObject obj in list)
+            //            if (setObj.Add(obj) == false)
+            //                Crash();
+            //    }
+            //}
+            //if (setObj.Count != _players.Count)
+            //    Crash();
+            //foreach (GameObject go in _players.Values)
+            //{
+            //    if (Map._cells[go.Cell.y, go.Cell.x].Object != go && Map._cells[go.Cell.y, go.Cell.x].HasMovingObject(go) == false)
+            //        Crash();
+            //}
         }
 
 

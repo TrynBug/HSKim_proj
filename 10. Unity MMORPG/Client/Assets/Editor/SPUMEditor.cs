@@ -1,13 +1,14 @@
-﻿using System.Collections;
+﻿
+using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using System.IO;
 using System.Text.RegularExpressions;
-using Unity.VisualScripting;
-using static Google.Protobuf.Reflection.UninterpretedOption.Types;
 using System;
 using System.Linq;
 using UnityEngine.TextCore.Text;
+using Google.Protobuf.Protocol;
+
 
 
 
@@ -47,7 +48,6 @@ public class SPUMEditor
         Dictionary<string, Data.Item> spriteItemDict = dataManager.MakeOnlySpriteItemDict();
 
         // SPUMData 데이터 생성
-        string namePart = "Back";
         List<Data.SPUMData> listSpum = new List<Data.SPUMData>();
         Regex regexPrefabNumber = new Regex("SPUM([0-9]{1,})$");
         foreach (GameObject go in gameObjects)
@@ -73,6 +73,27 @@ public class SPUMEditor
             spum.weaponRight = GetItemCode(go, "R_Weapon", spriteItemDict);
             if (spum.weaponRight == 0)
                 spum.weaponRight = GetItemCode(go, "R_Shield", spriteItemDict);
+            spum.weaponLeft = GetItemCode(go, "L_Weapon", spriteItemDict);
+            spum.horse = GetItemCode(go, "BodyBack", spriteItemDict);
+
+            // horse 여부 확인
+            if (spum.horse == 0)
+                spum.hasHorse = false;
+            else
+                spum.hasHorse = true;
+
+            // class 확인
+            Data.Item itemLeft = dataManager.ItemDict.GetValueOrDefault(spum.weaponLeft, null);
+            Data.Item itemRight = dataManager.ItemDict.GetValueOrDefault(spum.weaponRight, null);
+            Define.EquipmentSubType itemLeftType = itemLeft == null ? Define.EquipmentSubType.Empty : itemLeft.subType;
+            Define.EquipmentSubType itemRightType = itemRight == null ? Define.EquipmentSubType.Empty : itemRight.subType;
+            if (itemLeftType == Define.EquipmentSubType.Weapon_Wand || itemRightType == Define.EquipmentSubType.Weapon_Wand)
+                spum.spumClass = SPUMClass.SpumWizard;
+            else if (itemLeftType == Define.EquipmentSubType.Weapon_Bow || itemRightType == Define.EquipmentSubType.Weapon_Bow)
+                spum.spumClass = SPUMClass.SpumArcher;
+            else
+                spum.spumClass = SPUMClass.SpumKnight;
+
 
             listSpum.Add(spum);
         }

@@ -3,252 +3,444 @@
   {
     "id": 0,
     "prefabName": "SPUM000",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 0,
     "cloth": 0,
     "armor": 30006,
     "helmet": 20003,
     "weaponLeft": 40040,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 1,
     "prefabName": "SPUM001",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 50003,
     "cloth": 10002,
     "armor": 30005,
     "helmet": 0,
     "weaponLeft": 40007,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 2,
     "prefabName": "SPUM002",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 50001,
     "cloth": 10004,
     "armor": 30005,
     "helmet": 20003,
     "weaponLeft": 40041,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 3,
     "prefabName": "SPUM003",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 0,
     "cloth": 0,
     "armor": 30005,
     "helmet": 0,
     "weaponLeft": 40027,
-    "weaponRight": 40011
+    "weaponRight": 40011,
+    "horse": 0
   },
   {
     "id": 4,
     "prefabName": "SPUM004",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 50003,
     "cloth": 10011,
     "armor": 30004,
     "helmet": 20003,
     "weaponLeft": 0,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 5,
     "prefabName": "SPUM005",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 0,
     "cloth": 10000,
     "armor": 30005,
     "helmet": 0,
     "weaponLeft": 40004,
-    "weaponRight": 40004
+    "weaponRight": 40004,
+    "horse": 0
   },
   {
     "id": 6,
     "prefabName": "SPUM006",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 0,
     "cloth": 10001,
     "armor": 0,
     "helmet": 20008,
     "weaponLeft": 40000,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 7,
     "prefabName": "SPUM007",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 50000,
     "cloth": 10007,
     "armor": 30004,
     "helmet": 20002,
     "weaponLeft": 40006,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 8,
     "prefabName": "SPUM008",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 0,
     "cloth": 0,
     "armor": 30006,
     "helmet": 20003,
     "weaponLeft": 40040,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 9,
     "prefabName": "SPUM009",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 0,
     "cloth": 10019,
     "armor": 0,
     "helmet": 20007,
-    "weaponLeft": 40017,
-    "weaponRight": 40013
+    "weaponLeft": 0,
+    "weaponRight": 40013,
+    "horse": 0
   },
   {
     "id": 10,
     "prefabName": "SPUM010",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 0,
     "cloth": 10007,
     "armor": 30000,
     "helmet": 20001,
     "weaponLeft": 40027,
-    "weaponRight": 40027
+    "weaponRight": 40027,
+    "horse": 0
   },
   {
     "id": 11,
     "prefabName": "SPUM011",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 0,
     "cloth": 10009,
     "armor": 30003,
     "helmet": 0,
     "weaponLeft": 0,
-    "weaponRight": 40024
+    "weaponRight": 40024,
+    "horse": 0
   },
   {
     "id": 12,
     "prefabName": "SPUM012",
+    "spumClass": 2,
+    "hasHorse": false,
     "back": 50003,
     "cloth": 10001,
     "armor": 30004,
     "helmet": 0,
     "weaponLeft": 40001,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 13,
     "prefabName": "SPUM013",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 50000,
     "cloth": 10009,
     "armor": 30004,
     "helmet": 0,
     "weaponLeft": 40044,
-    "weaponRight": 40016
+    "weaponRight": 40016,
+    "horse": 0
   },
   {
     "id": 14,
     "prefabName": "SPUM014",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 50005,
     "cloth": 10000,
     "armor": 0,
     "helmet": 0,
     "weaponLeft": 40043,
-    "weaponRight": 40043
+    "weaponRight": 40043,
+    "horse": 0
   },
   {
     "id": 15,
     "prefabName": "SPUM015",
+    "spumClass": 0,
+    "hasHorse": false,
     "back": 0,
     "cloth": 10010,
     "armor": 30007,
     "helmet": 20000,
     "weaponLeft": 40035,
-    "weaponRight": 40017
+    "weaponRight": 40017,
+    "horse": 0
   },
   {
     "id": 16,
     "prefabName": "SPUM016",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 50001,
     "cloth": 10011,
     "armor": 30010,
     "helmet": 20020,
     "weaponLeft": 0,
-    "weaponRight": 40042
+    "weaponRight": 40042,
+    "horse": 0
   },
   {
     "id": 17,
     "prefabName": "SPUM017",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 50001,
     "cloth": 10003,
     "armor": 0,
     "helmet": 20022,
     "weaponLeft": 0,
-    "weaponRight": 40042
+    "weaponRight": 40042,
+    "horse": 0
   },
   {
     "id": 18,
     "prefabName": "SPUM018",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 50000,
     "cloth": 10020,
     "armor": 0,
     "helmet": 20013,
     "weaponLeft": 0,
-    "weaponRight": 40042
+    "weaponRight": 40042,
+    "horse": 0
   },
   {
     "id": 19,
     "prefabName": "SPUM019",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 50001,
     "cloth": 10011,
     "armor": 30015,
     "helmet": 20016,
     "weaponLeft": 40027,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 20,
     "prefabName": "SPUM020",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 50006,
     "cloth": 0,
     "armor": 30008,
     "helmet": 20010,
     "weaponLeft": 40027,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 21,
     "prefabName": "SPUM021",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 0,
     "cloth": 10000,
     "armor": 30012,
     "helmet": 20018,
     "weaponLeft": 40027,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 22,
     "prefabName": "SPUM022",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 50000,
     "cloth": 10010,
     "armor": 30010,
     "helmet": 20019,
     "weaponLeft": 40027,
-    "weaponRight": 0
+    "weaponRight": 0,
+    "horse": 0
   },
   {
     "id": 23,
     "prefabName": "SPUM023",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 50003,
     "cloth": 0,
     "armor": 30018,
     "helmet": 0,
     "weaponLeft": 0,
-    "weaponRight": 40011
+    "weaponRight": 40011,
+    "horse": 0
   },
   {
     "id": 24,
     "prefabName": "SPUM024",
+    "spumClass": 1,
+    "hasHorse": false,
     "back": 50005,
     "cloth": 10008,
     "armor": 0,
     "helmet": 0,
     "weaponLeft": 0,
-    "weaponRight": 40011
+    "weaponRight": 40011,
+    "horse": 0
+  },
+  {
+    "id": 25,
+    "prefabName": "SPUM025",
+    "spumClass": 0,
+    "hasHorse": true,
+    "back": 0,
+    "cloth": 10016,
+    "armor": 30007,
+    "helmet": 20011,
+    "weaponLeft": 40006,
+    "weaponRight": 40015,
+    "horse": 60000
+  },
+  {
+    "id": 26,
+    "prefabName": "SPUM026",
+    "spumClass": 0,
+    "hasHorse": true,
+    "back": 50001,
+    "cloth": 10021,
+    "armor": 30013,
+    "helmet": 20005,
+    "weaponLeft": 40031,
+    "weaponRight": 40044,
+    "horse": 60000
+  },
+  {
+    "id": 27,
+    "prefabName": "SPUM027",
+    "spumClass": 0,
+    "hasHorse": true,
+    "back": 50002,
+    "cloth": 10013,
+    "armor": 30017,
+    "helmet": 20019,
+    "weaponLeft": 40003,
+    "weaponRight": 40043,
+    "horse": 60000
+  },
+  {
+    "id": 28,
+    "prefabName": "SPUM028",
+    "spumClass": 0,
+    "hasHorse": true,
+    "back": 0,
+    "cloth": 10019,
+    "armor": 30016,
+    "helmet": 0,
+    "weaponLeft": 40014,
+    "weaponRight": 40005,
+    "horse": 60001
+  },
+  {
+    "id": 29,
+    "prefabName": "SPUM029",
+    "spumClass": 1,
+    "hasHorse": true,
+    "back": 50006,
+    "cloth": 10004,
+    "armor": 30004,
+    "helmet": 20021,
+    "weaponLeft": 40042,
+    "weaponRight": 0,
+    "horse": 60001
+  },
+  {
+    "id": 30,
+    "prefabName": "SPUM030",
+    "spumClass": 1,
+    "hasHorse": true,
+    "back": 50003,
+    "cloth": 0,
+    "armor": 30006,
+    "helmet": 20015,
+    "weaponLeft": 40042,
+    "weaponRight": 40042,
+    "horse": 60001
+  },
+  {
+    "id": 31,
+    "prefabName": "SPUM031",
+    "spumClass": 1,
+    "hasHorse": true,
+    "back": 50006,
+    "cloth": 0,
+    "armor": 30017,
+    "helmet": 20009,
+    "weaponLeft": 40027,
+    "weaponRight": 0,
+    "horse": 60002
+  },
+  {
+    "id": 32,
+    "prefabName": "SPUM032",
+    "spumClass": 1,
+    "hasHorse": true,
+    "back": 0,
+    "cloth": 10022,
+    "armor": 0,
+    "helmet": 0,
+    "weaponLeft": 40027,
+    "weaponRight": 0,
+    "horse": 60003
+  },
+  {
+    "id": 33,
+    "prefabName": "SPUM033",
+    "spumClass": 1,
+    "hasHorse": true,
+    "back": 50001,
+    "cloth": 0,
+    "armor": 30019,
+    "helmet": 0,
+    "weaponLeft": 40027,
+    "weaponRight": 0,
+    "horse": 60003
   }
 ]
 }

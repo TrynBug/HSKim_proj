@@ -47,10 +47,23 @@ namespace Server.Data
         public int damage;
         public float rangeX;
         public float rangeY;
-        public SkillType skillType;
-        public string hitEffect;
+        public int numPhase;
+        public int phaseTimeInterval;
+        public string effect;
         public float effectOffsetY;
+        public bool heavyAnimation;
+        public SkillType skillType;
+        public InstantData instant;
         public ProjectileData projectile;
+    }
+
+    [Serializable]
+    public class InstantData
+    {
+        public SkillHitType type;
+        public float rangeX;
+        public float rangeY;
+        public float posInterval;
     }
 
     [Serializable]
@@ -178,12 +191,15 @@ namespace Server.Data
     {
         public int id;
         public string prefabName;
+        public SPUMClass spumClass;
+        public bool hasHorse;
         public int back;
         public int cloth;
         public int armor;
         public int helmet;
         public int weaponLeft;
         public int weaponRight;
+        public int horse;
     }
     #endregion
 

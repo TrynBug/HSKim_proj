@@ -215,39 +215,28 @@ class PacketHandler
         S_SkillHit hitPacket = packet as S_SkillHit;
         ServerSession serverSession = session as ServerSession;
 
-        CreatureController attacker = Managers.Object.FindById(hitPacket.ObjectId) as CreatureController;
+        CreatureController attacker = Managers.Object.FindById(hitPacket.AttackerId) as CreatureController;
         if (attacker == null)
         {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_SkillHitHandler. Can't find object. objectId:{hitPacket.ObjectId}");
+            ServerCore.Logger.WriteLog(LogLevel.Error, $"PacketHandler.S_SkillHitHandler. Can't find object. objectId:{hitPacket.AttackerId}");
             return;
         }
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHitHandler. objectId:{hitPacket.ObjectId}, skillId:{hitPacket.SkillId}, hits:{hitPacket.HitObjectIds.Count}");
-
-        // 스킬 찾기
-        Data.SkillData skill = Managers.Data.SkillDict.GetValueOrDefault(hitPacket.SkillId, null);
-
-        // 피격된 캐릭터가 없을 경우 이펙트만 생성
-        if (hitPacket.HitObjectIds.Count == 0)
+        // 첫 phase일 경우 스킬객체 생성
+        if(hitPacket.SkillPhase == 1)
         {
-            if (string.IsNullOrEmpty(skill.hitEffect) == false)
-            {
-                Vector2 pos = Managers.Map.GetValidPos(attacker.Pos + (Util.GetDirectionVector(attacker.LookDir) * skill.rangeX));
-                Managers.Object.AddEffect(skill.hitEffect, pos, skill.effectOffsetY);
-            }
-        }
-        // 피격된 캐릭터가 있을 경우 해당위치에 이펙트 생성
-        else
-        {
-            foreach (int hitObj in hitPacket.HitObjectIds)
-            {
-                CreatureController taker = Managers.Object.FindById<CreatureController>(hitObj);
-                if (taker != null)
-                    Managers.Object.AddEffect(skill.hitEffect, taker.Pos, skill.effectOffsetY);
-            }
+            SkillController skill = Managers.Object.AddSkill(hitPacket);
         }
 
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHitHandler. skill:{hitPacket.SkillId}, hits:{hitPacket.HitObjectIds.Count}, {attacker}");
+        // 피격 처리
+        foreach (HitInfo hit in hitPacket.Hits)
+        {
+            CreatureController target = Managers.Object.FindById<CreatureController>(hit.ObjectId);
+            if (target != null)
+                target.OnDamaged(attacker, hit.Damage);
+        }
+        
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHitHandler. attacker:{hitPacket.AttackerId}, target:{hitPacket.TargetId}, skillId:{hitPacket.SkillId}, hits:{hitPacket.Hits.Count}");
     }
 
 
@@ -272,7 +261,7 @@ class PacketHandler
 
         cc.Hp = changePacket.Hp;
         if(changePacket.ChangeType == StatChangeType.ChangeNegative)
-            cc.OnDamaged(changePacket.Amount);
+            cc.OnDamaged(null, changePacket.Amount);
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_ChangeHpHandler. objectId:{changePacket.ObjectId}, Hp:{changePacket.Hp}");
     }

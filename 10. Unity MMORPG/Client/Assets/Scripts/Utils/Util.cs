@@ -73,6 +73,25 @@ public static class Util
     }
 
 
+
+    // 동서남북 방향 순회하기
+    public static IEnumerable<MoveDir> IterateStraightDirection()
+    {
+        yield return MoveDir.Up;
+        yield return MoveDir.Right;
+        yield return MoveDir.Down;
+        yield return MoveDir.Left;
+    }
+    // 대각선 방향 순회하기
+    public static IEnumerable<MoveDir> IterateDiagonalDirection()
+    {
+        yield return MoveDir.LeftUp;
+        yield return MoveDir.RightUp;
+        yield return MoveDir.RightDown;
+        yield return MoveDir.LeftDown;
+    }
+
+
     // 반대방향 얻기
     public static MoveDir GetOppositeDirection(MoveDir dir)
     {

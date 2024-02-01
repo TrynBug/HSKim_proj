@@ -20,6 +20,22 @@ namespace Server
             return (Math.Abs(a.x - b.x) + Math.Abs(a.y - b.y) < Config.DifferenceTolerance);
         }
 
+        // 동서남북 방향 순회하기
+        public static IEnumerable<MoveDir> IterateStraightDirection()
+        {
+            yield return MoveDir.Up;
+            yield return MoveDir.Right;
+            yield return MoveDir.Down;
+            yield return MoveDir.Left;
+        }
+        // 대각선 방향 순회하기
+        public static IEnumerable<MoveDir> IterateDiagonalDirection()
+        {
+            yield return MoveDir.LeftUp;
+            yield return MoveDir.RightUp;
+            yield return MoveDir.RightDown;
+            yield return MoveDir.LeftDown;
+        }
 
         // 현재 방향에 해당하는 벡터 얻기
         public static Vector2 GetDirectionVector(MoveDir dir)
@@ -241,6 +257,20 @@ namespace Server
             return false;
 
         }
+
+
+
+        // posOrigin을 기준으로, 반지름 radius 원 내에 target이 위치하는지를 확인함
+        public static bool IsTargetInCircle(Vector2 posOrigin, float radius, Vector2 posTarget)
+        {
+            Vector2 pos = posTarget - posOrigin;
+            if (radius * radius > pos.x * pos.x + pos.y * pos.y)
+            {
+                return true;
+            }
+            return false;
+        }
+
     }
 
 

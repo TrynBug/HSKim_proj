@@ -16,19 +16,24 @@ public class ObjectManager
 {
     GameObject _root;
     GameObject _rootPlayer;
+    GameObject _rootSkill;
     GameObject _rootProjectile;
     GameObject _rootEffect;
 
     public MyPlayerController MyPlayer { get; private set; }
     Dictionary<int, BaseController> _players = new Dictionary<int, BaseController>();
+    Dictionary<int, BaseController> _skills = new Dictionary<int, BaseController>();
     Dictionary<int, BaseController> _projectiles = new Dictionary<int, BaseController>();
     Dictionary<int, BaseController> _effects = new Dictionary<int, BaseController>();
 
     public ICollection<KeyValuePair<int, BaseController>> Players { get { return _players.AsReadOnlyCollection(); } }
+    public ICollection<KeyValuePair<int, BaseController>> Skills { get { return _skills.AsReadOnlyCollection(); } }
     public ICollection<KeyValuePair<int, BaseController>> Projectiles { get { return _projectiles.AsReadOnlyCollection(); } }
     public ICollection<KeyValuePair<int, BaseController>> Effects { get { return _effects.AsReadOnlyCollection(); } }
+    
 
     public int PlayerCount { get { return _players.Count; } }
+    public int SkillCount { get { return _skills.Count; } }
     public int ProjectileCount { get { return _projectiles.Count; } }
     public int EffectCount { get { return _effects.Count; } }
 
@@ -38,6 +43,8 @@ public class ObjectManager
         UnityEngine.Object.DontDestroyOnLoad(_root);
         _rootPlayer = new GameObject("@Players");
         _rootPlayer.transform.SetParent(_root.transform);
+        _rootSkill = new GameObject("@Skills");
+        _rootSkill.transform.SetParent(_root.transform);
         _rootProjectile = new GameObject("@Projectiles");
         _rootProjectile.transform.SetParent(_root.transform);
         _rootEffect = new GameObject("@Effects");
@@ -121,6 +128,36 @@ public class ObjectManager
         return null;
     }
 
+
+    public SkillController AddSkill(S_SkillHit skillPacket)
+    {
+        // 스킬데이터, 소유자, 타겟 얻기
+        BaseController owner = FindById(skillPacket.AttackerId);
+        if (owner == null)
+            return null;
+        BaseController target = FindById(skillPacket.TargetId);
+        SkillData skillData = Managers.Data.SkillDict.GetValueOrDefault(skillPacket.SkillId, null);
+        if (skillData == null)
+            return null;
+
+        // 스킬객체 생성
+        SkillController skill = SkillController.Generate(skillPacket.SkillId);
+        if (skill == null)
+            return null;
+
+        // 초기화
+        skill.Init(skillData, owner, target, skillPacket);
+
+        // 등록
+        skill.gameObject.transform.SetParent(_rootSkill.transform);
+        skill.gameObject.name = skill.Info.Name;
+        _skills.Add(skill.Id, skill);
+
+
+        return skill;
+    }
+
+
     // 투사체 오브젝트 추가
     public ProjectileController AddProjectile(S_SpawnSkill packet)
     {
@@ -195,7 +232,7 @@ public class ObjectManager
 
         // order layer 설정
         SpriteRenderer renderer = effect.GetOrAddComponent<SpriteRenderer>();
-        renderer.sortingOrder = 3;
+        renderer.sortingOrder = 2;
 
         // object 추가
         _effects.Add(effect.Id, effect);
@@ -283,12 +320,15 @@ public class ObjectManager
         MyPlayer = null;
         foreach (BaseController obj in _players.Values)
             Managers.Resource.Destroy(obj.gameObject);
+        foreach (BaseController obj in _skills.Values)
+            GameObject.Destroy(obj.gameObject);
         foreach (BaseController obj in _projectiles.Values)
             Managers.Resource.Destroy(obj.gameObject);
         foreach (BaseController obj in _effects.Values)
             Managers.Resource.Destroy(obj.gameObject);
 
         _players.Clear();
+        _skills.Clear();
         _projectiles.Clear();
         _effects.Clear();
         

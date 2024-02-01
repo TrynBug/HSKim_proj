@@ -16,14 +16,15 @@ namespace Server.Game
         public Item Helmet { get; private set; }
         public Item WeaponLeft { get; private set; }
         public Item WeaponRight { get; private set; }
+        public Item Horse { get; private set; }
 
-        public int Damage { get { return Back.damage + Cloth.damage + Armor.damage + Helmet.damage + WeaponLeft.damage + WeaponRight.damage; } }
-        public float RangeX { get { return Back.rangeX + Cloth.rangeX + Armor.rangeX + Helmet.rangeX + WeaponLeft.rangeX + WeaponRight.rangeX; } }
-        public float RangeY { get { return Back.rangeY + Cloth.rangeY + Armor.rangeY + Helmet.rangeY + WeaponLeft.rangeY + WeaponRight.rangeY; } }
-        public float AttackSpeed { get { return Back.attackSpeed + Cloth.attackSpeed + Armor.attackSpeed + Helmet.attackSpeed + WeaponLeft.attackSpeed + WeaponRight.attackSpeed; } }
-        public int Hp { get { return Back.hp + Cloth.hp + Armor.hp + Helmet.hp + WeaponLeft.hp + WeaponRight.hp; } }
-        public int Defence { get { return Back.defence + Cloth.defence + Armor.defence + Helmet.defence + WeaponLeft.defence + WeaponRight.defence; } }
-        public float Speed { get { return Back.speed + Cloth.speed + Armor.speed + Helmet.speed + WeaponLeft.speed + WeaponRight.speed; } }
+        public int Damage { get { return Back.damage + Cloth.damage + Armor.damage + Helmet.damage + WeaponLeft.damage + WeaponRight.damage + Horse.damage; } }
+        public float RangeX { get { return Back.rangeX + Cloth.rangeX + Armor.rangeX + Helmet.rangeX + WeaponLeft.rangeX + WeaponRight.rangeX + Horse.rangeX; } }
+        public float RangeY { get { return Back.rangeY + Cloth.rangeY + Armor.rangeY + Helmet.rangeY + WeaponLeft.rangeY + WeaponRight.rangeY + Horse.rangeY; } }
+        public float AttackSpeed { get { return Back.attackSpeed + Cloth.attackSpeed + Armor.attackSpeed + Helmet.attackSpeed + WeaponLeft.attackSpeed + WeaponRight.attackSpeed + Horse.attackSpeed; } }
+        public int Hp { get { return Back.hp + Cloth.hp + Armor.hp + Helmet.hp + WeaponLeft.hp + WeaponRight.hp + Horse.hp; } }
+        public int Defence { get { return Back.defence + Cloth.defence + Armor.defence + Helmet.defence + WeaponLeft.defence + WeaponRight.defence + Horse.defence; } }
+        public float Speed { get { return Back.speed + Cloth.speed + Armor.speed + Helmet.speed + WeaponLeft.speed + WeaponRight.speed + Horse.speed; } }
 
         public Equipment()
         {
@@ -33,6 +34,7 @@ namespace Server.Game
             Helmet = DataManager.DefaultItem;
             WeaponLeft = DataManager.DefaultItem;
             WeaponRight = DataManager.DefaultItem;
+            Horse = DataManager.DefaultItem;
         }
 
         public void SetEquipment(SPUMData spum)
@@ -43,6 +45,7 @@ namespace Server.Game
             Helmet = DataManager.ItemDict.GetValueOrDefault(spum.helmet, DataManager.DefaultItem);
             WeaponLeft = DataManager.ItemDict.GetValueOrDefault(spum.weaponLeft, DataManager.DefaultItem);
             WeaponRight = DataManager.ItemDict.GetValueOrDefault(spum.weaponRight, DataManager.DefaultItem);
+            Horse = DataManager.ItemDict.GetValueOrDefault(spum.horse, DataManager.DefaultItem);
         }
     }
 }

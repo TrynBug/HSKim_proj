@@ -71,32 +71,23 @@ namespace Server.Game
             RecalculateStat();
 
             // 스킬 초기화
-            Item itemWeapon = Equip.WeaponLeft;
-            if (itemWeapon.subType == EquipmentSubType.Empty)
-                itemWeapon = Equip.WeaponRight;
-            if (itemWeapon != null)
+            switch (SPUM.spumClass)
             {
-                switch (itemWeapon.subType)
-                {
-                    case EquipmentSubType.Weapon_Wand:
-                        {
-                            foreach (SkillData skill in DataManager.SkillDict.Values)
-                            {
-                                if(skill.skillType == SkillType.SkillProjectile || skill.skillType == SkillType.SkillInstant)
-                                    Skillset.Add(skill.id, new SkillUseInfo() { skill = skill });
-                            }
-                        }
-                        break;
-                    default:
-                        {
-                            foreach (SkillData skill in DataManager.SkillDict.Values)
-                            {
-                                if (skill.skillType == SkillType.SkillMelee)
-                                    Skillset.Add(skill.id, new SkillUseInfo() { skill = skill });
-                            }
-                        }
-                        break;
-                }
+                case SPUMClass.SpumArcher:
+                case SPUMClass.SpumKnight:
+                    foreach (SkillData skill in DataManager.SkillDict.Values)
+                    {
+                        if (skill.skillType == SkillType.SkillMelee)
+                            Skillset.Add(skill.id, new SkillUseInfo() { skill = skill });
+                    }
+                    break;
+                case SPUMClass.SpumWizard:
+                    foreach (SkillData skill in DataManager.SkillDict.Values)
+                    {
+                        if (skill.skillType == SkillType.SkillProjectile || skill.skillType == SkillType.SkillInstant)
+                            Skillset.Add(skill.id, new SkillUseInfo() { skill = skill });
+                    }
+                    break;
             }
 
             //foreach(SkillData skill in DataManager.SkillDict.Values)
@@ -196,25 +187,6 @@ namespace Server.Game
         {
         }
 
-        // 사용중인 스킬에 대한 업데이트
-        protected override void UpdateSkill()
-        {
-            // 사용중인 스킬에 대한 스킬딜레이 검사
-            if (_usingSkill == null)
-                return;
-
-            // 사용중인 스킬의 스킬시전이 끝났을 경우 스킬딜레이 검사
-            if (_usingSkill.casted == true)
-            {
-                int tick = Environment.TickCount;
-                if (tick - _usingSkill.lastUseTime > _usingSkill.skill.skillTime)
-                {
-                    _usingSkill.casted = false;
-                    _usingSkill = null;
-                }
-            }
-        }
-
 
 
 
@@ -277,7 +249,7 @@ namespace Server.Game
         protected override void UpdateAutoChasing()
         {
             // 타겟이 없다면 Idle 상태로 돌아감
-            if(Room.IsValidTarget(Auto.Target) == false)
+            if (Room.IsValidTarget(Auto.Target) == false)
             {
                 StopAt(Pos);
 
@@ -333,20 +305,22 @@ namespace Server.Game
                     // 방향 수정
                     Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
 
-                    // 스킬 사용
+                    // 스킬 사용, 패킷 전송
                     AutoSkillUse(Auto.SkillUse, Auto.Target);
 
-                    // Skill 상태로 변경
-                    Auto.State = AutoState.AutoSkill;
-
-                    // Skill 사용패킷 전송
+                    // wait 후 Chasing 상태로 변경
+                    Auto.WaitTime = TimeSpan.TicksPerSecond;
+                    Auto.NextState = AutoState.AutoChasing;
+                    Auto.State = AutoState.AutoWait;
                     Auto.SendAutoPacket();
+
+                    // 스킬 재선정
+                    Auto.SetNextSkill();
 
                     return;
                 }
             }
         }
-
 
         protected override void UpdateAutoMoving()
         {
@@ -354,7 +328,7 @@ namespace Server.Game
             Auto.MoveThroughPath();
 
             // 경로를 모두 이동한 경우
-            if(Auto.IsPathEnd)
+            if (Auto.IsPathEnd)
             {
                 // 잠시 기다렸다 Idle 상태로 전환
                 int tick = Environment.TickCount;
@@ -376,25 +350,7 @@ namespace Server.Game
 
         protected override void UpdateAutoSkill()
         {
-            // 스킬 피격처리가 가능할때까지 기다림
-            if (CanSkillHit(Auto.SkillUse.skill.id, out _) == false)
-                return;
 
-            // 스킬 피격처리
-            AutoSkillHit(Auto.SkillUse.skill, Auto.Target);
-
-            // 스킬 재선정
-            Auto.SetNextSkill();
-
-            // wait 후 Chasing 상태로 변경
-            Auto.WaitTime = TimeSpan.TicksPerSecond;
-            Auto.NextState = AutoState.AutoChasing;
-            Auto.State = AutoState.AutoWait;
-
-            // wait 패킷 전송
-            Auto.SendAutoPacket();
-
-            Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoSkill. {this}, skill:{Auto.SkillUse.skill.id}");
         }
 
         protected override void UpdateAutoWait()
@@ -412,7 +368,7 @@ namespace Server.Game
         protected override void UpdateAutoDead()
         {
             int tick = Environment.TickCount;
-            if(tick - DeadTime > 20000)
+            if (tick - DeadTime > 20000)
             {
                 Room._handleRespawn(this);
                 DeadTime = int.MaxValue;
@@ -424,25 +380,18 @@ namespace Server.Game
 
 
 
+
+
         void AutoSkillUse(SkillUseInfo useInfo, GameObject target)
         {
-            // 스킬 사용시간 업데이트
-            useInfo.lastUseTime = Environment.TickCount;
-
-            // 사용중인 스킬 등록
-            _lastUseSkill = useInfo;
-            _usingSkill = useInfo;
-        }
-
-        void AutoSkillHit(SkillData skill, GameObject target)
-        {
-            if (skill == null)
+            if (useInfo == null)
                 return;
 
             // 스킬 피격확인
-            S_SkillHit resHitPacket = new S_SkillHit();
-            resHitPacket.ObjectId = Id;
-            resHitPacket.SkillId = skill.id;
+            SkillData skill = useInfo.skill;
+            C_Skill skillPacket = new C_Skill();
+            skillPacket.SkillId = skill.id;
+            skillPacket.TargetId = target == null ? -1 : target.Id;
             switch (skill.skillType)
             {
                 case SkillType.SkillMelee:
@@ -454,49 +403,23 @@ namespace Server.Game
                         {
                             if (obj.IsAlive == false)
                                 continue;
-                            obj.OnDamaged(this, Stat.Damage + skill.damage);
-                            resHitPacket.HitObjectIds.Add(obj.Id);
+                            skillPacket.Hits.Add(obj.Id);
                         }
                     }
                     break;
 
                 case SkillType.SkillProjectile:
-                    {
-                        if (target == null || target.IsAlive == false)
-                            break;
-
-                        // target이 스킬범위내에 존재하는지 확인
-                        if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
-                        {
-                            // projectile의 경우에는 여기에서 피격대상을 전송하지 않고 투사체만 생성한다.
-                            Projectile projectile = Projectile.CreateInstance(skill.id);
-                            projectile.Init(skill, this, target);
-                            Room._enterGame(projectile);
-                        }
-                    }
                     break;
 
                 case SkillType.SkillInstant:
-                    {
-                        if (target == null || target.IsAlive == false)
-                            break;
-
-                        // target이 스킬범위내에 존재하면 피격판정
-                        if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
-                        {
-                            // 피격됨
-                            int damage = target.OnDamaged(this, Stat.Damage + skill.damage);
-                            resHitPacket.HitObjectIds.Add(target.Id);
-                        }
-                    }
                     break;
             }
 
-            // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
-            Room._broadcast(resHitPacket);
+            // 스킬 사용
+            Room._handleSkill(this, skillPacket);
 
 
-            ServerCore.Logger.WriteLog(LogLevel.Debug, $"Player.AutoSkillHit. {this}, skill:{resHitPacket.SkillId}, hits:{resHitPacket.HitObjectIds.Count}");
+            ServerCore.Logger.WriteLog(LogLevel.Debug, $"Player.AutoSkillUse. {this}, skill:{skill.id}, hits:{skillPacket.Hits.Count}");
         }
 
 
@@ -589,34 +512,6 @@ namespace Server.Game
 
             return true;
         }
-
-
-        // 스킬 피격처리가 가능한지 검사함
-        public virtual bool CanSkillHit(SkillId skillId, out SkillData skill)
-        {
-            skill = null;
-
-            if (IsAlive == false)
-                return false;
-            if (skillId == SkillId.SkillNone)
-                return false;
-            if (_usingSkill == null)
-                return false;
-            if (skillId != _usingSkill.skill.id)
-                return false;
-
-            // 스킬 시전이 끝났는지 검사함
-            int tick = Environment.TickCount;
-            if (tick - _usingSkill.lastUseTime > (_usingSkill.skill.castingTime - Config.SkillTimeCorrection))
-            {
-                _usingSkill.casted = true;
-            }
-
-            // 스킬시전이 끝났다면 피격처리가 가능함
-            skill = _usingSkill.skill;
-            return (_usingSkill.casted == true);
-        }
-
 
 
         // 장비 데이터를 참고하여 Stat을 재계산한다.

@@ -16,7 +16,6 @@ enum MsgId {
     S_MOVE = 8;
     C_SKILL = 9;
     S_SKILL = 10;
-    C_SKILL_HIT = 11;
     S_SKILL_HIT = 12;
     S_CHANGE_HP = 13;
     S_DIE = 14;
@@ -61,8 +60,9 @@ enum GameObjectType {
     NONE = 0;
     PLAYER = 1;
     MONSTER = 2;
-    PROJECTILE = 3;
-    EFFECT = 4;
+    SKILL = 3;
+    PROJECTILE = 4;
+    EFFECT = 5;
 }
 
 enum SkillType {
@@ -71,10 +71,15 @@ enum SkillType {
     SKILL_INSTANT = 2;
 }
 
+enum SkillHitType {
+    SKILL_HIT_SINGLE = 0;
+    SKILL_HIT_CIRCLE = 1;
+    SKILL_HIT_RECTANGLE = 2;
+}
+
 enum SkillId {
     SKILL_NONE = 0;
     SKILL_ATTACK = 1;
-    SKILL_ARROW = 2;
     SKILL_FIREBALL = 3;
     SKILL_THUNDER = 4;
     SKILL_HEAVY_ATTACK = 5;
@@ -103,6 +108,17 @@ enum AutoState
     AUTO_DEAD = 4;
     AUTO_WAIT = 5;
 }
+
+enum SPUMClass
+{
+    SPUM_KNIGHT = 0;
+    SPUM_WIZARD = 1;
+    SPUM_ARCHER = 2;
+}
+
+
+
+
 
 
 message S_EnterGame {
@@ -155,11 +171,8 @@ message S_Move {
 
 message C_Skill {
     SkillId skillId = 1;
-}
-
-message C_SkillHit {
-    SkillId skillId = 1;
-    repeated int32 hitObjectIds = 2;
+    int32 targetId = 2;
+    repeated int32 hits = 3;
 }
 
 message S_Skill {
@@ -168,9 +181,14 @@ message S_Skill {
 }
 
 message S_SkillHit {
-    int32 objectId = 1;
-    SkillId skillId = 2;
-    repeated int32 hitObjectIds = 3; 
+    int32 attackerId = 1;
+    int32 targetId = 2;
+    int32 skillObjectId = 3;
+    SkillId skillId = 4;
+    int32 skillPhase = 5;
+    float skillPosX = 6;
+    float skillPosY = 7;
+    repeated HitInfo hits = 8; 
 }
 
 message S_ChangeHp {
@@ -282,5 +300,10 @@ message AutoInfo {
     optional int64 waitUntil = 9;
     optional AutoState nextState = 10;
     optional SkillId skillId = 11;
+}
+
+message HitInfo {
+    int32 objectId = 1;
+    int32 damage = 2;
 }
 

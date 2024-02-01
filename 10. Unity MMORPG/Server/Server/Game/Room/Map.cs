@@ -858,6 +858,51 @@ namespace Server.Game
         }
 
 
+        // pos 위치를 기준으로 지름 diameter 원안에 있는 살아있는 오브젝트를 찾아 리턴한다.
+        public List<GameObject> FindObjectsInCircle(Vector2 pos, float diameter, GameObject except)
+        {
+            List<GameObject> listObjects = new List<GameObject>();
+
+            // 범위를 조사할 cell 찾기
+            // 범위: pos 위치에서 반지름 radius인 원
+            float radius = diameter / 2f;
+            Vector2 targetPosMin = GetValidPos(pos - new Vector2(radius, radius));
+            Vector2 targetPosMax = GetValidPos(pos + new Vector2(radius, radius));
+            Vector2Int targetCellMin = PosToCell(targetPosMin);
+            Vector2Int targetCellMax = PosToCell(targetPosMax);
+
+            // 범위 내의 object 찾기
+            for (int y = targetCellMin.y; y <= targetCellMax.y; y++)
+            {
+                for (int x = targetCellMin.x; x <= targetCellMax.x; x++)
+                {
+                    Cell cell = _cells[y, x];
+                    if (cell.Object != null)
+                    {
+                        if (cell.Object == except)
+                            continue;
+                        if (cell.Object.IsAlive == false)
+                            continue;
+                        if (Util.IsTargetInCircle(pos, radius, cell.Object.Pos) == true)
+                            listObjects.Add(cell.Object);
+                    }
+                    foreach (GameObject objMove in cell.MovingObjects)
+                    {
+                        if (objMove == except)
+                            continue;
+                        if (objMove.IsAlive == false)
+                            continue;
+                        if (Util.IsTargetInCircle(pos, radius, objMove.Pos) == true)
+                            listObjects.Add(objMove);
+                    }
+                }
+            }
+
+            return listObjects;
+        }
+
+
+
         // 길찾기
         public List<Vector2> SearchPath(Vector2 start, Vector2 end)
         {

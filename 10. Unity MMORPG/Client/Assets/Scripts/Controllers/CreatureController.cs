@@ -71,8 +71,14 @@ public abstract class CreatureController : BaseController
 
     public virtual float Speed
     {
-        get { return Stat.Speed; }
-        set { Stat.Speed = value; }
+        get 
+        {
+            if (UsingSkill == null)
+                return _stat.Speed;
+            else
+                return UsingSkill.skill.speedRate * _stat.Speed;
+        }
+        set { _stat.Speed = value; }
     }
 
     public virtual int Hp
@@ -131,6 +137,8 @@ public abstract class CreatureController : BaseController
     Dictionary<SkillId, SkillUseInfo> _skillset = new Dictionary<SkillId, SkillUseInfo>();
     public Dictionary<SkillId, SkillUseInfo> Skillset { get { return _skillset; } }
 
+    public SkillUseInfo LastUseSkill { get; protected set; } = new SkillUseInfo() { lastUseTime = 0, skill = Managers.Data.DefaultSkill };  // 마지막으로 사용한 스킬
+    public SkillUseInfo UsingSkill { get; protected set; } = null;                  // 현재 사용중인 스킬
 
 
     /* Auto */
@@ -216,6 +224,9 @@ public abstract class CreatureController : BaseController
                     break;
             }
         }
+
+        // using skill
+        UpdateSkill();
 
         // component
         UpdateDebugText();
@@ -316,8 +327,19 @@ public abstract class CreatureController : BaseController
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"CreatureController.UpdateMoving. {this.ToString(InfoLevel.Position)}");
     }
 
+    // 사용중인 스킬에 대한 업데이트
+    protected virtual void UpdateSkill()
+    {
+        if (UsingSkill == null)
+            return;
 
-
+        // 사용중인 스킬의 스킬딜레이가 끝났으면 사용중인 스킬을 제거한다.
+        int tick = Environment.TickCount;
+        if (tick - UsingSkill.lastUseTime > UsingSkill.skill.skillTime)
+        {
+            UsingSkill = null;
+        }
+    }
 
 
 
@@ -382,22 +404,17 @@ public abstract class CreatureController : BaseController
                 break;
             case AutoState.AutoSkill:
                 {
-                    // 현재위치에 멈춤
-                    StopAt(Pos);
-
-                    // 방향 수정
-                    Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
-
-                    // 스킬 사용
-                    if(Auto.Skill != null)
-                        OnSkill(Auto.Skill.id);
-
-                    // skill 상태로 변경
                     Auto.State = AutoState.AutoSkill;
                 }
                 break;
             case AutoState.AutoWait:
                 {
+                    // 현재위치에 멈춤
+                    StopAt(Pos);
+
+                    // 방향 수정
+                    //Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
+
                     Auto.State = AutoState.AutoWait;
                 }
                 break;
@@ -444,7 +461,7 @@ public abstract class CreatureController : BaseController
             StopAt(Pos);
 
             // 방향 수정
-            Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
+            //Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
 
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"CreatureController.UpdateAutoChasing. Stop. {this.ToString(InfoLevel.Position)}");
         }
@@ -497,15 +514,41 @@ public abstract class CreatureController : BaseController
     {
     }
 
-    protected virtual void UpdateSkillAnimation()
+    protected virtual void UpdateSkillAnimation(bool heavy)
     {
     }
 
 
-    // 스킬 사용됨
+
+
+
+
+
+    // 스킬 사용됨. 서버에서 스킬사용 패킷을 받았을 때 호출된다.
     public virtual void OnSkill(SkillId skillId)
     {
-        UpdateSkillAnimation();
+        SkillData skill = Managers.Data.SkillDict.GetValueOrDefault(skillId, null);
+        if (skill == null)
+            return;
+
+        // 서버의 요청이기 때문에 Skillset에 없어도 사용한다.
+        SkillUseInfo useInfo = Skillset.GetValueOrDefault(skillId, null);
+        if(useInfo == null)
+        {
+            useInfo = new SkillUseInfo() { skill = skill, casted = false };
+            Skillset.Add(skill.id, useInfo);
+        }
+
+
+        // 스킬 사용시간 업데이트
+        useInfo.lastUseTime = Environment.TickCount;
+
+        // 사용중인 스킬 등록
+        LastUseSkill = useInfo;
+        UsingSkill = useInfo;
+
+        // 애니메이션 업데이트
+        UpdateSkillAnimation(skill.heavyAnimation);
     }
 
 
@@ -513,15 +556,14 @@ public abstract class CreatureController : BaseController
     // 피격됨
     public virtual void OnDamaged(CreatureController attacker, int damage)
     {
+        Hp -= damage;
+
         // 대미지 숫자 생성
         Managers.Number.Spawn(NumberType.Damage, transform.position + Vector3.up, damage);
 
         ServerCore.Logger.WriteLog(ServerCore.LogLevel.Debug, $"CreatureController.OnDamaged. damage:{damage}, me:[{this}], attacker:[{attacker}]");
     }
-    public virtual void OnDamaged(int damage)
-    {
-        OnDamaged(null, damage);
-    }
+
 
 
     // 사망함

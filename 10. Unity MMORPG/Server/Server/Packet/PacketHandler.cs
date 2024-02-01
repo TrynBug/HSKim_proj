@@ -69,31 +69,6 @@ internal class PacketHandler
         room.HandleSkill(player, skillPacket);
     }
 
-    // 클라이언트의 스킬 피격 요청 처리
-    public static void C_SkillHitHandler(PacketSession session, IMessage packet)
-    {
-        C_SkillHit hitPacket = packet as C_SkillHit;
-        ClientSession clientSession = session as ClientSession;
-
-        Player player = clientSession.MyPlayer;
-        if (player == null)
-        {
-            Logger.WriteLog(LogLevel.Error, $"PacketHandler.C_SkillHitHandler. ClientSession has no player. sessionId:{clientSession.SessionId}");
-            return;
-        }
-
-        GameRoom room = player.Room;
-        if (room == null)
-        {
-            Logger.WriteLog(LogLevel.Error, $"PacketHandler.C_SkillHitHandler. Player has no room. sessionId:{clientSession.SessionId}, {player}");
-            return;
-        }
-
-        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SkillHitHandler. sessionId:{clientSession.SessionId}, skill:{hitPacket.SkillId}, {player}");
-
-
-        room.HandleSkillHit(player, hitPacket);
-    }
 
 
     // 시간동기화 요청 처리

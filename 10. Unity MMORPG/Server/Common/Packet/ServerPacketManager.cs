@@ -39,8 +39,6 @@ class PacketManager
 		_handler.Add((ushort)MsgId.CMove, PacketHandler.C_MoveHandler);		
 		_makeFunc.Add((ushort)MsgId.CSkill, MakePacket<C_Skill>);
 		_handler.Add((ushort)MsgId.CSkill, PacketHandler.C_SkillHandler);		
-		_makeFunc.Add((ushort)MsgId.CSkillHit, MakePacket<C_SkillHit>);
-		_handler.Add((ushort)MsgId.CSkillHit, PacketHandler.C_SkillHitHandler);		
 		_makeFunc.Add((ushort)MsgId.CSyncTime, MakePacket<C_SyncTime>);
 		_handler.Add((ushort)MsgId.CSyncTime, PacketHandler.C_SyncTimeHandler);		
 		_makeFunc.Add((ushort)MsgId.CSetAuto, MakePacket<C_SetAuto>);

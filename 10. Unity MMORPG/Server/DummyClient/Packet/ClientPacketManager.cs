@@ -1,9 +1,9 @@
+using DummyClient;
 using Google.Protobuf;
 using Google.Protobuf.Protocol;
 using ServerCore;
 using System;
 using System.Collections.Generic;
-using DummyClient;
 
 /*
 이 파일은 PacketGenerator에 의해 자동으로 생성되었습니다.

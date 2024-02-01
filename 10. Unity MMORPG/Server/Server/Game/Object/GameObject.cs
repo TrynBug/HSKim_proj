@@ -50,7 +50,13 @@ namespace Server.Game
         /* 스탯 */
         public float Speed
         {
-            get { return Stat.Speed; }
+            get 
+            {
+                if (_usingSkill == null)
+                    return Stat.Speed;
+                else
+                    return _usingSkill.skill.speedRate * Stat.Speed;
+            }
             set { Stat.Speed = value; }
         }
 
@@ -334,6 +340,17 @@ namespace Server.Game
 
         protected virtual void UpdateSkill()
         {
+            // 사용중인 스킬에 대한 스킬딜레이 검사
+            if (_usingSkill == null)
+                return;
+
+            // 사용중인 스킬이 끝났을 경우 사용중인 스킬을 제거함
+            int tick = Environment.TickCount;
+            if (tick - _usingSkill.lastUseTime > _usingSkill.skill.skillTime)
+            {
+                _usingSkill.casted = false;
+                _usingSkill = null;
+            }
         }
 
 
@@ -384,14 +401,6 @@ namespace Server.Game
             Stat.Hp = Math.Max(Stat.Hp - finalDamage, 0);
 
             Logger.WriteLog(LogLevel.Debug, $"GameObject.OnDamaged. damage:{finalDamage}, me:[{this.ToString(InfoLevel.Stat)}], attacker:[{attacker.ToString(InfoLevel.Stat)}]");
-
-            // HP 변경 패킷 전송
-            S_ChangeHp changePacket = new S_ChangeHp();
-            changePacket.ObjectId = Id;
-            changePacket.Hp = Stat.Hp;
-            changePacket.Amount = finalDamage;
-            changePacket.ChangeType = StatChangeType.ChangeNegative;
-            Room._broadcast(changePacket);
 
             // 사망처리
             if(Stat.Hp <= 0 && State != CreatureState.Dead)
@@ -467,6 +476,15 @@ namespace Server.Game
             }
 
             return true;
+        }
+
+
+
+        public virtual int GetSkillDamage(SkillData skill)
+        {
+            if (skill == null)
+                return 0;
+            return Stat.Damage + skill.damage;
         }
     }
 }

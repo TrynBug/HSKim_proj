@@ -14,8 +14,6 @@ namespace Server.Game
         {
             switch(skillId)
             {
-                case SkillId.SkillArrow:
-                    return new Arrow();
                 case SkillId.SkillFireball:
                     return new Fireball();
                 default:

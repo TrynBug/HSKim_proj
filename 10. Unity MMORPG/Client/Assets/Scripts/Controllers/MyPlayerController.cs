@@ -16,9 +16,8 @@ public class MyPlayerController : SPUMController
     int _lastCMoveSendTime = 0;     // 마지막으로 C_Move 패킷 보낸 시간 (단위:ms)
 
     float _speedRateForStop = 1f;    // 움직임을 멈출 때 속도를 감소시킬 비율 (목적지와의 거리에 따라 값이 변경됨)
-    SkillUseInfo _lastUseSkill = new SkillUseInfo() { lastUseTime = 0, skill = Managers.Data.DefaultSkill };  // 마지막으로 사용한 스킬
-    SkillUseInfo _usingSkill = null;                  // 현재 사용중인 스킬
 
+    /* key input */
     public Dictionary<UnityEngine.KeyCode, KeyInput> KeyMap { get; private set; } = new Dictionary<KeyCode, KeyInput>();   // 키보드키와 게임기능키 연결맵
     public Dictionary<KeyInput, SkillId> KeySkillMap { get; private set; } = new Dictionary<KeyInput, SkillId>();          // 게임기능키와 스킬 연결맵
     bool[] _keyInput = new bool[Enum.GetValues(typeof(KeyInput)).Length];
@@ -194,7 +193,7 @@ public class MyPlayerController : SPUMController
         
         // 이전에 사용한 스킬의 딜레이가 끝났는지 확인
         int tick = Environment.TickCount;
-        if (tick - _lastUseSkill.lastUseTime < _lastUseSkill.skill.skillTime)
+        if (tick - LastUseSkill.lastUseTime < LastUseSkill.skill.skillTime)
             return false;
         
         // 사용할 스킬 데이터 얻기
@@ -243,10 +242,6 @@ public class MyPlayerController : SPUMController
             State = CreatureState.Moving;
             SendMovePacket();
         }
-
-
-        // 스킬사용 업데이트
-        UpdateSkill();
     }
 
 
@@ -344,56 +339,28 @@ public class MyPlayerController : SPUMController
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.UpdateMoving. {this.ToString(InfoLevel.Position)}");
 
 
-        // 스킬사용 업데이트
-        UpdateSkill();
-
-
         // debug
         Managers.Map.InspectCell();
     }
 
 
 
-
-
     // 스킬 사용에 대한 업데이트
-    void UpdateSkill()
+    protected override void UpdateSkill()
     {
+        base.UpdateSkill();
+
         if (IsAlive == false)
             return;
 
         // 스킬 입력 확인
         SkillId skillInput = GetSkillInput();
         if (CanUseSkill(skillInput))
-            SendSkillPacket(skillInput);
-
-
-        // 사용중인 스킬에 대한 스킬딜레이 검사
-        if (_usingSkill == null)
-            return;
-
-        // 스킬이 아직 시전되지 않았을 경우 시전시간 검사
-        int tick = Environment.TickCount;
-        if(_usingSkill.casted == false)
         {
-            if (tick - _usingSkill.lastUseTime > _usingSkill.skill.castingTime)
-            {
-                SkillHitCheck(_usingSkill.skill);
-                _usingSkill.casted = true;
-            }
-        }
-        // 스킬시전이 끝났을 경우 스킬딜레이 검사
-        else
-        {
-            if (tick - _usingSkill.lastUseTime > _usingSkill.skill.skillTime)
-            {
-                _usingSkill.casted = false;
-                _usingSkill = null;
-            }
+            // 스킬사용이 가능할 경우 타겟을 설정하고 스킬패킷을 보낸다.
+            UseSkill(skillInput);
         }
     }
-
-
 
 
     // 서버에 이동패킷 전송
@@ -434,10 +401,8 @@ public class MyPlayerController : SPUMController
     }
 
 
-
-
-    // 스킬 사용요청 패킷을 보냄
-    public void SendSkillPacket(SkillId skillId)
+    // 내 캐릭터의 스킬 사용
+    public void UseSkill(SkillId skillId)
     {
         SkillUseInfo useInfo;
         if (Skillset.TryGetValue(skillId, out useInfo) == false)
@@ -447,23 +412,17 @@ public class MyPlayerController : SPUMController
         useInfo.lastUseTime = Environment.TickCount;
 
         // 사용중인 스킬 등록
-        _lastUseSkill = useInfo;
-        _usingSkill = useInfo;
+        LastUseSkill = useInfo;
+        UsingSkill = useInfo;
 
-        // 스킬패킷 전송
+        // 패킷생성
         C_Skill skillPacket = new C_Skill();
         skillPacket.SkillId = skillId;
-        Managers.Network.Send(skillPacket);
-
-        ServerCore.Logger.WriteLog(LogLevel.Debug, $"MyPlayerController.OnSkill. {this}, skillId:{skillId}");
-    }
+        skillPacket.TargetId = -1;      // 타겟이 없는 스킬이거나 타겟을 찾지 못했다면 TargetId는 -1
 
 
-
-    // 스킬 피격판정 검사
-    public void SkillHitCheck(SkillData skill)
-    {
-        // 피격대상 찾기
+        // 스킬 타입에 따라 피격대상 찾기
+        SkillData skill = useInfo.skill;
         List<BaseController> listHitObjects = new List<BaseController>();
         switch (skill.skillType)
         {
@@ -488,16 +447,15 @@ public class MyPlayerController : SPUMController
                 }
         }
 
-        // 피격대상 전송
-        C_SkillHit hitPacket = new C_SkillHit();
-        hitPacket.SkillId = skill.id;
         foreach (BaseController obj in listHitObjects)
         {
-            if (obj.IsAlive == false)
-                continue;
-            hitPacket.HitObjectIds.Add(obj.Id);
+            if(skillPacket.TargetId == -1)
+                skillPacket.TargetId = obj.Id;
+            skillPacket.Hits.Add(obj.Id);
         }
-        Managers.Network.Send(hitPacket);
+
+        // 스킬사용패킷 전송
+        Managers.Network.Send(skillPacket);
 
 
         // log
