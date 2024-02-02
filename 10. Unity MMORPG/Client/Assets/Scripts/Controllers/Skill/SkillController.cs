@@ -12,7 +12,7 @@ public class SkillController : BaseController
 {
     public static SkillController Generate(SkillId skillId)
     {
-        GameObject go = new GameObject();
+        GameObject go = Managers.Resource.Instantiate("Skill/SkillBase");
         switch (skillId)
         {
             case SkillId.SkillAttack:
@@ -36,6 +36,7 @@ public class SkillController : BaseController
 
     public int CurrentPhase { get; private set; }
     public int NextPhaseTime { get; private set; }
+
 
     protected SkillController()
     {
@@ -87,7 +88,8 @@ public class SkillController : BaseController
             }
             else
             {
-                // 다음 phase가 없다면 상태를 Dead로 변경
+                // 다음 phase가 없다면 상태를 Dead로 변경. 객체의 삭제는 ObjectManager의 update에서 수행함
+                OnEnd();
                 State = CreatureState.Dead;
             }
         }
@@ -95,6 +97,12 @@ public class SkillController : BaseController
 
     // phase 변경시 호출됨
     protected virtual void OnPhase(int phase)
+    {
+
+    }
+
+    // phae가 끝났을때 호출됨
+    protected virtual void OnEnd()
     {
 
     }

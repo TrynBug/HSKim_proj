@@ -1,8 +1,9 @@
+using Google.Protobuf.Protocol;
 using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
-using UnityEngine.Tilemaps;
+using ServerCore;
 
 public class TestScene : BaseScene
 {
@@ -23,14 +24,14 @@ public class TestScene : BaseScene
     {
         base.Init();
 
+        ServerCore.Logger.Level = LogLevel.System;
+
         // UI 생성
         Managers.UI.ShowSceneUI<UI_DebugInfo>("DebugInfo");
 
         // packet delay 설정
         Managers.Network.PacketDelay = 50;
         Managers.Network.IsDelayedPacket = false;
-        
-
     }
 
     // Update is called once per frame
@@ -43,4 +44,5 @@ public class TestScene : BaseScene
     {
 
     }
+
 }

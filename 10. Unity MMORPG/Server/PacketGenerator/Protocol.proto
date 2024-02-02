@@ -28,6 +28,7 @@ enum MsgId {
     C_LOAD_FINISHED = 22;
     S_LOAD_FINISHED = 23;
     C_RESPAWN = 24;
+    C_DEBUG_COMMAND = 25;
 }
 
 enum CreatureState
@@ -154,8 +155,7 @@ message S_SpawnSkill {
     int32 ownerId = 2;
     int32 targetId = 3;
     SkillId skillId = 4;
-    float destX = 5;
-    float destY = 6;
+    PositionInfo posInfo = 5;
 }
 
 message C_Move {
@@ -225,6 +225,8 @@ message S_Stop {
     int32 objectId = 1;
     float posX = 2;
     float posY = 3;
+    MoveDir dir = 4;
+    LookDir look = 5;
 }
 
 
@@ -249,7 +251,10 @@ message C_Respawn
     bool bRespawn = 1;
 }
 
-
+message C_DebugCommand
+{
+    string command = 1;
+}
 
 
 

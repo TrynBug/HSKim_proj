@@ -46,7 +46,9 @@ class PacketManager
 		_makeFunc.Add((ushort)MsgId.CLoadFinished, MakePacket<C_LoadFinished>);
 		_handler.Add((ushort)MsgId.CLoadFinished, PacketHandler.C_LoadFinishedHandler);		
 		_makeFunc.Add((ushort)MsgId.CRespawn, MakePacket<C_Respawn>);
-		_handler.Add((ushort)MsgId.CRespawn, PacketHandler.C_RespawnHandler);
+		_handler.Add((ushort)MsgId.CRespawn, PacketHandler.C_RespawnHandler);		
+		_makeFunc.Add((ushort)MsgId.CDebugCommand, MakePacket<C_DebugCommand>);
+		_handler.Add((ushort)MsgId.CDebugCommand, PacketHandler.C_DebugCommandHandler);
 	}
 
     // buffer에서 패킷ID를 추출하고, 패킷ID에 해당하는 패킷을 생성한다(_makeFunc에서 찾은 MakePacket<T> 함수를 호출하여).

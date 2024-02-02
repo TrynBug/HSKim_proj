@@ -31,6 +31,8 @@ namespace Server.Game
 
         public Equipment Equip { get; set; } = new Equipment();
 
+        public bool MoveRoom { get; set; } = false;
+        public int NextRoomId { get; set; }
 
 
         public Player()
@@ -239,9 +241,6 @@ namespace Server.Game
                     Auto.SendAutoPacket();
                 }
 
-
-
-
                 Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoIdle. {this.ToString(InfoLevel.Position)}");
             }
         }
@@ -251,31 +250,21 @@ namespace Server.Game
             // 타겟이 없다면 Idle 상태로 돌아감
             if (Room.IsValidTarget(Auto.Target) == false)
             {
-                StopAt(Pos);
-
-                Auto.WaitTime = TimeSpan.TicksPerSecond;
-                Auto.NextState = AutoState.AutoIdle;
-                Auto.State = AutoState.AutoWait;
-                Auto.Target = null;
-
-                // wait 패킷 전송
-                Auto.SendAutoPacket();
+                Auto.SetToWait(1.0, AutoState.AutoIdle);
                 return;
             }
 
             // 타겟과의 거리 확인 
             Vector2 dist = Auto.Target.Pos - Pos;
-            Vector2 distAbs = dist.Abs;
-            LookDir lookToTarget = Util.GetLookToTarget(Pos, Auto.Target.Pos);
+            //Vector2 distAbs = dist.Abs;
+            //LookDir lookToTarget = Util.GetLookToTarget(Pos, Auto.Target.Pos);
             // 타겟이 추적범위 내에 있고 동시에 스킬범위 내에 있으면 움직이지 않음
-            if (distAbs.x < Auto.TargetDistance.x && distAbs.y < Auto.TargetDistance.y
-                && Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
+            //if (distAbs.x < Auto.TargetDistance.x && distAbs.y < Auto.TargetDistance.y
+            //    && Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
+            if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
             {
                 // 현재위치에 멈춤
                 StopAt(Pos);
-
-                // 방향 수정
-                Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
 
                 Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoChasing. Stop. {this.ToString(InfoLevel.Position)}");
             }
@@ -297,22 +286,14 @@ namespace Server.Game
             // 스킬을 사용할 수 있고 타겟이 스킬범위내에 있을 경우
             if (CanUseSkill(Auto.SkillUse))
             {
-                if (Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
+                //if (Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
+                if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
                 {
-                    // 현재위치에 멈춤
-                    StopAt(Pos);
-
-                    // 방향 수정
-                    Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
-
                     // 스킬 사용, 패킷 전송
                     AutoSkillUse(Auto.SkillUse, Auto.Target);
 
-                    // wait 후 Chasing 상태로 변경
-                    Auto.WaitTime = TimeSpan.TicksPerSecond;
-                    Auto.NextState = AutoState.AutoChasing;
-                    Auto.State = AutoState.AutoWait;
-                    Auto.SendAutoPacket();
+                    // 멈춤, wait
+                    Auto.SetToWait(1.0, AutoState.AutoChasing);
 
                     // 스킬 재선정
                     Auto.SetNextSkill();
@@ -334,13 +315,7 @@ namespace Server.Game
                 int tick = Environment.TickCount;
                 if (tick - Auto.PathEndTime > Config.AutoMoveRoamingWaitTime)
                 {
-                    Auto.WaitTime = TimeSpan.TicksPerSecond;
-                    Auto.NextState = AutoState.AutoIdle;
-                    Auto.State = AutoState.AutoWait;
-                    Auto.Target = null;
-
-                    // wait 패킷 전송
-                    Auto.SendAutoPacket();
+                    Auto.SetToWait(1.0, AutoState.AutoIdle);
                     return;
                 }
             }

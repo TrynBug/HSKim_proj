@@ -52,6 +52,37 @@ public class ObjectManager
     }
 
 
+    List<BaseController> _endSkills = new List<BaseController>();
+    List<BaseController> _deadProjectiles = new List<BaseController>();
+    public void OnUpdate()
+    {
+        // 끝난 스킬 삭제
+        _endSkills.Clear();
+        foreach (BaseController skill in _skills.Values)
+        {
+            if(skill.State == CreatureState.Dead)
+                _endSkills.Add(skill);
+        }
+        foreach(BaseController skill in _endSkills)
+        {
+            Managers.Object.Remove(skill.Id);
+        }
+
+
+        // 사망한 프로젝타일 삭제
+        _deadProjectiles.Clear();
+        foreach (BaseController projectile in _projectiles.Values)
+        {
+            if (projectile.State == CreatureState.Dead)
+                _deadProjectiles.Add(projectile);
+        }
+        foreach (BaseController projectile in _deadProjectiles)
+        {
+            Managers.Object.Remove(projectile.Id);
+        }
+    }
+
+
 
 
     // 내 플레이어 추가
@@ -150,7 +181,7 @@ public class ObjectManager
 
         // 등록
         skill.gameObject.transform.SetParent(_rootSkill.transform);
-        skill.gameObject.name = skill.Info.Name;
+        //skill.gameObject.name = skill.Info.Name;
         _skills.Add(skill.Id, skill);
 
 
@@ -176,39 +207,20 @@ public class ObjectManager
             return null;
         }
 
+        // owner
+        BaseController owner = FindById(packet.OwnerId);
+        if (owner == null)
+            return null;
 
-        // 스킬ID에 따른 오브젝트 생성
-        switch(skill.id)
-        {
-            case SkillId.SkillFireball:
-                {
-                    // fireball 생성
-                    GameObject go = Managers.Resource.Instantiate(skill.projectile.prefab);
-                    if(go == null)
-                    {
-                        ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Add. Can't find prefab. id:{packet.ObjectId}, owner:{packet.OwnerId}, skill:{packet.SkillId}, prefab:{skill.projectile.prefab}");
-                        return null;
-                    }
-                    go.name = skill.projectile.name;
-                    go.transform.SetParent(_rootProjectile.transform);
-
-                    ProjectileController fireball = go.GetOrAddComponent<ProjectileController>();
-                    SpriteRenderer renderer = fireball.GetOrAddComponent<SpriteRenderer>();
-                    renderer.sortingOrder = 2;
-
+        // projectile 생성
+        ProjectileController projectile = ProjectileController.Generate(packet.SkillId);
+        if (projectile == null)
+            return null;
+        projectile.Init(packet.ObjectId, skill, owner, packet.PosInfo);
                     
-                    BaseController owner = FindById(packet.OwnerId);
-                    BaseController target = FindById(packet.TargetId);
-                    fireball.Init(packet.ObjectId, skill, owner, target);
+        _projectiles.Add(packet.ObjectId, projectile);
 
-                    // object 추가
-                    _projectiles.Add(packet.ObjectId, fireball);
-
-                    return fireball;
-                }
-        }
-
-        return null;
+        return projectile;
     }
 
 
@@ -277,6 +289,15 @@ public class ObjectManager
             case GameObjectType.Effect:
                 {
                     if (_effects.Remove(id, out obj) == false)
+                        ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Remove. Can't find object of id. id:{id}, type:{objType}");
+
+                    Managers.Resource.Destroy(obj.gameObject);
+                }
+                break;
+
+            case GameObjectType.Skill:
+                {
+                    if (_skills.Remove(id, out obj) == false)
                         ServerCore.Logger.WriteLog(LogLevel.Error, $"ObjectManager.Remove. Can't find object of id. id:{id}, type:{objType}");
 
                     Managers.Resource.Destroy(obj.gameObject);

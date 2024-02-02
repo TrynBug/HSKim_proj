@@ -3,7 +3,7 @@
     {
 		"level": "1",
 		"hp": "1200",
-		"maxHp": "1200",
+		"maxHp": "1000",
 		"damage": "20",
 		"defence": "0",
 		"rangeX": "0",

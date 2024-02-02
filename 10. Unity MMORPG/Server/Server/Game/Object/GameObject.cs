@@ -212,7 +212,7 @@ namespace Server.Game
         /* etc */
         public bool Respawn { get; set; } = false;
         public int DeadTime { get; set; }
-
+        public Random Rand { get; private set; } = new Random();
 
         // 생성자
         public GameObject()
@@ -434,7 +434,17 @@ namespace Server.Game
         // 위치에 멈춤
         public void StopAt(Vector2 dest)
         {
+            // 이미 멈춰있고 dest와 pos가 같다면 작업을 하지않음
             State = CreatureState.Idle;
+            if (Room.Map.IsStopped(this) && Pos.Equals(dest))
+                return;
+
+            //// 방향 수정
+            //if (Util.Equals(Pos, dest) == false)
+            //{
+            //    Dir = Util.GetDirectionToDest(Pos, dest);
+            //    LookDir = Util.GetLookToTarget(Pos, dest);
+            //}
 
             Vector2 stopPos;
             if (Room.Map.TryStop(this, dest, out stopPos) == false)
@@ -452,6 +462,8 @@ namespace Server.Game
             stopPacket.ObjectId = Id;
             stopPacket.PosX = Pos.x;
             stopPacket.PosY = Pos.y;
+            stopPacket.Dir = Dir;
+            stopPacket.Look = LookDir;
             Room._broadcast(stopPacket);
 
             Logger.WriteLog(LogLevel.Debug, $"GameObject.StopAt. stop:{dest}, {this.ToString(InfoLevel.Position)}");
@@ -462,19 +474,27 @@ namespace Server.Game
         // Set Auto
         public bool SetAutoMode(AutoMode autoMode)
         {
+            if (IsLoading == true)
+                return false;
             if (AutoMode == autoMode)
                 return false;
 
             AutoMode = autoMode;
-            if (autoMode == AutoMode.ModeNone)
+            if (AutoMode == AutoMode.ModeNone)
             {
-                State = CreatureState.Idle;
+                // auto -> none 변경시
+                if(IsAlive)
+                    StopAt(Pos);
             }
-            else if (autoMode == AutoMode.ModeAuto)
+            else if (AutoMode == AutoMode.ModeAuto)
             {
+                // none -> auto 변경시
+                if (IsAlive)
+                    StopAt(Pos);
                 Auto.Init(this);
             }
 
+            
             return true;
         }
 

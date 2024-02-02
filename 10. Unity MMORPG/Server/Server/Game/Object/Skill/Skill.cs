@@ -23,6 +23,8 @@ namespace Server.Game
                     return new SkillThunder();
                 case SkillId.SkillMagicExplosion:
                     return new SkillMagicExplosion();
+                case SkillId.SkillFireball:
+                    return new SkillFireball();
                 default:
                     return null;
             }
@@ -37,6 +39,11 @@ namespace Server.Game
 
         public int CurrentPhase { get; private set; }
         public int NextPhaseTime { get; private set; }
+
+        public Vector2 OwnerInitPos { get; private set; }
+        public Vector2 TargetInitPos { get; private set; }
+        public Vector2 OwnerCastedPos { get; private set; }
+        public Vector2 TargetCastedPos { get; private set; }
 
         protected Skill()
         {
@@ -60,6 +67,12 @@ namespace Server.Game
             Room = owner.Room;
             Info.Name = $"Skill_{Id}";
             State = CreatureState.Idle;
+
+            OwnerInitPos = Owner.Pos;
+            if (Room.IsSameRoom(target))
+                TargetInitPos = target.Pos;
+            else
+                TargetInitPos = Room.Map.GetValidPos(Owner.Pos + Util.GetDirectionVector(Owner.LookDir) * (SkillData.rangeX / 2));
         }
 
 
@@ -74,6 +87,16 @@ namespace Server.Game
             if(tick > NextPhaseTime)
             {
                 CurrentPhase++;
+                if(CurrentPhase == 1)
+                {
+                    OwnerCastedPos = Owner.Pos;
+                    if (Room.IsSameRoom(Target))
+                        TargetCastedPos = Target.Pos;
+                    else
+                        TargetCastedPos = Room.Map.GetValidPos(Owner.Pos + Util.GetDirectionVector(Owner.LookDir) * (SkillData.rangeX / 2));
+                }
+
+
                 OnPhase(CurrentPhase);
 
                 if(CurrentPhase < SkillData.numPhase)

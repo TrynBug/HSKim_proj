@@ -131,5 +131,27 @@ internal class PacketHandler
 
         Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_RespawnHandler. {player}");
     }
+
+
+    // debug command
+    public static void C_DebugCommandHandler(PacketSession session, IMessage packet)
+    {
+        C_DebugCommand debugPacket = packet as C_DebugCommand;
+        ClientSession clientSession = session as ClientSession;
+
+        Player player = clientSession.MyPlayer;
+        if (player.Room == null)
+        {
+            Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_RespawnHandler. Player has no room. {player}");
+            return;
+        }
+
+
+        string command = debugPacket.Command;
+        int mapId;
+        if (int.TryParse(command.Substring(1, command.Length - 1), out mapId) == false)
+            return;
+        clientSession.MyPlayer.Room.HandleMapMove(player, mapId);
+    }
 }
 

@@ -145,7 +145,17 @@ namespace Server.Game
             return IsEmptyCellOrMe(PosToCell(pos), me);
         }
 
-
+        // object가 자신의 cell에 정지해있는지 확인함
+        public bool IsStopped(GameObject obj)
+        {
+            if (obj == null)
+                return false;
+            if (IsInvalidCell(obj.Cell))
+                return false;
+            if (_cells[obj.Cell.y, obj.Cell.x].Object != obj)
+                return false;
+            return true;
+        }
 
 
         // 비어있는 랜덤 포지션 얻기 (텔레포트 위치 제외)

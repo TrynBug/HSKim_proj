@@ -1,3 +1,4 @@
+using Data;
 using Google.Protobuf;
 using Google.Protobuf.Protocol;
 using ServerCore;
@@ -123,7 +124,7 @@ class PacketHandler
             CreatureController creature = Managers.Object.FindById(info.ObjectId) as CreatureController;
             if (creature.AutoMode == AutoMode.ModeAuto)
             {
-                creature.SetAutoMove(creature.AutoInfo, creature.PosInfo);
+                creature.SetAutoMove(info.AutoInfo, info.PosInfo);
             }
         }
 
@@ -222,10 +223,24 @@ class PacketHandler
             return;
         }
 
-        // 첫 phase일 경우 스킬객체 생성
-        if(hitPacket.SkillPhase == 1)
+        SkillData skillData = Managers.Data.SkillDict.GetValueOrDefault(hitPacket.SkillId, null);
+        if (skillData == null)
+            return;
+
+
+        if (skillData.skillType == SkillType.SkillProjectile)
         {
-            SkillController skill = Managers.Object.AddSkill(hitPacket);
+            // projectile일 경우 이펙트 생성
+            Managers.Object.AddEffect(skillData.projectile.effect, new Vector2(hitPacket.SkillPosX, hitPacket.SkillPosY), skillData.projectile.effectOffsetY);
+            
+        }
+        else
+        {
+            // projectile이 아닐 경우 첫 phase일 경우 스킬객체 생성
+            if (hitPacket.SkillPhase == 1)
+            {
+                SkillController skill = Managers.Object.AddSkill(hitPacket);
+            }
         }
 
         // 피격 처리
@@ -235,7 +250,7 @@ class PacketHandler
             if (target != null)
                 target.OnDamaged(attacker, hit.Damage);
         }
-        
+
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_SkillHitHandler. attacker:{hitPacket.AttackerId}, target:{hitPacket.TargetId}, skillId:{hitPacket.SkillId}, hits:{hitPacket.Hits.Count}");
     }
 
@@ -321,11 +336,15 @@ class PacketHandler
         }
 
         cc.AutoMode = autoPacket.Mode;
-        if (autoPacket.Mode == AutoMode.ModeNone)
-        {
-            cc.State = CreatureState.Idle;
-        }
-        else if (autoPacket.Mode == AutoMode.ModeAuto)
+        //if (autoPacket.Mode == AutoMode.ModeNone)
+        //{
+        //    cc.State = CreatureState.Idle;
+        //}
+        //else if (autoPacket.Mode == AutoMode.ModeAuto)
+        //{
+        //    cc.Auto.Init(cc);
+        //}
+        if (autoPacket.Mode == AutoMode.ModeAuto)
         {
             cc.Auto.Init(cc);
         }
@@ -354,7 +373,7 @@ class PacketHandler
         }
 
 
-        cc.SyncStop(new Vector2(stopPacket.PosX, stopPacket.PosY));
+        cc.SyncStop(stopPacket);
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_StopHandler. id:{stopPacket.ObjectId}, pos:({stopPacket.PosX},{stopPacket.PosY})");
     }

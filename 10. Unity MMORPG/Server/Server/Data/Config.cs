@@ -18,7 +18,7 @@ namespace Server.Data
         public const float DifferenceTolerance = 0.001f;
 
         /* Auto Move */
-        public const int AutoMoveRoamingWaitTime = 2000;
+        public const int AutoMoveRoamingWaitTime = 1500;
 
         /* skill */
         public const int SkillTimeCorrection = 50;

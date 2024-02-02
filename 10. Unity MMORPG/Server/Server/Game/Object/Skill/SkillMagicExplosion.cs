@@ -11,18 +11,6 @@ namespace Server.Game
 {
     public class SkillMagicExplosion : Skill
     {
-        Vector2 _ownerInitPos;
-        Vector2 _targetInitPos;
-
-        public override void Init(SkillUseInfo useInfo, GameObject owner, GameObject target, RepeatedField<int> hits)
-        {
-            base.Init(useInfo, owner, target, hits);
-
-            if (target != null)
-                _targetInitPos = target.Pos;
-            else
-                _targetInitPos = Room.Map.GetValidPos(Owner.Pos + Util.GetDirectionVector(Owner.LookDir) * (SkillData.rangeX / 2));
-        }
 
         protected override void OnPhase(int phase)
         {
@@ -32,34 +20,16 @@ namespace Server.Game
             hitPacket.SkillId = SkillData.id;
             hitPacket.SkillPhase = phase;
 
-            if (phase == 1)
-            {
-                // 캐스팅이 끝났을 경우
-                _ownerInitPos = Owner.Pos;
-                if (Owner.Room.IsValidTarget(Target))
-                {
-                    // 타겟이 있다면 스킬 위치를 타겟위치로 설정
-                    _targetInitPos = Target.Pos;
-                    Pos = _targetInitPos;
-                    hitPacket.TargetId = Target.Id;
-                }
-                else
-                {
-                    // 타겟이 없다면 스킬 위치를 적절한 위치로 지정
-                    Pos = _targetInitPos;
-                    hitPacket.TargetId = -1;
-                }
-            }
+            if (Owner.Room.IsValidTarget(Target))
+                hitPacket.TargetId = Target.Id;
             else
-            {
-                // 캐스팅 이후에는 phase에 따라 위치를 바꿈
-                Vector2 dir = (_targetInitPos - _ownerInitPos).normalized;
-                Pos = _targetInitPos + dir * SkillData.instant.posInterval * (float)(phase - 1);
-            }
-
+                hitPacket.TargetId = -1;
+            
+            // phase에 따라 위치를 조정함
+            Vector2 dir = (TargetCastedPos - OwnerCastedPos).normalized;
+            Pos = TargetCastedPos + dir * SkillData.instant.posInterval * (float)(phase - 1);
             hitPacket.SkillPosX = Pos.x;
             hitPacket.SkillPosY = Pos.y;
-
 
             // 피격체크
             // FindObjectsInRect 함수를 사용하기 위해 스킬 위치를 왼쪽으로 rangeX / 2 만큼 옮긴다음, 현재 위치에서 오른쪽 방향의 사각형 범위를 조사한다.

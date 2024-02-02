@@ -151,7 +151,10 @@ namespace Server.Game
         {
             Owner = owner;
 
-            Info.AutoState = AutoState.AutoIdle;
+            if(Owner.IsDead)
+                Info.AutoState = AutoState.AutoDead; 
+            else
+                Info.AutoState = AutoState.AutoIdle;
             Path.Clear();
             PathIndex = 1;
             Target = null;
@@ -243,7 +246,11 @@ namespace Server.Game
             Owner.Dest = Path[PathIndex];
 
             // 방향 수정
-            Owner.Dir = Util.GetDirectionToDest(Pos, Dest);
+            if (Util.Equals(Pos, Dest) == false)
+            {
+                Owner.Dir = Util.GetDirectionToDest(Pos, Dest);
+                Owner.LookDir = Util.GetLookToTarget(Pos, Dest);
+            }
 
             // 목적지에 도달했다면 현재위치를 목적지로 이동시킴
             Vector2 diff = (Dest - Pos);
@@ -288,6 +295,17 @@ namespace Server.Game
         }
 
 
+
+        public void SetToWait(double second, AutoState nextState)
+        {
+            Owner.StopAt(Pos);
+
+            WaitTime = (long)((double)TimeSpan.TicksPerSecond * second * (Owner.Rand.NextDouble() * 0.4 + 0.8));
+            NextState = nextState;
+            State = AutoState.AutoWait;
+
+            SendAutoPacket();
+        }
 
 
 

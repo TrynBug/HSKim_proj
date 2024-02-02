@@ -148,6 +148,10 @@ public class AutoMove
     public void Init(CreatureController owner)
     {
         Owner = owner;
+        if (Owner.IsDead)
+            Info.AutoState = AutoState.AutoDead;
+        else
+            Info.AutoState = AutoState.AutoIdle;
     }
 
     // 경로 지정
@@ -181,7 +185,11 @@ public class AutoMove
         Owner.Dest = Path[PathIndex];
 
         // 방향 수정
-        Owner.Dir = Util.GetDirectionToDest(Pos, Dest);
+        if (Util.Equals(Pos, Dest) == false)
+        {
+            Owner.Dir = Util.GetDirectionToDest(Pos, Dest);
+            Owner.LookDir = Util.GetLookToTarget(Pos, Dest);
+        }
 
         // 목적지에 도달했다면 현재위치를 목적지로 이동시킴
         Vector2 diff = (Dest - Pos);

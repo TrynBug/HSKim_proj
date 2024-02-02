@@ -63,6 +63,7 @@ namespace Server.Game
         public void HandleLoadFinish(Player player, C_LoadFinished loadPacket) { Push(_handleLoadFinish, player, loadPacket); }
         public void HandleRespawn(Player player, C_Respawn rdspawnPacket) { Push(_handleRespawn, player, rdspawnPacket); }
         public void HandleSetAuto(Player player, C_SetAuto autoPacket) { Push(_handleSetAuto, player, autoPacket); }
+        public void HandleMapMove(Player player, int mapId) { Push(_handleMapMove, player, mapId); }
 
         /* util */
         public bool IsValidTarget(GameObject target)
@@ -79,6 +80,14 @@ namespace Server.Game
                 if (player.Session.IsDisconnected == true)
                     return false;
             }
+            return true;
+        }
+        public bool IsSameRoom(GameObject target)
+        {
+            if (target == null)
+                return false;
+            if (target.Room.RoomId != RoomId)
+                return false;
             return true;
         }
         public Player FindPlayer(int playerId)
@@ -205,6 +214,14 @@ namespace Server.Game
                         nextRoomId = (RoomId + 1) % DataManager.MapDict.Count;
                     nextRoomId = nextRoomId < 0 ? DataManager.MapDict.Count - 1 : nextRoomId;
                     _leavingPlayers.Add(new RoomTransferInfo { prevRoomId = RoomId, prevTeleportId = teleport.number, nextRoomId = nextRoomId, player = player });
+                    continue;
+                }
+
+                // 맵이동 확인
+                if(player.MoveRoom == true)
+                {
+                    _leavingPlayers.Add(new RoomTransferInfo { prevRoomId = RoomId, prevTeleportId = 0, nextRoomId = player.NextRoomId, player = player });
+                    player.MoveRoom = false;
                 }
             }
 
@@ -391,13 +408,8 @@ namespace Server.Game
                     _broadcast(loadPacket);
 
                     newPlayer.State = CreatureState.Idle;
+                    newPlayer.Auto.State = AutoState.AutoIdle;
                 }
-
-
-            }
-            else if (type == GameObjectType.Monster)
-            {
-
             }
             else if (type == GameObjectType.Projectile)
             {
@@ -409,14 +421,12 @@ namespace Server.Game
                     S_SpawnSkill spawnPacket = new S_SpawnSkill();
                     spawnPacket.ObjectId = proj.Id;
                     spawnPacket.OwnerId = proj.Owner.Id;
-                    spawnPacket.TargetId = proj.Target != null ? proj.Target.Id : -1;
-                    spawnPacket.SkillId = proj.Skill.id;
-                    spawnPacket.DestX = proj.Dest.x;
-                    spawnPacket.DestY = proj.Dest.y;
+                    spawnPacket.TargetId = -1;
+                    spawnPacket.SkillId = proj.SkillData.id;
+                    spawnPacket.PosInfo = proj.PosInfo;
                     _broadcast(spawnPacket);
                 }
             }
-
 
 
             Logger.WriteLog(LogLevel.Debug, $"GameRoom.EnterGame. {gameObject.ToString(InfoLevel.All)}");   
@@ -694,14 +704,15 @@ namespace Server.Game
             if(player.IsLoadingFinished)
             {
                 player.State = CreatureState.Idle;
-                
+                player.Auto.State = AutoState.AutoIdle;
+
                 S_LoadFinished resPacket = new S_LoadFinished();
                 resPacket.ObjectId = player.Id;
                 _broadcast(resPacket);
             }
 
             // 만약 사망한 상태라면 사망패킷 전송
-            if(player.Hp <= 0)
+            if (player.Hp <= 0)
                 player.OnDead(player);
 
 
@@ -740,6 +751,7 @@ namespace Server.Game
             if (player.SetAutoMode(autoPacket.Mode) == false)
                 return;
 
+            // auto 패킷 전송
             S_SetAutoResponse responsePacket = new S_SetAutoResponse();
             responsePacket.ObjectId = player.Id;
             responsePacket.Mode = autoPacket.Mode;
@@ -748,6 +760,22 @@ namespace Server.Game
             Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_SetAutoHandler. objectId:{player.Id}, mode:{autoPacket.Mode}");
         }
 
+
+
+
+        // map 이동요청 처리
+        public void _handleMapMove(Player player, int mapId)
+        {
+            if (player == null)
+                return;
+
+            MapData map = DataManager.MapDict.GetValueOrDefault(mapId, null);
+            if (map == null)
+                return;
+
+            player.MoveRoom = true;
+            player.NextRoomId = mapId;
+        }
 
 
 

@@ -99,5 +99,6 @@ public class Managers : MonoBehaviour
         _input.OnUpdate();
         _time.OnUpdate();
         _map.OnUpdate();
+        _object.OnUpdate();
     }
 }

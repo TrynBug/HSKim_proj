@@ -66,8 +66,11 @@ public class SPUMController : CreatureController
 
     protected override void UpdateAnimation()
     {
+        if (StopUpdateAnimation)
+            return;
+
         // 애니메이션 재생
-        // 말 여부에 상관없이 애니메이션 클립들의 이름은 동일하기 때문에 말 여부를 확인하지 않는다.
+        // 말 여부에 상관없이 애니메이션 클립들의 이름은 동일하기 때문에 여기서는 말 여부를 확인하지 않는다.
         if(_bPlayingSkill == false)
         {
             switch (State)
@@ -111,10 +114,55 @@ public class SPUMController : CreatureController
                 _animator.Play("4_Death");
             }
         }
+
+        // debug
+        //if(AutoMode == AutoMode.ModeAuto)
+        //if (_bPlayingSkill == false)
+        //{
+        //    switch (State)
+        //    {
+        //        case CreatureState.Loading:
+        //        case CreatureState.Idle:
+        //            switch (LookDir)
+        //            {
+        //                case LookDir.LookLeft:
+        //                    ServerCore.Logger.WriteLog(ServerCore.LogLevel.System, $"0_idle, left");
+        //                    break;
+        //                case LookDir.LookRight:
+        //                    ServerCore.Logger.WriteLog(ServerCore.LogLevel.System, $"0_idle, right");
+        //                    break;
+        //            }
+        //            break;
+        //        case CreatureState.Moving:
+        //            switch (LookDir)
+        //            {
+        //                case LookDir.LookLeft:
+        //                    ServerCore.Logger.WriteLog(ServerCore.LogLevel.System, $"1_Run, left");
+        //                    break;
+        //                case LookDir.LookRight:
+        //                    ServerCore.Logger.WriteLog(ServerCore.LogLevel.System, $"1_Run, right");
+        //                    break;
+        //            }
+        //            break;
+        //        case CreatureState.Dead:
+        //            ServerCore.Logger.WriteLog(ServerCore.LogLevel.System, $"4_Death");
+        //            break;
+        //    }
+        //}
+        //else
+        //{
+        //    if (State == CreatureState.Dead)
+        //    {
+        //        ServerCore.Logger.WriteLog(ServerCore.LogLevel.System, $"4_Death");
+        //    }
+        //}
     }
 
     protected override void UpdateSkillAnimation(bool heavy)
     {
+        if (StopUpdateAnimation)
+            return;
+
         // 직업에 따라 스킬 애니메이션을 실행한다.
         // 말 여부에 상관없이 애니메이션 클립들의 이름은 동일하다.
         switch (_spum.spumClass)
@@ -156,6 +204,10 @@ public class SPUMController : CreatureController
                 }
                 break;
         }
+
+
+        // debug
+        //ServerCore.Logger.WriteLog(ServerCore.LogLevel.System, $"2_Skill");
     }
 
 

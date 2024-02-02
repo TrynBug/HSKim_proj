@@ -60,7 +60,7 @@ namespace Server.Data
     [Serializable]
     public class InstantData
     {
-        public SkillHitType type;
+        public SkillHitType hitType;
         public float rangeX;
         public float rangeY;
         public float posInterval;
@@ -72,8 +72,12 @@ namespace Server.Data
         public string name;
         public float speed;
         public string prefab;
+        public float offsetX;
         public float offsetY;
-        public string hitEffect;
+        public SkillHitType hitType;
+        public float rangeX;
+        public float rangeY;
+        public string effect;
         public float effectOffsetY;
     }
 

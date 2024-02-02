@@ -249,9 +249,12 @@ public class BaseController : MonoBehaviour
     /* stop */
     // 서버와 정지 위치를 동기화시킨다.
     // 만약 서버 cell과 클라이언트 cell이 동일하다면 세부적인 위치는 변경하지 않는다.
-    public void SyncStop(Vector2 serverPos)
+    public void SyncStop(S_Stop stopPacket)
     {
+        Vector2 serverPos = new Vector2(stopPacket.PosX, stopPacket.PosY);
         Vector2Int serverCell = Managers.Map.PosToCell(serverPos);
+        Dir = stopPacket.Dir;
+        LookDir = stopPacket.Look;
 
         // 내가 멈출 위치에 다른 오브젝트가 있는지 확인한다.
         BaseController objOther = Managers.Map.GetStopObjectAt(serverCell);

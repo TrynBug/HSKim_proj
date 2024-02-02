@@ -49,7 +49,7 @@
 	  "heavyAnimation" : "true",
 	  "skillType": "SkillInstant",
 	  "instant" : {
-		  "type":"SkillHitCircle",
+		  "hitType":"SkillHitCircle",
 		  "rangeX": "1.0",
 		  "posInterval": "1.0"
 	  }
@@ -71,11 +71,37 @@
 	  "heavyAnimation" : "true",
 	  "skillType": "SkillInstant",
 	  "instant" : {
-		  "type":"SkillHitRectangle",
+		  "hitType":"SkillHitRectangle",
 		  "rangeX": "1.0",
 		  "rangeY": "3.0",
 		  "posInterval": "1.0"
 	  }
     },
+    {
+      "id": "SkillFireball",
+      "name": "Fireball",
+      "cooldown": "1000",
+	  "castingTime": "200",
+	  "skillTime": "400",
+	  "speedRate": "0.6",
+	  "damage": "20",
+	  "rangeX": "12.0",
+	  "rangeY": "10.0",
+	  "numPhase" : "1",
+      "phaseTimeInterval" : "0",
+	  "skillType": "SkillProjectile",
+	  "projectile": {
+		  "name": "Fireball",
+		  "speed": "12.0",
+		  "prefab": "Projectile/Fireball",
+		  "offsetX" : "0.5",
+		  "offsetY" : "0.8",
+		  "hitType":"SkillHitRectangle",
+		  "rangeX": "3.0",
+		  "rangeY": "3.0",
+		  "effect": "Effect/Explosion",
+		  "effectOffsetY": "0"
+	  }
+    }
   ]
 }
