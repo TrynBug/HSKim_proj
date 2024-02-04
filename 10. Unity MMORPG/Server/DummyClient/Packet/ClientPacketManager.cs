@@ -1,4 +1,3 @@
-using DummyClient;
 using Google.Protobuf;
 using Google.Protobuf.Protocol;
 using ServerCore;
@@ -69,7 +68,9 @@ class PacketManager
 		_makeFunc.Add((ushort)MsgId.SAutoMove, MakePacket<S_AutoMove>);
 		_handler.Add((ushort)MsgId.SAutoMove, PacketHandler.S_AutoMoveHandler);		
 		_makeFunc.Add((ushort)MsgId.SLoadFinished, MakePacket<S_LoadFinished>);
-		_handler.Add((ushort)MsgId.SLoadFinished, PacketHandler.S_LoadFinishedHandler);
+		_handler.Add((ushort)MsgId.SLoadFinished, PacketHandler.S_LoadFinishedHandler);		
+		_makeFunc.Add((ushort)MsgId.SLoginResponse, MakePacket<S_LoginResponse>);
+		_handler.Add((ushort)MsgId.SLoginResponse, PacketHandler.S_LoginResponseHandler);
 	}
 
     // buffer에서 패킷ID를 추출하고, 패킷ID에 해당하는 패킷을 생성한다(_makeFunc에서 찾은 MakePacket<T> 함수를 호출하여).

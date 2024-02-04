@@ -16,6 +16,8 @@ namespace Server
     public class ClientSession : PacketSession
     {
         public int SessionId { get; set; }  // 클라이언트 세션ID
+        public bool Login { get; set; } = false;  // login 여부
+        public string Name { get; set; }
         public Player MyPlayer { get; set; }  // 클라이언트와 연결된 플레이어
 
         // packet을 버퍼에 복사한 뒤 Send
@@ -39,19 +41,9 @@ namespace Server
 
         public override void OnConnected(EndPoint endPoint)
         {
-            // 플레이어 생성
-            Player myPlayer = new Player();
-            //GameRoom room = RoomManager.Instance.Find(0);
-            GameRoom room = RoomManager.Instance.GetRandomRoom();
-            MyPlayer = myPlayer;
-            MyPlayer.Init(this, room);
-
-            ObjectManager.Instance.AddPlayer(myPlayer);
-            
-            Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnConnected. sessionId:{SessionId}, playerId:{MyPlayer.Info.ObjectId}, endPoint:{endPoint}");
-
-            // 1번 게임룸에 플레이어 추가
-            room.EnterGame(MyPlayer);
+            // login room 입장
+            RoomManager.Instance.LoginRoom.EnterRoom(this);
+            Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnConnected. sessionId:{SessionId}, endPoint:{endPoint}");
         }
 
         public override void OnDisconnected(EndPoint endPoint)
@@ -59,7 +51,7 @@ namespace Server
             // 플레이어는 반드시 하나의 room에 속한다.
             // 연결끊긴 플레이어는 room에서 감지하고 제거한다.
 
-            Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnDisconnected. sessionId:{SessionId}, playerId:{MyPlayer.Info.ObjectId}, endPoint:{endPoint}");
+            Logger.WriteLog(LogLevel.Debug, $"ClientSession.OnDisconnected. sessionId:{SessionId}, playerId:{MyPlayer?.Info.ObjectId}, endPoint:{endPoint}");
         }
 
         public override void OnRecvPacket(ArraySegment<byte> buffer)

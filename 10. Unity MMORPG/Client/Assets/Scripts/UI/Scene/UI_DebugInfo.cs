@@ -7,7 +7,6 @@ using static Define;
 
 public class UI_DebugInfo : UI_Scene
 {
-    // Start is called before the first frame update
     void Start()
     {
         Bind<TextMeshProUGUI>(typeof(UIDebugInfo));
@@ -16,7 +15,6 @@ public class UI_DebugInfo : UI_Scene
         Managers.Input.KeyAction += AcceptDebugInput;
     }
 
-    // Update is called once per frame
     void Update()
     {
         TextMeshProUGUI text = GetText((int)UIDebugInfo.Text);

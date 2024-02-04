@@ -407,7 +407,7 @@ class PacketHandler
     }
 
 
-    // 로딩완료 요청 처리
+    // 로딩완료
     public static void S_LoadFinishedHandler(PacketSession session, IMessage packet)
     {
         S_LoadFinished loadPacket = packet as S_LoadFinished;
@@ -424,6 +424,19 @@ class PacketHandler
         obj.State = CreatureState.Idle;
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_LoadFinishedHandler. objectId:{obj.Id}");
+    }
+
+
+
+    // 로그인
+    public static void S_LoginResponseHandler(PacketSession session, IMessage packet)
+    {
+        S_LoginResponse loginPacket = packet as S_LoginResponse;
+        ServerSession serverSession = session as ServerSession;
+
+        Managers.Scene.LoadScene(Define.Scene.Game);
+
+        ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_LoginResponseHandler.");
     }
 
 }

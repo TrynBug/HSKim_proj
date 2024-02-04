@@ -634,6 +634,12 @@ public abstract class CreatureController : BaseController
         }
     }
 
+    public void SetHpBarActive(bool active)
+    {
+        _hpBar.gameObject.SetActive(active);
+    }
+
+
     // Debug Text 추가
     protected void AddDebugText()
     {

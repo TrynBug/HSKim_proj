@@ -11,14 +11,22 @@ namespace Server.Game
     {
         public static RoomManager Instance { get; } = new RoomManager();
 
+        public LoginRoom LoginRoom { get; private set; } = new LoginRoom();
         public int RoomCount { get { return _rooms.Count; } }
-
+        
         object _lock = new object();
         Dictionary<int, GameRoom> _rooms = new Dictionary<int, GameRoom>();
         Random _rand = new Random();
 
+        public void Init()
+        {
+            LoginRoom.Init();
+        }
+
+
         public void RunAllRooms()
         {
+            LoginRoom.Run();
             lock (_lock)
             {
                 foreach (GameRoom room in _rooms.Values)

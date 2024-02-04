@@ -274,50 +274,30 @@ public class SPUMController : CreatureController
     }
 
 
-    //protected override void UpdateAnimation()
-    //{
-    //    switch (State)
-    //    {
-    //        case CreatureState.Loading:
-    //        case CreatureState.Idle:
-    //            _animator.SetFloat("RunState", 0);
-    //            switch (LookDir)
-    //            {
-    //                case LookDir.LookLeft:
-    //                    _unitRoot.transform.localScale = new Vector3(1, 1, 1);
-    //                    break;
-    //                case LookDir.LookRight:
-    //                    _unitRoot.transform.localScale = new Vector3(-1, 1, 1);
-    //                    break;
-    //            }
-    //            break;
-    //        case CreatureState.Moving:
-    //            _animator.SetFloat("RunState", 0.5f);
-    //            switch (LookDir)
-    //            {
-    //                case LookDir.LookLeft:
-    //                    _unitRoot.transform.localScale = new Vector3(1, 1, 1);
-    //                    break;
-    //                case LookDir.LookRight:
-    //                    _unitRoot.transform.localScale = new Vector3(-1, 1, 1);
-    //                    break;
-    //            }
-    //            break;
-    //        case CreatureState.Dead:
-    //            _animator.SetTrigger("Die");
-    //            break;
-    //    }
-    //}
-
-    //protected override void UpdateSkillAnimation(string animationName)
-    //{
-    //    if(string.IsNullOrEmpty(animationName))
-    //        _animator.SetTrigger("Attack");
-
-    //}
-
-
-
+    public void PlaySkillAnimation(bool heavy)
+    {
+        switch (_spum.spumClass)
+        {
+            case SPUMClass.SpumKnight:
+                if (heavy)
+                    _animator.Play("5_Skill_Normal");
+                else
+                    _animator.Play("2_Attack_Normal");
+                break;
+            case SPUMClass.SpumWizard:
+                if (heavy)
+                    _animator.Play("5_Skill_Magic");
+                else
+                    _animator.Play("2_Attack_Magic");
+                break;
+            case SPUMClass.SpumArcher:
+                if (heavy)
+                    _animator.Play("5_Skill_Bow");
+                else
+                    _animator.Play("2_Attack_Bow");
+                break;
+        }
+    }
 
 
 }

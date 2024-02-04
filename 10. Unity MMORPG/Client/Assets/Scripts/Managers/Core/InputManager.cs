@@ -21,9 +21,9 @@ public class InputManager
 
     public void OnUpdate()
     {
-        // UI 버튼이 클릭되었다면 종료
-        if (EventSystem.current.IsPointerOverGameObject())
-           return;
+        // UI 위에 마우스가 있다면 종료
+        //if (EventSystem.current.IsPointerOverGameObject())
+        //   return;
 
         // 키보드를 눌렀을 때 KeyAction 대리자 호출
         if (Input.anyKey && KeyAction != null)  

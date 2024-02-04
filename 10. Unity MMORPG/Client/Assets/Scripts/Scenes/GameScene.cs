@@ -1,5 +1,7 @@
+using Google.Protobuf.Protocol;
 using System.Collections;
 using System.Collections.Generic;
+using TMPro;
 using UnityEngine;
 using ServerCore;
 
@@ -9,40 +11,38 @@ public class GameScene : BaseScene
     {
         base.Awake();
 
-        // í•´ìƒë„ ì„¤ì •
-        Screen.SetResolution(640, 480, false);  // í•´ìƒë„ 640 x 480 ìœ¼ë¡œ ì„¤ì •í•˜ê³  fullscreenì€ falseë¡œ í•œë‹¤.
+        // ÇØ»óµµ ¼³Á¤
+        Screen.SetResolution(640, 480, false);  // ÇØ»óµµ 640 x 480 À¸·Î ¼³Á¤ÇÏ°í fullscreenÀº false·Î ÇÑ´Ù.
+        //Screen.SetResolution(1024, 768, false);
 
-        // ë§µ ë°ì´í„° ë¡œë“œ
+        // ¸Ê µ¥ÀÌÅÍ ·Îµå
         Managers.Map.LoadMap(1);
     }
 
-
-    protected override void Init()
+    // Start is called before the first frame update
+    void Start()
     {
         base.Init();
-        SceneType = Define.Scene.Game;
 
-        // ëª¬ìŠ¤í„° ìƒì„±
-        //for (int i = 0; i < 5; i++)
-        //{
-        //    GameObject monster = Managers.Resource.Instantiate("Creature/Monster");
-        //    monster.name = $"Monster_{i + 1}";
+        ServerCore.Logger.Level = LogLevel.System;
 
-        //    Vector3Int pos = new Vector3Int()
-        //    {
-        //        x = Random.Range(-10, 10),
-        //        y = Random.Range(-5, 5)
-        //    };
-        //    MonsterController mc = monster.GetComponent<MonsterController>();
-        //    mc.CellPos = pos;
-        //    mc.id = 10000 + i;
+        // UI »ı¼º
+        Managers.UI.ShowSceneUI<UI_DebugInfo>("DebugInfo");
 
-        //    Managers.Object.Add(mc.id, monster);
-        //}
+        // packet delay ¼³Á¤
+        Managers.Network.PacketDelay = 50;
+        Managers.Network.IsDelayedPacket = false;
+    }
+
+    // Update is called once per frame
+    void Update()
+    {
+        
     }
 
     public override void Clear()
     {
-        
+
     }
+
 }

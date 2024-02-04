@@ -19,7 +19,6 @@ public class Define
     {
         Unknown,
         Login,
-        Lobby,
         Game,
     }
 
@@ -93,6 +92,10 @@ public class Define
         Text
     }
 
+    public enum UILogin
+    {
+        InputField
+    }
 
     /* Number Prefab */
     public enum NumberType

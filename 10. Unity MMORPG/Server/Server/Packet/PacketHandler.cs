@@ -6,6 +6,7 @@ using ServerCore;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Net;
 using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
@@ -152,6 +153,22 @@ internal class PacketHandler
         if (int.TryParse(command.Substring(1, command.Length - 1), out mapId) == false)
             return;
         clientSession.MyPlayer.Room.HandleMapMove(player, mapId);
+    }
+
+
+    // login
+    public static void C_LoginHandler(PacketSession session, IMessage packet)
+    {
+        C_Login loginPacket = packet as C_Login;
+        ClientSession clientSession = session as ClientSession;
+
+        if (clientSession.Login == true)
+            return;
+        clientSession.Name = loginPacket.Name;
+        clientSession.Login = true;
+
+
+        Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_LoginHandler. sessionId:{clientSession.SessionId}");
     }
 }
 

@@ -315,9 +315,6 @@ namespace Server.Game
             {
                 _projectiles.Remove(projectile.Id);
             }
-
-            // debug
-            InspectCell();
         }
 
         // FPS를 유지하기 위해 sleep 해야하는 시간을 계산한다.
@@ -776,51 +773,6 @@ namespace Server.Game
             player.MoveRoom = true;
             player.NextRoomId = mapId;
         }
-
-
-
-        // debug : cell 무결성 확인
-        HashSet<GameObject> setObj = new HashSet<GameObject>();
-        volatile bool doCrash = false;
-        public void InspectCell()
-        {
-            //void Crash()
-            //{
-            //    ServerCore.Logger.WriteLog(LogLevel.Error, $"GameRoom.InspectCell. Cell integrity failed. {this}");
-            //    while (true)
-            //    {
-            //        if (doCrash == false) break;
-            //    }
-            //}
-            //// cell 무결성 확인
-            //setObj.Clear();
-            //for (int y = 0; y < Map.CellMaxY; y++)
-            //{
-            //    for (int x = 0; x < Map.CellMaxX; x++)
-            //    {
-            //        Cell cell = Map._cells[y, x];
-            //        if (cell.Object != null)
-            //        {
-            //            if (setObj.Add(cell.Object) == false)
-            //                Crash();
-            //        }
-            //        var list = cell.MovingObjects;
-            //        foreach (GameObject obj in list)
-            //            if (setObj.Add(obj) == false)
-            //                Crash();
-            //    }
-            //}
-            //if (setObj.Count != _players.Count)
-            //    Crash();
-            //foreach (GameObject go in _players.Values)
-            //{
-            //    if (Map._cells[go.Cell.y, go.Cell.x].Object != go && Map._cells[go.Cell.y, go.Cell.x].HasMovingObject(go) == false)
-            //        Crash();
-            //}
-        }
-
-
-
 
 
 

@@ -34,6 +34,7 @@ namespace Server
 
 
             // 게임룸 생성
+            RoomManager.Instance.Init();
             foreach (MapData map in DataManager.MapDict.Values)
             {
                 RoomManager.Instance.Add(map.id);

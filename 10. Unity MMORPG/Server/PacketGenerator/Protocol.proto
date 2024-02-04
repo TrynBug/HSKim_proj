@@ -29,6 +29,8 @@ enum MsgId {
     S_LOAD_FINISHED = 23;
     C_RESPAWN = 24;
     C_DEBUG_COMMAND = 25;
+    C_LOGIN = 26;
+    S_LOGIN_RESPONSE = 27;
 }
 
 enum CreatureState
@@ -254,6 +256,17 @@ message C_Respawn
 message C_DebugCommand
 {
     string command = 1;
+}
+
+message C_Login
+{
+    string name = 1;
+}
+
+message S_LoginResponse
+{
+    int32 result = 1;
+    string name = 2;
 }
 
 
