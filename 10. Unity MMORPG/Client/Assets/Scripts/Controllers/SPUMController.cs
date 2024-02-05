@@ -2,7 +2,6 @@ using Data;
 using Google.Protobuf.Protocol;
 using System.Collections;
 using System.Collections.Generic;
-using TMPro;
 using UnityEngine;
 using UnityEngine.Rendering;
 
@@ -57,7 +56,8 @@ public class SPUMController : CreatureController
             //_animator.Update(100f);
 
             _animator.speed = 100;
-            _animator.Play("4_Death".GetHashCode(), 0, 1f);
+            //_animator.Play("4_Death".GetHashCode(), 0, 1f);
+            _animator.Play("4_Death", 0, 1f);
             _animator.Update(100f);
         }
     }
@@ -274,29 +274,38 @@ public class SPUMController : CreatureController
     }
 
 
-    public void PlaySkillAnimation(bool heavy)
+    //public void PlaySkillAnimation(bool heavy)
+    //{
+    //    switch (_spum.spumClass)
+    //    {
+    //        case SPUMClass.SpumKnight:
+    //            if (heavy)
+    //                _animator.Play("5_Skill_Normal");
+    //            else
+    //                _animator.Play("2_Attack_Normal");
+    //            break;
+    //        case SPUMClass.SpumWizard:
+    //            if (heavy)
+    //                _animator.Play("5_Skill_Magic");
+    //            else
+    //                _animator.Play("2_Attack_Magic");
+    //            break;
+    //        case SPUMClass.SpumArcher:
+    //            if (heavy)
+    //                _animator.Play("5_Skill_Bow");
+    //            else
+    //                _animator.Play("2_Attack_Bow");
+    //            break;
+    //    }
+    //}
+
+
+    /* hp bar */
+    protected override void AddHpBar()
     {
-        switch (_spum.spumClass)
-        {
-            case SPUMClass.SpumKnight:
-                if (heavy)
-                    _animator.Play("5_Skill_Normal");
-                else
-                    _animator.Play("2_Attack_Normal");
-                break;
-            case SPUMClass.SpumWizard:
-                if (heavy)
-                    _animator.Play("5_Skill_Magic");
-                else
-                    _animator.Play("2_Attack_Magic");
-                break;
-            case SPUMClass.SpumArcher:
-                if (heavy)
-                    _animator.Play("5_Skill_Bow");
-                else
-                    _animator.Play("2_Attack_Bow");
-                break;
-        }
+        base.AddHpBar();
+        if(SPUM.hasHorse == true)
+            _healthBar.transform.localPosition = new Vector3(0, 1.25f, 0);
     }
 
 

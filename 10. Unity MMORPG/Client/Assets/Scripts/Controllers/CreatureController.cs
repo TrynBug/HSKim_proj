@@ -167,6 +167,7 @@ public abstract class CreatureController : BaseController
     /* component */
     protected Animator _animator = null;
     HpBar _hpBar;
+    protected Healthbar _healthBar;
     DebugText _debugText;
 
     /* animation controll */
@@ -606,37 +607,57 @@ public abstract class CreatureController : BaseController
 
     /* compoment */
     // HP Bar 추가
-    protected void AddHpBar()
+    protected virtual void AddHpBar()
     {
-        GameObject go = Managers.Resource.Instantiate("UI/HpBar", transform);
-        go.transform.localPosition = new Vector3(0, 1.0f, 0);
+        //GameObject go = Managers.Resource.Instantiate("UI/HpBar", transform);
+        //go.transform.localPosition = new Vector3(0, 1.0f, 0);
+        //go.name = "HpBar";
+        //_hpBar = go.GetComponent<HpBar>();
+        //UpdateHpBar();
+        
+        GameObject go = Managers.Resource.Instantiate("UI/Healthbar", transform);
+        go.transform.localPosition = new Vector3(0, 0.95f, 0);
         go.name = "HpBar";
-        _hpBar = go.GetComponent<HpBar>();
+        _healthBar = go.GetComponent<Healthbar>();
+        _healthBar.MaxHealth = Stat.MaxHp;
+        _healthBar.CurrentHealth = Stat.Hp;
         UpdateHpBar();
     }
 
     // HP Bar 업데이트
     protected void UpdateHpBar()
     {
-        if (_hpBar == null)
+        //if (_hpBar == null)
+        //    return;
+        //float ratio = 0.0f;
+        //if(Stat.MaxHp > 0)
+        //{
+        //    ratio = (float)Hp / (float)Stat.MaxHp;
+        //}
+        //_hpBar.SetHpBar(ratio);
+
+        //// 사망시 hp바 비활성화
+        //if (IsDead)
+        //{
+        //    _hpBar.gameObject.SetActive(false);
+        //}
+
+        if (_healthBar == null)
             return;
-        float ratio = 0.0f;
-        if(Stat.MaxHp > 0)
-        {
-            ratio = (float)Hp / (float)Stat.MaxHp;
-        }
-        _hpBar.SetHpBar(ratio);
+        _healthBar.SetHealth(Hp);
 
         // 사망시 hp바 비활성화
         if (IsDead)
         {
-            _hpBar.gameObject.SetActive(false);
+            _healthBar.gameObject.SetActive(false);
         }
     }
 
     public void SetHpBarActive(bool active)
     {
-        _hpBar.gameObject.SetActive(active);
+        if (_healthBar == null)
+            return;
+        _healthBar.gameObject.SetActive(active);
     }
 
 
