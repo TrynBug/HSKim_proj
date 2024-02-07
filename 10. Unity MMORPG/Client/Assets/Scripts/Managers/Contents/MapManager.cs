@@ -231,8 +231,7 @@ public class MapManager
 
 
         // 맵 생성
-        string mapName = "Map_" + mapId.ToString("000");   // mapId를 00# 형태의 string으로 변경
-        _mapRoot = Managers.Resource.Instantiate($"Map/{mapName}");  // mapId에 해당하는 map 생성
+        _mapRoot = Managers.Resource.Instantiate($"Map/{mapData.name}");
         _mapRoot.name = "Map";
 
         // Collision 타일맵을 찾은 다음, Active를 false로 하여 화면상에서는 보이지 않도록 만든다.

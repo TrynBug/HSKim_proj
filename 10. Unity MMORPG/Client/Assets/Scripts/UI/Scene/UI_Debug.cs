@@ -5,7 +5,7 @@ using TMPro;
 using UnityEngine;
 using static Define;
 
-public class UI_DebugInfo : UI_Scene
+public class UI_Debug : UI_Scene
 {
     void Start()
     {
@@ -20,6 +20,14 @@ public class UI_DebugInfo : UI_Scene
         TextMeshProUGUI text = GetText((int)UIDebugInfo.Text);
         text.text = $"RTT : {Managers.Time.RTTms :f0} ms\n";
         text.text += $"Map : {Managers.Map.MapId}\n";
+        
+        if(Managers.Object.MyPlayer != null)
+        {
+            text.text += $"Position : ({Managers.Object.MyPlayer.Pos.x:f2}, {Managers.Object.MyPlayer.Pos.y:f2})\n";
+            text.text += $"Cell : ({Managers.Object.MyPlayer.Cell.x}, {Managers.Object.MyPlayer.Cell.y})\n";
+        }
+
+
         text.text += _debugCommand;
 
     }

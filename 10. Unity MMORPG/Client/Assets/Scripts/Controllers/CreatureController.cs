@@ -6,6 +6,7 @@ using static Define;
 using Data;
 using ServerCore;
 using System;
+using Unity.Mathematics;
 
 
 // 움직이고 HP가 있는 오브젝트에 대한 기본 컨트롤러
@@ -257,11 +258,6 @@ public abstract class CreatureController : BaseController
         // 방향키 눌림 상태이거나, Dest와 Pos가 같지 않다면 이동한다.
         if (MoveKeyDown == true || Util.Equals(Pos, Dest) == false)
         {
-            //if (Util.Equals(Pos, Dest) == false)
-            //{
-            //    Dir = Util.GetDirectionToDest(Pos, Dest);  // 목적지에 따라 방향 설정
-            //    LookDir = Util.GetLookToTarget(Pos, Dest);
-            //}
             State = CreatureState.Moving;
             UpdateMoving();
         }
@@ -423,12 +419,6 @@ public abstract class CreatureController : BaseController
                 break;
             case AutoState.AutoWait:
                 {
-                    // 현재위치에 멈춤
-                    //StopAt(Pos);
-
-                    // 방향 수정
-                    //Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
-
                     Auto.State = AutoState.AutoWait;
                 }
                 break;
@@ -450,33 +440,17 @@ public abstract class CreatureController : BaseController
 
     protected virtual void UpdateAutoChasing()
     {
-        // 타겟이 없다면 Idle 상태로 돌아감
+        // 타겟이 없다면 종료
         if (Auto.Target == null || Auto.Target.IsAlive == false)
         {
-            //StopAt(Pos);
-
-            //Auto.WaitTime = 1000;
-            //Auto.NextState = AutoState.AutoIdle;
-            //Auto.State = AutoState.AutoWait;
-            //Auto.Target = null;
-
             return;
         }
 
         // 타겟과의 거리 확인 
-        //Vector2 dist = Auto.Target.Pos - Pos;
-        //Vector2 distAbs = new Vector2(Mathf.Abs(dist.x), Mathf.Abs(dist.y));
-        //LookDir lookToTarget = Util.GetLookToTarget(Pos, Auto.Target.Pos);
-        //// 추적범위 내에 있고 동시에 스킬범위 내에 있으면 움직이지 않음
-        //if (distAbs.x < Auto.TargetDistance.x && distAbs.y < Auto.TargetDistance.y
-        //    && Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.Skill.rangeX, Auto.Skill.rangeY), Auto.Target.Pos))
         if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.Skill.rangeX, Auto.Skill.rangeY), Auto.Target.Pos))
         {
             // 현재위치에 멈춤
             StopAt(Pos);
-
-            // 방향 수정
-            //Dir = Util.GetDirectionToDest(Pos, Auto.Target.Pos);
 
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"CreatureController.UpdateAutoChasing. Stop. {this.ToString(InfoLevel.Position)}");
         }
@@ -597,51 +571,23 @@ public abstract class CreatureController : BaseController
     {
         State = CreatureState.Dead;
         Auto.State = AutoState.AutoDead;
-
-        //// effect 생성
-        //GameObject effect = Managers.Resource.Instantiate("Effect/DieEffect");
-        //effect.transform.position = transform.position;
-        //effect.GetComponent<Animator>().Play("START");
-        //GameObject.Destroy(effect, 0.5f);
     }
 
     /* compoment */
     // HP Bar 추가
     protected virtual void AddHpBar()
     {
-        //GameObject go = Managers.Resource.Instantiate("UI/HpBar", transform);
-        //go.transform.localPosition = new Vector3(0, 1.0f, 0);
-        //go.name = "HpBar";
-        //_hpBar = go.GetComponent<HpBar>();
-        //UpdateHpBar();
-        
         GameObject go = Managers.Resource.Instantiate("UI/Healthbar", transform);
         go.transform.localPosition = new Vector3(0, 0.95f, 0);
         go.name = "HpBar";
         _healthBar = go.GetComponent<Healthbar>();
-        _healthBar.MaxHealth = Stat.MaxHp;
-        _healthBar.CurrentHealth = Stat.Hp;
+        _healthBar.SetHealthValue(Stat.MaxHp, Stat.Hp);
         UpdateHpBar();
     }
 
     // HP Bar 업데이트
-    protected void UpdateHpBar()
+    protected virtual void UpdateHpBar()
     {
-        //if (_hpBar == null)
-        //    return;
-        //float ratio = 0.0f;
-        //if(Stat.MaxHp > 0)
-        //{
-        //    ratio = (float)Hp / (float)Stat.MaxHp;
-        //}
-        //_hpBar.SetHpBar(ratio);
-
-        //// 사망시 hp바 비활성화
-        //if (IsDead)
-        //{
-        //    _hpBar.gameObject.SetActive(false);
-        //}
-
         if (_healthBar == null)
             return;
         _healthBar.SetHealth(Hp);

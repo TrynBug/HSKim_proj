@@ -215,6 +215,7 @@ namespace Data
     public class MapData
     {
         public int id;
+        public string name;
         public float cellWidth;
         public float cellHeight;
         public int cellBoundMinX;
@@ -224,6 +225,11 @@ namespace Data
         public List<string> collisions = new List<string>();
         public List<TeleportData> teleports = new List<TeleportData>();
         public List<EnterZoneData> enterZones = new List<EnterZoneData>();
+
+        public MapData ShallowCopy()
+        {
+            return (MapData)this.MemberwiseClone();
+        }
     }
 
     [Serializable]

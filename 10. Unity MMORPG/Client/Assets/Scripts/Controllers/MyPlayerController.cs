@@ -103,7 +103,9 @@ public class MyPlayerController : SPUMController
     void LateUpdate()
     {
         // 카메라 위치를 플레이어 위치로 업데이트
-        Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, -10);
+        //Camera.main.transform.position = new Vector3(transform.position.x, transform.position.y, -10);
+        Vector3 targetPos = new Vector3(transform.position.x, transform.position.y, -10);
+        Camera.main.transform.position = Vector3.Lerp(Camera.main.transform.position, targetPos, 0.2f);
     }
 
     // 현재 키보드 입력 얻기
@@ -511,16 +513,49 @@ public class MyPlayerController : SPUMController
         }
     }
 
-
+    // 부활요청 쿨타임
     IEnumerator CoRespawnCooltime(float time)
     {
         yield return new WaitForSeconds(time);
         _respawnSent = false;
     }
-
+    // 오토요청 쿨타임
     IEnumerator CoAutoRequestCooltime(float time)
     {
         yield return new WaitForSeconds(time);
         _autoRequestSent = false;
+    }
+
+
+    // 사망함
+    public override void OnDead()
+    {
+        base.OnDead();
+        Managers.UI.ShowPopupUI<UI_Dead>("UI_Dead");
+    }
+
+
+
+    /* compoment */
+    // HP Bar 추가
+    protected override void AddHpBar()
+    {
+        base.AddHpBar();
+        UI_Game gameUI = Managers.UI.SceneUI as UI_Game;
+        if(gameUI != null)
+        {
+            gameUI.SetHealthValue(Stat.MaxHp, Stat.Hp);
+        }
+    }
+
+    // HP Bar 업데이트
+    protected override void UpdateHpBar()
+    {
+        base.UpdateHpBar();
+        UI_Game gameUI = Managers.UI.SceneUI as UI_Game;
+        if (gameUI != null)
+        {
+            gameUI.SetHealth(Hp);
+        }
     }
 }

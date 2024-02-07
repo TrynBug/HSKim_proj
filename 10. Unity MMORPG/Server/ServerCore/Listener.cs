@@ -65,6 +65,7 @@ namespace ServerCore
             // 소켓 오류 체크
             if(args.SocketError == SocketError.Success)
             {
+                CounterManager.Instance.AddAccept();
                 Logger.WriteLog(LogLevel.Debug, $"Listener.OnAcceptCompleted. remote:{args.AcceptSocket.RemoteEndPoint.ToString()}");
 
                 // accept 성공시 세션 생성, recv 시작
@@ -75,6 +76,7 @@ namespace ServerCore
             else
             {
                 // 소켓 오류 발생시
+                CounterManager.Instance.AddAcceptError();
                 Logger.WriteLog(LogLevel.Error, $"Listener.OnAcceptCompleted Error. error:{args.SocketError.ToString()}");
             }
 

@@ -1,3 +1,4 @@
+using DummyClient;
 using Google.Protobuf;
 using Google.Protobuf.Protocol;
 using ServerCore;

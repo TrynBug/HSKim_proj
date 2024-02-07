@@ -813,6 +813,11 @@ namespace Server.Game
         public List<GameObject> FindObjectsInRect(Vector2 pos, Vector2 range, LookDir look, GameObject except)
         {
             List<GameObject> listObjects = new List<GameObject>();
+            if (IsInvalidPos(pos))
+            {
+                //ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.FindObjectsInRect. Invalid pos. pos:{pos}, except:{except}");  // error?
+                return listObjects;
+            }
 
             // 공격범위를 조사할 cell 찾기
             // 공격범위: pos 위치에서 look 방향으로 너비 range.x, 높이 range.y 사각형
@@ -872,6 +877,11 @@ namespace Server.Game
         public List<GameObject> FindObjectsInCircle(Vector2 pos, float diameter, GameObject except)
         {
             List<GameObject> listObjects = new List<GameObject>();
+            if (IsInvalidPos(pos))
+            {
+                // ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.FindObjectsInCircle. Invalid pos. pos:{pos}, except:{except}"); // error?
+                return listObjects;
+            }
 
             // 범위를 조사할 cell 찾기
             // 범위: pos 위치에서 반지름 radius인 원

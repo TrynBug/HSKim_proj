@@ -49,6 +49,12 @@ namespace DummyClient
 
         public override void OnConnected(EndPoint endPoint)
         {
+            // 로그인 패킷 전송
+            C_Login login = new C_Login();
+            login.Name = "dummy_player";
+            Send(login);
+
+
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"ServerSession.OnConnected. endPoint:{endPoint}");
         }
 

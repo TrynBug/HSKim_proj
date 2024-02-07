@@ -195,6 +195,7 @@ namespace DummyClient.Data
     public class MapData
     {
         public int id;
+        public string name;
         public float cellWidth;
         public float cellHeight;
         public int cellBoundMinX;

@@ -20,6 +20,7 @@ namespace ServerCore
         public sealed override int OnRecv(ArraySegment<byte> buffer)
         {
             int processLen = 0;  // buffer 에서 read한 데이터 수
+            int recvCount = 0;
             while(true)
             {
                 // 헤더가 모두 수신되었는지 확인
@@ -32,6 +33,7 @@ namespace ServerCore
                     break;
 
                 // 패킷 수신됨
+                recvCount++;
                 OnRecvPacket(new ArraySegment<byte>(buffer.Array, buffer.Offset, dataSize));
 
                 // buffer가 다음 패킷 데이터를 가르키도록 한다.
@@ -39,6 +41,12 @@ namespace ServerCore
                 buffer = new ArraySegment<byte>(buffer.Array, buffer.Offset + dataSize, buffer.Count - dataSize);
             }
 
+            if (recvCount > 0)
+            {
+                CounterManager.Instance.AddRecv(recvCount);
+                CounterManager.Instance.AddRecvBytes(processLen);
+
+            }
             return processLen;
         }
     }
@@ -53,7 +61,8 @@ namespace ServerCore
         EndPoint _endPoint;    // _socket.RemoteEndPoint 를 사용하는 시점에는 _socket이 dispose 됐을 수 있기 때문에 RemoteEndPoint를 얻으려면 _endPoint 을 사용해야함
         int _disconnected = 0;   // disconnect 됨 여부
 
-        object _lock = new object();                     // send용 lock
+        
+        object _lock = new object();       // lock
         Queue<ArraySegment<byte>> _sendQueue = new Queue<ArraySegment<byte>>();  // send할 데이터 모아놓는 큐
         List<ArraySegment<byte>> _pendingList = new List<ArraySegment<byte>>(); // send하기 위해 sendQueue에서 꺼낸 버퍼들을 모아놓는 리스트
         SocketAsyncEventArgs _sendArgs = new SocketAsyncEventArgs();  // send용 EventArgs
@@ -128,10 +137,11 @@ namespace ServerCore
         {
             if (Interlocked.Exchange(ref _disconnected, 1) == 0)
             {
+                CounterManager.Instance.AddDisconnect();
                 Logger.WriteLog(LogLevel.Debug, $"Session.Disconnect. remote:{_endPoint}");
                 OnDisconnected(_endPoint);
 
-                _socket.Shutdown(SocketShutdown.Both);
+                //_socket.Shutdown(SocketShutdown.Both);
                 _socket.Close();
                 Clear();
             }
@@ -155,8 +165,13 @@ namespace ServerCore
                     OnRecvCompleted(null, _recvArgs);
                 }
             }
+            catch(ObjectDisposedException ex)
+            {
+                return;
+            }
             catch(Exception ex)
             {
+                CounterManager.Instance.AddRecvError();
                 Logger.WriteLog(LogLevel.Error, $"Session.RegisterRecv Exception. remote:{_endPoint}, exception:{ex.ToString()}");
             }
         }
@@ -196,13 +211,20 @@ namespace ServerCore
                 }
                 catch (Exception ex)
                 {
+                    CounterManager.Instance.AddRecvError();
                     Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Exception. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}, exception:{ex.ToString()}");
                 }
             }
             else
             {
-                if(!(args.BytesTransferred == 0 && args.SocketError == SocketError.Success))
+                if (args.BytesTransferred == 0 && args.SocketError == SocketError.Success) { }
+                else if (args.SocketError == SocketError.OperationAborted) { }
+                else if (args.SocketError == SocketError.ConnectionReset) { }
+                else
+                {
+                    CounterManager.Instance.AddRecvError();
                     Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Error. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
+                }
                 Disconnect();
             }
         }
@@ -215,6 +237,7 @@ namespace ServerCore
                 return;
 
             // _sendQueue의 모든 버퍼를 꺼내 _sendArgs.BufferList에 추가한다.
+            int sendBytes = 0;
             _pendingList.Clear();
             while(_sendQueue.Count > 0)
             {
@@ -223,8 +246,11 @@ namespace ServerCore
                 // ArraySegment 구조체가 존재하는 이유는 pointer가 없어서 배열의 중간을 직접 가르킬 수 없기 때문이다.
                 ArraySegment<byte> buff = _sendQueue.Dequeue();
                 _pendingList.Add(buff);
+                sendBytes += buff.Count;
             }
             _sendArgs.BufferList = _pendingList;
+            CounterManager.Instance.AddSend(_pendingList.Count);
+            CounterManager.Instance.AddSendBytes(sendBytes);
 
             // send
             try
@@ -235,8 +261,13 @@ namespace ServerCore
                     OnSendCompleted(null, _sendArgs);
                 }
             }
+            catch (ObjectDisposedException ex)
+            {
+                return;
+            }
             catch (Exception ex)
             {
+                CounterManager.Instance.AddSendError();
                 Logger.WriteLog(LogLevel.Error, $"Session.RegisterSend Exception. remote:{_endPoint.ToString()}, exception:{ex.ToString()}");
             }
         }
@@ -263,12 +294,19 @@ namespace ServerCore
                     }
                     catch (Exception ex)
                     {
+                        CounterManager.Instance.AddSendError();
                         Logger.WriteLog(LogLevel.Error, $"Session.OnSendCompleted Exception. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}, exception:{ex.ToString()}");
                     }
                 }
                 else
                 {
-                    Logger.WriteLog(LogLevel.Error, $"Session.OnSendCompleted Error. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
+                    if (args.SocketError == SocketError.OperationAborted) { }
+                    else if (args.SocketError == SocketError.ConnectionReset) { }
+                    else
+                    {
+                        CounterManager.Instance.AddSendError();
+                        Logger.WriteLog(LogLevel.Error, $"Session.OnSendCompleted Error. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
+                    }
                     Disconnect();
                 }
             }

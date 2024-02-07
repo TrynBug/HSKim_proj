@@ -12,6 +12,8 @@ namespace Server
         static SessionManager _session = new SessionManager();
         public static SessionManager Instance { get { return _session; } }
 
+        public int SessionCount { get { return _sessions.Count; } }
+
         int _sessionId = 0;
         Dictionary<int, ClientSession> _sessions = new Dictionary<int, ClientSession>();
         object _lock = new object();

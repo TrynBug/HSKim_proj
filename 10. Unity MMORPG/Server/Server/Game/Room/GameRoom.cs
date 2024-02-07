@@ -4,11 +4,8 @@ using System.Diagnostics;
 using System.Linq;
 using System.Numerics;
 using System.Text;
-using System.Threading.Tasks;
 using Google.Protobuf;
-using Google.Protobuf.Collections;
 using Google.Protobuf.Protocol;
-using Google.Protobuf.WellKnownTypes;
 using Server.Data;
 using ServerCore;
 
@@ -23,6 +20,7 @@ namespace Server.Game
     {
         public int RoomId { get; set; }
         public int MapId { get; private set; }
+        public bool IsRoomUpdate { get; private set; }
 
         // FPS, Delta Time
         public Time Time { get; private set; } = new Time();
@@ -43,6 +41,7 @@ namespace Server.Game
         Dictionary<int, Projectile> _projectiles = new Dictionary<int, Projectile>();
 
         public int PlayerCount { get { return _players.Count; } }
+        public int SkillCount { get { return _skills.Count; } }
         public int ProjectileCount { get { return _projectiles.Count; } }
 
         // map
@@ -178,6 +177,7 @@ namespace Server.Game
         List<Projectile> _deadProjectiles = new List<Projectile>();
         public void _update()
         {
+            IsRoomUpdate = true;
             Flush();  // job queue 내의 모든 job 실행
 
             // 플레이어 업데이트
@@ -315,6 +315,8 @@ namespace Server.Game
             {
                 _projectiles.Remove(projectile.Id);
             }
+
+            IsRoomUpdate = false;
         }
 
         // FPS를 유지하기 위해 sleep 해야하는 시간을 계산한다.
@@ -583,110 +585,6 @@ namespace Server.Game
 
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{skillPacket.SkillId}");
         }
-
-
-
-
-        //// 스킬 피격요청 처리
-        //public void _handleSkillHit(Player player, C_SkillHit hitPacket)
-        //{
-        //    if (player == null)
-        //        return;
-
-        //    // 스킬 피격처리가 가능한지 확인
-        //    SkillData skill;
-        //    if (player.CanSkillHit(hitPacket.SkillId, out skill) == false)
-        //        return;
-
-        //    // 스킬 피격확인
-        //    ObjectInfo info = player.Info;
-        //    S_SkillHit resHitPacket = new S_SkillHit();
-        //    resHitPacket.ObjectId = info.ObjectId;
-        //    resHitPacket.SkillId = hitPacket.SkillId;
-        //    switch (skill.skillType)
-        //    {
-        //        case SkillType.SkillMelee:
-        //            {
-        //                // 대상이 공격범위 내에 있는지 확인
-        //                Player target = null;
-        //                foreach (int objectId in hitPacket.HitObjectIds)
-        //                {
-        //                    if (_players.TryGetValue(objectId, out target) == false)
-        //                        continue;
-        //                    if (target.State == CreatureState.Dead)
-        //                        continue;
-
-        //                    // target이 스킬범위내에 존재하면 피격판정
-        //                    if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
-        //                    {
-        //                        // 피격됨
-        //                        int damage = target.OnDamaged(player, player.Stat.Damage);
-        //                        resHitPacket.HitObjectIds.Add(target.Id);
-        //                    }
-        //                }
-        //            }
-        //            break;
-
-        //        case SkillType.SkillProjectile:
-        //            {
-        //                // 공격범위 내의 대상 찾기
-        //                Player target = null;
-        //                foreach (int objectId in hitPacket.HitObjectIds)
-        //                {
-        //                    Player tempTarget = null;
-        //                    if (_players.TryGetValue(objectId, out tempTarget) == false)
-        //                        continue;
-        //                    if (tempTarget.State == CreatureState.Dead)
-        //                        continue;
-
-        //                    // target이 스킬범위내에 존재하는지 확인
-        //                    if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), tempTarget.Pos) == true)
-        //                    {
-        //                        // 타겟 찾음
-        //                        target = tempTarget;
-        //                        break;
-        //                    }
-        //                }
-
-        //                // projectile의 경우에는 여기에서 피격대상을 전송하지 않고 투사체만 생성한다.
-        //                Projectile projectile = Projectile.CreateInstance(skill.id);
-        //                projectile.Init(skill, player, target);
-        //                _enterGame(projectile);
-        //            }
-        //            break;
-
-        //        case SkillType.SkillInstant:
-        //            {
-        //                // 대상이 공격범위 내에 있는지 확인
-        //                Player target = null;
-        //                foreach (int objectId in hitPacket.HitObjectIds)
-        //                {
-        //                    if (_players.TryGetValue(objectId, out target) == false)
-        //                        continue;
-        //                    if (target.State == CreatureState.Dead)
-        //                        continue;
-
-        //                    // target이 스킬범위내에 존재하면 피격판정
-        //                    if (Util.IsTargetInRectRange(player.Pos, player.LookDir, new Vector2(skill.rangeX, skill.rangeY), target.Pos) == true)
-        //                    {
-        //                        // 피격됨
-        //                        int damage = target.OnDamaged(player, player.Stat.Damage + skill.damage);
-        //                        resHitPacket.HitObjectIds.Add(target.Id);
-        //                        break;
-        //                    }
-        //                }
-        //            }
-        //            break;
-        //    }
-
-
-        //    // 게임룸 내의 모든 플레이어들에게 브로드캐스팅
-        //    _broadcast(resHitPacket);
-
-
-        //    ServerCore.Logger.WriteLog(LogLevel.Debug, $"GameRoom._handleSkill. {player}, skill:{resHitPacket.SkillId}, hits:{resHitPacket.HitObjectIds.Count}");
-        //}
-
 
 
 

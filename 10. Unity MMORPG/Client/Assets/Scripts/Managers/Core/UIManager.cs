@@ -9,6 +9,8 @@ public class UIManager
     Stack<UI_Popup> _popupStack = new Stack<UI_Popup>();  // popup된 UI들을 스택순서로 관리
     UI_Scene _sceneUI = null;
 
+    public UI_Scene SceneUI { get { return _sceneUI; } }
+
     public GameObject Root  // 유니티 hierarchy 상에서 모든 UI의 부모 오브젝트
     {
         get

@@ -15,7 +15,9 @@ public class SPUMController : CreatureController
     // spum
     GameObject _unitRoot;
     SPUMData _spum;
+    public GameObject UnitRoot { get { return _unitRoot; } }
     public SPUMData SPUM { get { return _spum; } }
+
 
     // animation controll
     bool _bPlayingSkill = false;

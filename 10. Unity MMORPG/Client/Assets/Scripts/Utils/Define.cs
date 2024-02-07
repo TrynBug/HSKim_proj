@@ -97,6 +97,17 @@ public class Define
         InputField
     }
 
+    public enum UIGame
+    {
+        Healthbar
+    }
+
+    public enum UIDead
+    {
+        Panel,
+        Text,
+    }
+
     /* Number Prefab */
     public enum NumberType
     {

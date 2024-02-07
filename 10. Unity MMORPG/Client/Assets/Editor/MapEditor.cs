@@ -19,6 +19,12 @@ public class MapEditor
 {
 #if UNITY_EDITOR
 
+    // 생성할 맵 수
+    // 현재 map prefab 수가 _maxMapNumber 보다 작을 경우 _maxMapNumber 만큼 맵을 중복하여 생성한다.
+    static int _maxMapNumber = 100;
+
+
+
     // Prefabs/Map 아래의 각각의 grid 내의 Tilemap_Collision 타일맵에서 갈수없는 cell 정보를 추출하여 파일로 생성하는 함수
     // Tools 메뉴 아래에 GenerateMap 메뉴를 만들고, 해당 메뉴 선택시 아래 함수를 호출한다.
     // 단축키는 Ctrl + Shift + m 으로 한다. attribute에서의 단축키 예약어는 %(Ctrl), #(Shift), &(Alt) 로 지정되어 있다.
@@ -47,6 +53,7 @@ public class MapEditor
                 continue;
             Data.MapData mapData = new MapData();
             mapData.id = id;
+            mapData.name = go.name;
 
             // grid 가져오기
             Grid grid = go.GetComponent<Grid>();
@@ -158,6 +165,18 @@ public class MapEditor
             // 전체 list에 추가
             listMap.Add(mapData);
         }
+
+        // _maxMapNumber 수만큼 맵 개수를 늘림
+        int numPrefab = listMap.Count;
+        for (int i = numPrefab; i < _maxMapNumber; i++)
+        {
+            MapData data = listMap[i % numPrefab];
+            MapData newData = data.ShallowCopy();
+            newData.id = i;
+            listMap.Add(newData);
+        }
+
+
 
         // json 으로 변환후 write
         string jsonText = Newtonsoft.Json.JsonConvert.SerializeObject(listMap, Newtonsoft.Json.Formatting.Indented);

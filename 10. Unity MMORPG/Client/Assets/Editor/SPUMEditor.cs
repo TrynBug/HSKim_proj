@@ -25,6 +25,7 @@ public class SPUMEditor
 {
 #if UNITY_EDITOR
 
+
     // Prefabs/SPUM 아래의 "SPUM###" 이름의 prefab에서 SPUM 장비 정보를 추출하여 파일로 생성한다.
     // Tools 메뉴 아래에 Generate SPUM Data 메뉴로 만든다.
     // 단축키는 Ctrl + Shift + s 로 한다. attribute에서의 단축키 예약어는 %(Ctrl), #(Shift), &(Alt) 로 지정되어 있다.
@@ -97,6 +98,7 @@ public class SPUMEditor
 
             listSpum.Add(spum);
         }
+
 
         // json 으로 변환후 write
         string jsonText = Newtonsoft.Json.JsonConvert.SerializeObject(listSpum, Newtonsoft.Json.Formatting.Indented);

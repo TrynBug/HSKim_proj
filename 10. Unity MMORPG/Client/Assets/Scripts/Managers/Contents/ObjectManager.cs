@@ -8,8 +8,6 @@ using System.Collections.Generic;
 using System.Threading;
 using Unity.VisualScripting;
 using UnityEngine;
-using UnityEngine.EventSystems;
-using UnityEngine.Rendering;
 
 // 맵 상의 오브젝트를 관리하는 매니저
 public class ObjectManager
@@ -25,6 +23,7 @@ public class ObjectManager
     Dictionary<int, BaseController> _skills = new Dictionary<int, BaseController>();
     Dictionary<int, BaseController> _projectiles = new Dictionary<int, BaseController>();
     Dictionary<int, BaseController> _effects = new Dictionary<int, BaseController>();
+    Dictionary<int, CloneController> _clones = new Dictionary<int, CloneController>();
 
     public ICollection<KeyValuePair<int, BaseController>> Players { get { return _players.AsReadOnlyCollection(); } }
     public ICollection<KeyValuePair<int, BaseController>> Skills { get { return _skills.AsReadOnlyCollection(); } }
@@ -54,6 +53,7 @@ public class ObjectManager
 
     List<BaseController> _endSkills = new List<BaseController>();
     List<BaseController> _deadProjectiles = new List<BaseController>();
+    List<BaseController> _deadClones = new List<BaseController>();
     public void OnUpdate()
     {
         // 끝난 스킬 삭제
@@ -79,6 +79,25 @@ public class ObjectManager
         foreach (BaseController projectile in _deadProjectiles)
         {
             Managers.Object.Remove(projectile.Id);
+        }
+
+
+        
+        // debug
+        if (Config.DebugOn)
+        {
+            // 사망한 클론 삭제
+            _deadClones.Clear();
+            foreach (CloneController clone in _clones.Values)
+            {
+                if (clone.IsDestroyed)
+                    _deadClones.Add(clone);
+            }
+            foreach (CloneController clone in _deadClones)
+            {
+                _clones.Remove(clone.Id);
+                Managers.Resource.Destroy(clone.gameObject);
+            }
         }
     }
 
@@ -123,6 +142,19 @@ public class ObjectManager
         // map에 추가
         Managers.Map.Add(player);
 
+        // 카메라 위치를 플레이어 위치로 지정
+        Camera.main.transform.position = new Vector3(MyPlayer.transform.position.x, MyPlayer.transform.position.y, -10);
+
+        // debug
+        if(Config.DebugOn)
+        {
+            // 클론 생성
+            GameObject goClone = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
+            CloneController clone = goClone.GetOrAddComponent<CloneController>();
+            clone.Init(player);
+            _clones.Add(clone.Info.ObjectId, clone);
+        }
+
         return player;
     }
 
@@ -151,6 +183,17 @@ public class ObjectManager
 
             // map에 추가
             Managers.Map.Add(player);
+
+
+            // debug
+            if (Config.DebugOn)
+            {
+                // 클론 생성
+                GameObject goClone = Managers.Resource.Instantiate($"SPUM/{spum.prefabName}");
+                CloneController clone = goClone.GetOrAddComponent<CloneController>();
+                clone.Init(player);
+                _clones.Add(clone.Info.ObjectId, clone);
+            }
 
             return player;
             
@@ -352,6 +395,13 @@ public class ObjectManager
         _skills.Clear();
         _projectiles.Clear();
         _effects.Clear();
-        
+
+
+        if(Config.DebugOn)
+        {
+            foreach (CloneController obj in _clones.Values)
+                Managers.Resource.Destroy(obj.gameObject);
+            _clones.Clear();
+        }
     }
 }

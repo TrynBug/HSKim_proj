@@ -18,8 +18,14 @@ namespace Data
         public const float DifferenceTolerance = 0.001f;
 
         // move
-        public const float MyPlayerMinimumMove = 0.05f;
+        public const float MyPlayerMinimumMove = 0.1f;
         public const int MovePacketSendInterval = 200;
+
+        // debug
+        public const bool DebugUIOn = true;
+        public const bool DebugOn = false;
+        public const bool PacketDelayOn = false;
+        public const int PacketDelay = 50;
     }
 
 }

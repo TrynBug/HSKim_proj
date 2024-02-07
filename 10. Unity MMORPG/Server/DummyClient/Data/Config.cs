@@ -21,9 +21,9 @@ namespace DummyClient.Data
         public const float DifferenceTolerance = 0.001f;
 
         /* dummy client */
-        public const int MaxNumberOfClient = 100;
+        public const int MaxNumberOfClient = 3000;
         public const int MaxConnectionCountPerFrame = 5;
-        public const float DisconnectProb = 0.0001f;
+        public const float DisconnectProb = 0.001f;
 
 
         //private static string _toString = string.Empty;

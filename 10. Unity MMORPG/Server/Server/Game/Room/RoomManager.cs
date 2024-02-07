@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Drawing;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -13,7 +14,10 @@ namespace Server.Game
 
         public LoginRoom LoginRoom { get; private set; } = new LoginRoom();
         public int RoomCount { get { return _rooms.Count; } }
-        
+        public int UpdateRoomCount { get { return GetUpdateRoomCount(); } }
+        public int LoginPlayerCount { get { return LoginRoom.SessionCount; } }
+        public int GamePlayerCount { get { return GetGamePlayerCount(); } }
+
         object _lock = new object();
         Dictionary<int, GameRoom> _rooms = new Dictionary<int, GameRoom>();
         Random _rand = new Random();
@@ -86,8 +90,42 @@ namespace Server.Game
             return room;
         }
 
+        public int GetGamePlayerCount()
+        {
+            int count = 0;
+            lock (_lock)
+            {
+                foreach (GameRoom room in _rooms.Values)
+                {
+                    count += room.PlayerCount;
+                }
+            }
+            return count;
+        }
 
+        public int GetUpdateRoomCount()
+        {
+            int count = 0;
+            lock (_lock)
+            {
+                foreach (GameRoom room in _rooms.Values)
+                {
+                    if (room.IsRoomUpdate)
+                        count++;
+                }
+            }
+            return count;
+        }
 
-
+        public void PrintRoomFrame()
+        {
+            lock (_lock)
+            {
+                foreach (GameRoom room in _rooms.Values)
+                {
+                    Logger.WriteLog(LogLevel.System, $"room:{room.RoomId}, fps:{room.Time.AvgFPS1m}, delta:{room.Time.DeltaTime}");
+                }
+            }
+        }
     }
 }

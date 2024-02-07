@@ -25,6 +25,9 @@ namespace ServerCore
                 return;
             if (Level == LogLevel.None)
                 return;
+            int error_break;
+            if (Level == LogLevel.Error)
+                error_break = 0;
 
             string outLog;
             switch(level)

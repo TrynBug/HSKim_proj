@@ -1,3 +1,4 @@
+using Google.Protobuf.WellKnownTypes;
 using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
@@ -48,7 +49,13 @@ public class Healthbar : MonoBehaviour
     }
 
 
-
+    public void SetHealthValue(float maxHealth, float currentHealth)
+    {
+        MaxHealth = maxHealth;
+        CurrentHealth = currentHealth;
+        currentValue = currentHealth;
+        fillImage.fillAmount = currentHealth;
+    }
 
     public void SetHealth(float health)
     {

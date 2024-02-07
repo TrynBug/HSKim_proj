@@ -133,6 +133,14 @@ namespace DummyClient
             ServerSession serverSession = session as ServerSession;
         }
 
+        // 로딩완료 요청 처리
+        public static void S_LoginResponseHandler(PacketSession session, IMessage packet)
+        {
+            S_LoginResponse loadPacket = packet as S_LoginResponse;
+            ServerSession serverSession = session as ServerSession;
+        }
+
+        
     }
 
 }

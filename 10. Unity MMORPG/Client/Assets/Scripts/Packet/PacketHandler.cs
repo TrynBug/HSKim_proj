@@ -8,7 +8,6 @@ using System.Collections.Generic;
 using System.Linq;
 using TMPro;
 using UnityEngine;
-using static PlayerObj;
 
 // 패킷 타입별로 호출할 핸들러 함수를 관리하는 클래스
 // 서버에게 받은 패킷을 처리하는 핸들러이기 때문에 S_ 로 시작하는 패킷명에 대한 핸들러 함수만 작성한다.
@@ -18,6 +17,10 @@ class PacketHandler
     {
         S_EnterGame enterGamePacket = packet as S_EnterGame;
         ServerSession serverSession = session as ServerSession;
+
+        // UI 초기화
+        Managers.UI.ClosePopupUI();
+
 
         // 맵 초기화
         Managers.Map.LoadMap(enterGamePacket.RoomId);
