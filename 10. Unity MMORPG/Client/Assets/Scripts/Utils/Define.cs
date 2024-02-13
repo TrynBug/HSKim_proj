@@ -94,7 +94,8 @@ public class Define
 
     public enum UILogin
     {
-        InputField
+        InputName,
+        InputPassword
     }
 
     public enum UIGame

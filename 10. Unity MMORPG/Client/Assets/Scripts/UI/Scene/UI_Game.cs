@@ -21,12 +21,16 @@ public class UI_Game : UI_Scene
     public void SetHealthValue(float maxHP, float currentHP)
     {
         Healthbar HpBar = Get<Healthbar>((int)UIGame.Healthbar);
+        if (HpBar == null)
+            return;
         HpBar.SetHealthValue(maxHP, currentHP);
     }
 
     public void SetHealth(float health)
     {
         Healthbar HpBar = Get<Healthbar>((int)UIGame.Healthbar);
+        if (HpBar == null)
+            return;
         HpBar.SetHealth(health);
     }
 }

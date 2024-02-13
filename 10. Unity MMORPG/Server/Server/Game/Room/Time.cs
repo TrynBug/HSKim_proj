@@ -15,7 +15,7 @@ namespace Server.Game
 
         /* DT */
         public float DeltaTime { get; private set; } = 0f;  // Delta Time
-        public double AvgDT1s { get; private set; } = 0f;    // 지난 1초 평균 DT
+        public double AvgDT1s { get; private set; } = 0;    // 지난 1초 평균 DT
         public double MinDT1st { get; private set; } = double.MaxValue;   // 최소DT (최소값)
         public double MinDT2nd { get; private set; } = double.MaxValue;   // 최소DT (최소값 바로위)
         public double MaxDT1st { get; private set; } = double.MinValue;   // 최대DT (최대값)
@@ -23,7 +23,7 @@ namespace Server.Game
 
         /* FPS */
         public int FPS { get { return Config.FPS; } }
-        public float AvgFPS1s { get; private set; } = 0f;   // 지난 1초 평균 FPS(AvgDT1s 값을 FPS로 환산)
+        public float AvgFPS1s { get { return AvgDT1s == 0 ? 0 : (float)(1 / AvgDT1s); } }   // 지난 1초 평균 FPS(AvgDT1s 값을 FPS로 환산)
         public float AvgFPS1m { get; private set; } = 0f;   // 지난 1분 평균 FPS
         public int MinFPS1st { get; private set; } = int.MaxValue;  // 최소FPS (최소값)
         public int MinFPS2nd { get; private set; } = int.MaxValue;  // 최소FPS (최소값 바로위)

@@ -10,7 +10,6 @@ GameObject:
   m_Component:
   - component: {fileID: 1612592452328824018}
   - component: {fileID: 1386494813503503603}
-  - component: {fileID: 5157079814927436648}
   m_Layer: 0
   m_Name: Arrow_0
   m_TagString: Untagged
@@ -85,15 +84,3 @@ SpriteRenderer:
   m_WasSpriteAssigned: 1
   m_MaskInteraction: 0
   m_SpriteSortPoint: 0
---- !u!114 &5157079814927436648
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 2410075277802384623}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 9bb10aa77f201734c96dff63616f4118, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 

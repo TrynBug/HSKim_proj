@@ -98,11 +98,13 @@ public class BaseController : MonoBehaviour
         get { return PosInfo.State; }
         set
         {
+            PrevState = PosInfo.State;
             if (PosInfo.State == value)
                 return;
             PosInfo.State = value;
         }
     }
+    public CreatureState PrevState { get; private set; }
 
     // 이동 방향
     public virtual MoveDir Dir
@@ -110,6 +112,7 @@ public class BaseController : MonoBehaviour
         get { return PosInfo.MoveDir; }
         set
         {
+            PrevDir = PosInfo.MoveDir;
             if (PosInfo.MoveDir == value)
                 return;
             PosInfo.MoveDir = value;
@@ -128,6 +131,7 @@ public class BaseController : MonoBehaviour
             }
         }
     }
+    public MoveDir PrevDir { get; private set; }
 
     // 보는 방향
     public virtual LookDir LookDir
@@ -249,12 +253,9 @@ public class BaseController : MonoBehaviour
     /* stop */
     // 서버와 정지 위치를 동기화시킨다.
     // 만약 서버 cell과 클라이언트 cell이 동일하다면 세부적인 위치는 변경하지 않는다.
-    public void SyncStop(S_Stop stopPacket)
+    public void SyncStop(Vector2 stopPos)
     {
-        Vector2 serverPos = new Vector2(stopPacket.PosX, stopPacket.PosY);
-        Vector2Int serverCell = Managers.Map.PosToCell(serverPos);
-        Dir = stopPacket.Dir;
-        LookDir = stopPacket.Look;
+        Vector2Int serverCell = Managers.Map.PosToCell(stopPos);
 
         // 내가 멈출 위치에 다른 오브젝트가 있는지 확인한다.
         BaseController objOther = Managers.Map.GetStopObjectAt(serverCell);
@@ -262,12 +263,12 @@ public class BaseController : MonoBehaviour
         {
             // 다른 오브젝트가 있다면 나를 해당 위치에 멈추고 다른 오브젝트는 근처에 위치시킨다.
             Managers.Map.TryMoving(objOther, objOther.Pos, checkCollider: false);
-            StopAt(serverPos);
-            objOther.StopAt(serverPos);
+            StopAt(stopPos);
+            objOther.StopAt(stopPos);
         }
         else
         {
-            if(Cell == serverCell)
+            if (Cell == serverCell)
             {
                 // 다른 오브젝트가 없고 내 cell과 서버의 cell이 동일하다면 내 위치에 멈춘다.
                 StopAt(Pos);
@@ -275,10 +276,12 @@ public class BaseController : MonoBehaviour
             else
             {
                 // 다른 오브젝트가 없고 내 cell과 서버의 cell이 다르다면 서버 위치에 멈춘다.
-                StopAt(serverPos);
+                StopAt(stopPos);
             }
         }
     }
+
+
 
     // dest 위치에 멈춤
     // dest 위치에 멈출 수 없다면 주변 위치에 멈춘다.

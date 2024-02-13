@@ -1,3 +1,5 @@
 {
-	"dataPath": "../../../../../Client/Assets/Resources/Data"
+	"dataPath": "../../../../../Client/Assets/Resources/Data",
+	"serverIP": "0.0.0.0",
+	"serverPort": "22222"
 }

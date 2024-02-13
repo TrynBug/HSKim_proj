@@ -29,10 +29,17 @@ namespace Server.Game
             }
         }
 
+        // equipment
         public Equipment Equip { get; set; } = new Equipment();
 
+        // room move
         public bool MoveRoom { get; set; } = false;
         public int NextRoomId { get; set; }
+
+        // DB
+        public bool IsDBUpdating { get; set; } = false;
+        public bool NeedDBUpdate { get; set; } = false;
+        public int DBLastUpdateTime { get; set; } = Environment.TickCount;
 
 
         public Player()
@@ -49,7 +56,7 @@ namespace Server.Game
 
             // 위치 초기화
             Room = room;
-            Info.Name = $"Player_{Id}";
+            Info.Name = session.Name;
             Dir = MoveDir.Left;
             Pos = room.Map.GetRandomEmptyPos();
             Dest = Pos;
@@ -63,8 +70,15 @@ namespace Server.Game
 
             // SPUM 데이터 가져오기
             Random rand = new Random();
-            SPUMId = rand.Next(0, DataManager.SPUMDict.Count);
-            SPUM = DataManager.SPUMDict.GetValueOrDefault(SPUMId, DataManager.DefaultSPUM);
+            int spumId = rand.Next(0, DataManager.SPUMDict.Count);
+            InitSPUM(spumId);
+        }
+
+        public void InitSPUM(int spumId)
+        {
+            // SPUM 데이터 가져오기
+            SPUM = DataManager.SPUMDict.GetValueOrDefault(spumId, DataManager.DefaultSPUM);
+            SPUMId = SPUM.id;
 
             // 장비아이템 초기화
             Equip.SetEquipment(SPUM);
@@ -73,6 +87,7 @@ namespace Server.Game
             RecalculateStat();
 
             // 스킬 초기화
+            Skillset.Clear();
             switch (SPUM.spumClass)
             {
                 case SPUMClass.SpumArcher:
@@ -91,9 +106,6 @@ namespace Server.Game
                     }
                     break;
             }
-
-            //foreach(SkillData skill in DataManager.SkillDict.Values)
-            //    Skillset.Add(skill.id, new SkillUseInfo() { skill = skill });
         }
     
 
@@ -200,7 +212,7 @@ namespace Server.Game
             State = CreatureState.Idle;
 
             // 타겟 찾기
-            Auto.Target = Room.FindObjectNearbyCell(Cell, exceptObject: this);
+            Auto.Target = Room.FindObjectNearbyCell(Cell, Config.AutoFindTargetRange, exceptObject: this);
 
             // 타겟이 지정됨
             if (Auto.Target != null)
@@ -226,6 +238,7 @@ namespace Server.Game
                 {
                     // 일정횟수 이상 moving한 경우에는 텔레포트 위치로 이동함
                     Auto.State = AutoState.AutoMoving;
+                    Auto.NextState = AutoState.AutoWait;
                     TeleportData teleport = Room.Map.GetRandomTeleport();
                     Auto.SetPath(new Vector2(teleport.posX, teleport.posY));
 
@@ -235,6 +248,7 @@ namespace Server.Game
                 {
                     // 랜덤 경로 지정
                     Auto.State = AutoState.AutoMoving;
+                    Auto.NextState = AutoState.AutoWait;
                     Auto.SetPathRandom();
 
                     // 패킷 전송
@@ -250,17 +264,33 @@ namespace Server.Game
             // 타겟이 없다면 Idle 상태로 돌아감
             if (Room.IsValidTarget(Auto.Target) == false)
             {
-                Auto.SetToWait(1.0, AutoState.AutoIdle);
+                Auto.SetToWait(Config.AutoActionWaitSecond, AutoState.AutoIdle);
                 return;
             }
 
+
             // 타겟과의 거리 확인 
-            Vector2 dist = Auto.Target.Pos - Pos;
-            //Vector2 distAbs = dist.Abs;
-            //LookDir lookToTarget = Util.GetLookToTarget(Pos, Auto.Target.Pos);
-            // 타겟이 추적범위 내에 있고 동시에 스킬범위 내에 있으면 움직이지 않음
-            //if (distAbs.x < Auto.TargetDistance.x && distAbs.y < Auto.TargetDistance.y
-            //    && Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
+            // 마법사 클래스이고, 타겟이 너무 가까이 있을 경우 거리를 조금 벌림
+            if (SPUM.spumClass == SPUMClass.SpumWizard)
+            {
+                int tick = Environment.TickCount;
+                if (tick - Auto.PathEndTime > Config.AutoRunAwayCooltime && Util.IsTargetInCircle(Pos, Config.AutoRunAwayDistance, Auto.Target.Pos) == true)
+                {
+                    // 경로 지정
+                    Auto.State = AutoState.AutoMoving;
+                    Auto.NextState = AutoState.AutoChasing;
+                    Auto.SetPathAwayFromTarget();
+
+                    // 패킷 전송
+                    Auto.SendAutoPacket();
+
+                    return;
+                }
+            }
+
+
+
+            // 타겟이 스킬범위 내에 있으면 움직이지 않음
             if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
             {
                 // 현재위치에 멈춤
@@ -286,14 +316,16 @@ namespace Server.Game
             // 스킬을 사용할 수 있고 타겟이 스킬범위내에 있을 경우
             if (CanUseSkill(Auto.SkillUse))
             {
-                //if (Util.IsTargetInRectRange(Pos, lookToTarget, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
                 if (Util.IsTargetInRectRange(Pos, LookDir, new Vector2(Auto.SkillUse.skill.rangeX, Auto.SkillUse.skill.rangeY), Auto.Target.Pos))
                 {
                     // 스킬 사용, 패킷 전송
                     AutoSkillUse(Auto.SkillUse, Auto.Target);
 
                     // 멈춤, wait
-                    Auto.SetToWait(1.0, AutoState.AutoChasing);
+                    Auto.SetToWait(Config.AutoActionWaitSecond, AutoState.AutoChasing);
+
+                    // 멈춤, wait
+                    Auto.SetToWait(Config.AutoActionWaitSecond, AutoState.AutoChasing);
 
                     // 스킬 재선정
                     Auto.SetNextSkill();
@@ -311,13 +343,26 @@ namespace Server.Game
             // 경로를 모두 이동한 경우
             if (Auto.IsPathEnd)
             {
-                // 잠시 기다렸다 Idle 상태로 전환
-                int tick = Environment.TickCount;
-                if (tick - Auto.PathEndTime > Config.AutoMoveRoamingWaitTime)
+                if(Auto.NextState == AutoState.AutoWait)
                 {
-                    Auto.SetToWait(1.0, AutoState.AutoIdle);
+                    // 잠시 기다렸다 Idle 상태로 전환
+                    Auto.SetToWait(Config.AutoMoveRoamingWaitSecond, AutoState.AutoIdle);
                     return;
                 }
+                else
+                {
+                    // 다음 상태로 전환
+                    Auto.State = Auto.NextState;
+                    Auto.SendAutoPacket();
+                }
+
+                //// 잠시 기다렸다 Idle 상태로 전환
+                //int tick = Environment.TickCount;
+                //if (tick - Auto.PathEndTime > Config.AutoMoveRoamingWaitTime)
+                //{
+                //    Auto.SetToWait(Config.AutoActionWaitSecond, AutoState.AutoIdle);
+                //    return;
+                //}
             }
 
             //Logger.WriteLog(LogLevel.Debug, $"Player.UpdateAutoMoving. {this.ToString(InfoLevel.Position)}");
@@ -334,6 +379,7 @@ namespace Server.Game
             if (tick > Auto.WaitUntil)
             {
                 Auto.State = Auto.NextState;
+                Auto.SendAutoPacket();
 
                 Logger.WriteLog(LogLevel.Debug, $"GameObject.UpdateAutoWait. nextState:{Auto.State}, {this}");
                 return;
@@ -343,7 +389,7 @@ namespace Server.Game
         protected override void UpdateAutoDead()
         {
             int tick = Environment.TickCount;
-            if (tick - DeadTime > 20000)
+            if (tick - DeadTime > Config.AutoRespawnWaitTime)
             {
                 Room._handleRespawn(this);
                 DeadTime = int.MaxValue;
@@ -504,6 +550,13 @@ namespace Server.Game
             Stat.RangeY += Equip.RangeY;
             Stat.AttackSpeed += Equip.AttackSpeed;
             Stat.Speed += Equip.Speed;
+        }
+
+
+        public override void OnDead(GameObject attacker)
+        {
+            base.OnDead(attacker);
+            NeedDBUpdate = true;
         }
 
     }

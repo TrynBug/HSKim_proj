@@ -439,12 +439,6 @@ namespace Server.Game
             if (Room.Map.IsStopped(this) && Pos.Equals(dest))
                 return;
 
-            //// 방향 수정
-            //if (Util.Equals(Pos, dest) == false)
-            //{
-            //    Dir = Util.GetDirectionToDest(Pos, dest);
-            //    LookDir = Util.GetLookToTarget(Pos, dest);
-            //}
 
             Vector2 stopPos;
             if (Room.Map.TryStop(this, dest, out stopPos) == false)

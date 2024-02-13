@@ -15,9 +15,21 @@ namespace Server
 {
     public class ClientSession : PacketSession
     {
+        // session
         public int SessionId { get; set; }  // 클라이언트 세션ID
-        public bool Login { get; set; } = false;  // login 여부
+
+        // account
+        public int AccountNo { get; set; }
         public string Name { get; set; }
+        public string Password { get; set; }
+
+        // login
+        public bool LoginRequested { get; set; } = false; // login 요청받음 여부
+        public int LastLoginRequest = 0;                 // 마지막으로 login 요청받은 시간
+        public bool Login { get; set; } = false;         // login 여부
+        
+
+        // player
         public Player MyPlayer { get; set; }  // 클라이언트와 연결된 플레이어
 
         // packet을 버퍼에 복사한 뒤 Send

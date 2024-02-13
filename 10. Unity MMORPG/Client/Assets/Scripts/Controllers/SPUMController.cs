@@ -61,6 +61,9 @@ public class SPUMController : CreatureController
             //_animator.Play("4_Death".GetHashCode(), 0, 1f);
             _animator.Play("4_Death", 0, 1f);
             _animator.Update(100f);
+
+            // hp bar
+            SetHpBarActive(false);
         }
     }
 

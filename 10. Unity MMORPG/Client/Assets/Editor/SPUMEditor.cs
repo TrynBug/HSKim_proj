@@ -50,7 +50,7 @@ public class SPUMEditor
 
         // SPUMData 데이터 생성
         List<Data.SPUMData> listSpum = new List<Data.SPUMData>();
-        Regex regexPrefabNumber = new Regex("SPUM([0-9]{1,})$");
+        Regex regexPrefabNumber = new Regex("Unit([0-9]{1,})$");
         foreach (GameObject go in gameObjects)
         {
             // prefab 이름에서 끝에 숫자를 추출함

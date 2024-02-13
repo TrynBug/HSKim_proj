@@ -258,7 +258,19 @@ public class MyPlayerController : SPUMController
         {
             _speedRateForStop = 1f; // 초기화
 
-            Vector2 dest = Dest + GetDirectionVector(Dir) * Time.deltaTime * Speed;
+            // dest 이동
+            Vector2 dest;
+            if (PrevDir == Dir)
+            {
+                dest = Dest + GetDirectionVector(Dir) * Time.deltaTime * Speed;
+            }
+            else
+            {
+                // 만약 방향이 바뀌었다면 dest가 Pos보다 MyPlayerMinimumMove 만큼 멀어져 있도록 한다.
+                dest = Pos + GetDirectionVector(Dir) * Config.MyPlayerMinimumMove * Speed;
+            }
+                
+            // dset를 이동 가능한 위치로 지정한다.
             if (Managers.Map.CanGo(Dest, dest, out intersection))
             {
                 Dest = dest;
@@ -267,6 +279,7 @@ public class MyPlayerController : SPUMController
             {
                 Dest = intersection;
             }
+            
         }
         // 키보드 방향키를 누르고있지 않다면 멈출 것이기 때문에 Dest를 이동시키지 않는다.
         // 그리고 Dest와의 거리에 따라 속도를 감소시킨다.

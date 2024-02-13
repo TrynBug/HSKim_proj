@@ -1,0 +1,17 @@
+{
+  "stats": [
+    {
+		"level": "1",
+		"hp": "3000",
+		"maxHp": "1000",
+		"damage": "20",
+		"defence": "0",
+		"rangeX": "0",
+		"rangeY": "0",
+		"attackSpeed": "1000",
+		"speed": "7.0",
+		"exp": "0",
+		"totalExp": "1000"
+    }
+  ]
+}

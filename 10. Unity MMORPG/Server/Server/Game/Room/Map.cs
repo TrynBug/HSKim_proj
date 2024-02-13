@@ -649,8 +649,9 @@ namespace Server.Game
 
 
         // center를 기준으로 가장 가까운 살아있는 오브젝트를 찾는다.
+        // 위, 아래, 오른쪽, 왼쪽으로 cellRange 만큼의 cell만 조사함
         // 찾지 못했으면 null을 리턴함
-        public GameObject _findObjectNearbyCell(Vector2Int center, GameObject exceptObject = null)
+        public GameObject _findObjectNearbyCell(Vector2Int center, int cellRange, GameObject exceptObject = null)
         {
             center = GetValidCell(center);
 
@@ -663,6 +664,10 @@ namespace Server.Game
                     Debug.Assert(loopCount < 1000);
                     return null;
                 }
+
+                // 현재 루프에서 찾을 범위가 cellRange 를 넘었으면 실패
+                if (loopCount > cellRange)
+                    return null;
 
                 // 현재 루프에서 찾을 범위 계산
                 Vector2Int from = center - new Vector2Int(loopCount, loopCount);

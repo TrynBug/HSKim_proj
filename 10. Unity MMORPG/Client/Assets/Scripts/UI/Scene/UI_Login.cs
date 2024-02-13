@@ -26,13 +26,20 @@ public class UI_Login : UI_Scene
     {
         if (Input.GetKeyDown(KeyCode.Return))
         {
-            InputField inputField = Get<InputField>((int)UILogin.InputField);
-            string name = inputField.text;
+            InputField inputName = Get<InputField>((int)UILogin.InputName);
+            string name = inputName.text;
             if (string.IsNullOrEmpty(name))
+                return;
+
+            InputField inputPassword = Get<InputField>((int)UILogin.InputPassword);
+            string password = inputPassword.text;
+            if (string.IsNullOrEmpty(password))
                 return;
 
             C_Login login = new C_Login();
             login.Name = name;
+            login.Password = password;
+            
             Managers.Network.Send(login);
         }
     }

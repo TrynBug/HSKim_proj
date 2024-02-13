@@ -50,15 +50,15 @@ public class CloneController : SPUMController
 
 
 
-        //if (_target.Pos == _target.Dest)
-        //{
-        //    UnitRoot.SetActive(false);
-        //    return;
-        //}
-        //else
-        //{
-        //    UnitRoot.SetActive(true);
-        //}
+        if (transform.position == _target.transform.position)
+        {
+            UnitRoot.SetActive(false);
+            return;
+        }
+        else
+        {
+            UnitRoot.SetActive(true);
+        }
 
 
         Pos = _target.Dest;

@@ -18,9 +18,20 @@ namespace Server.Data
         public const float DifferenceTolerance = 0.001f;
 
         /* Auto Move */
-        public const int AutoMoveRoamingWaitTime = 1500;
+        public const double AutoMoveRoamingWaitSecond = 1.5;  // 단위:second
+        public const int AutoFindTargetRange = 12;
+        public const int AutoRespawnWaitTime = 1000 * 5;   // 단위:ms
+        public const double AutoActionWaitSecond = 1.0;    // 단위:second
+        public const float AutoRunAwayDistance = 2.5f;
+        public const int AutoRunAwayCooltime = 2000;    // 단위:ms
 
         /* skill */
         public const int SkillTimeCorrection = 50;
+
+        /* DB */
+        public const int DBCharacterDataUpdateInterval = 1000 * 180;
+
+        /* login */
+        public const int LoginRequestInterval = 1000;
     }
 }

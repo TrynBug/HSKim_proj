@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Data;
 using System.Globalization;
 using System.Net;
 using System.Net.Sockets;
@@ -7,6 +8,7 @@ using System.Text;
 using System.Threading;
 using Google.Protobuf;
 using Google.Protobuf.Protocol;
+using MySql.Data.MySqlClient;
 using Server.Data;
 using Server.Game;
 using ServerCore;
@@ -55,9 +57,7 @@ namespace Server
             Func<Session> fSessionFactory = () => { return SessionManager.Instance.Generate(); };
             _listenSocket.Init(endPoint, fSessionFactory);
 
-
             PrintServerStatus();
-
 
             while (true)
             {
@@ -91,7 +91,6 @@ namespace Server
             _serverStatusTimer.Enabled = true;
         }
 
-        static int _printCount = 0;
         static void _printServerStatus()
         {
             CounterManager cm = CounterManager.Instance;
@@ -99,8 +98,15 @@ namespace Server
                 $"disconn:{cm.Disconnect} ({cm.Disconnect1s}/s), recv:{cm.Recv1s}/s, send:{cm.Send1s}/s");
             Logger.WriteLog(LogLevel.System, $"[system ]  CPU [total:{cm.CPUTotal:f1}%, user:{cm.CPUUser:f1}%, kernel:{cm.CPUKernel:f1}%], " +
                 $"Memory(MB) [commit:{cm.MemoryCommittedMB:f2}, paged:{cm.MemoryPagedMB:f2}, nonpaged:{cm.MemoryNonpagedMB:f2}]");
-            Logger.WriteLog(LogLevel.System, $"[room   ]  login [room:{1}, player:{RoomManager.Instance.LoginPlayerCount}], field [room:{RoomManager.Instance.RoomCount}({RoomManager.Instance.UpdateRoomCount}), player:{RoomManager.Instance.GamePlayerCount}]");
 
+            LoginRoom loginRoom = RoomManager.Instance.LoginRoom;
+            Logger.WriteLog(LogLevel.System, $"[login  ]  session:{loginRoom.SessionCount}, login:{loginRoom.LoginCount1s}/s, FPS:{loginRoom.Time.AvgFPS1s:f1}, " +
+                $"DB [query remain:{loginRoom.DBJobCount}, query:{loginRoom.DBExecutedQueryCount1s}/s]");
+
+            RoomState roomState = RoomManager.Instance.GetRoomState();
+            Logger.WriteLog(LogLevel.System, $"[field  ]  rooms:{RoomManager.Instance.RoomCount}(update:{RoomManager.Instance.UpdateRoomCount}), player: {roomState.Player.Sum}, " +
+                $"FPS [avg:{roomState.FPS.Avg:f1}, min:{roomState.FPS.Min:f1}(room {roomState.FPS.MinRoom}), max:{roomState.FPS.Max:f1}(room {roomState.FPS.MaxRoom})], " +
+                $"DB [total:{roomState.DBJob1s.Sum}/s, remain max:{roomState.DBJobQueue.Max}(room {roomState.DBJobQueue.MaxRoom}), max:{roomState.DBJob1s.Max}/s(room {roomState.DBJob1s.MaxRoom})]");
 
             int workerThreadCount;
             int completionPortThreadCount;
@@ -122,13 +128,6 @@ namespace Server
 #endif
             Logger.WriteLog(LogLevel.System, logThread);
             Console.WriteLine("\n");
-
-            _printCount++;
-            if(_printCount > 10)
-            {
-                _printCount = 0;
-                RoomManager.Instance.PrintRoomFrame();
-            }
         }
         
     }

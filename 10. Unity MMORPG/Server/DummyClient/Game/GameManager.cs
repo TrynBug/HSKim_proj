@@ -32,8 +32,12 @@ namespace DummyClient.Game
         public bool StopConnection { get; set; } = false;
         public bool DisconnectAll { get; set; } = false;
 
+        // name, password set
+        Stack<Tuple<string, string>> _accounts = new Stack<Tuple<string, string>>();
+
 
         // object
+        Dictionary<int, ServerSession> _sessions = new Dictionary<int, ServerSession>();
         Dictionary<int, PlayerController> _players = new Dictionary<int, PlayerController>();
         public int PlayerCount { get { return _players.Count; } }
 
@@ -43,6 +47,7 @@ namespace DummyClient.Game
 
         /* push job */
         public void EnterGame(CreatureController gameObject, S_EnterGame packet) { Push(_enterGame, gameObject, packet); }
+        public void OnConnected(ServerSession session) { Push(_onConnected, session); }
 
 
         // id에 해당하는 오브젝트의 타입 얻기
@@ -54,8 +59,15 @@ namespace DummyClient.Game
 
         public void Init()
         {
+            // set timer
             _timer.Elapsed += ((s, e) => Run());
             _calcFrame.Init();
+
+            // name, password set 생성
+            for(int i= Config.MaxNumberOfClient * 2; i > 0; i--)
+            {
+                _accounts.Push(new Tuple<string, string>($"dummy_{i}", $"password_{i}"));
+            }
         }
 
         // FPS에 맞추어 게임룸을 주기적으로 업데이트한다.
@@ -84,13 +96,14 @@ namespace DummyClient.Game
         }
 
         // frame update
-        List<PlayerController> _disconnectedPlayers = new List<PlayerController>();
+        List<ServerSession> _disconnectedSessions = new List<ServerSession>();
         public void _update()
         {
             // job queue 내의 모든 job 실행
             Flush();
 
-            // 플레이어 접속
+
+            // 클라이언트 접속
             if (StopConnection == false)
             {
                 int connectionCount = Math.Min(Config.MaxNumberOfClient - SessionManager.Instance.SessionCount, Config.MaxConnectionCountPerFrame);
@@ -104,46 +117,74 @@ namespace DummyClient.Game
                 }
             }
 
-            // 플레이어 연결끊기
-            foreach (PlayerController player in _players.Values)
+            // 랜덤으로 연결끊기
+            foreach (ServerSession session in _sessions.Values)
             {
                 if (DisconnectAll == true)
                 {
-                    player.Session.Disconnect();
+                    session.Disconnect();
                 }
                 else
                 {
                     float rand = _rand.NextSingle();
                     if (rand < Config.DisconnectProb)
                     {
-                        player.Session.Disconnect();
+                        session.Disconnect();
                     }
                 }
             }
             DisconnectAll = false;
 
-            // 플레이어 업데이트
-            _disconnectedPlayers.Clear();
-            foreach (PlayerController player in _players.Values)
+
+            // 세션 업데이트
+            _disconnectedSessions.Clear();
+            foreach (ServerSession session in _sessions.Values)
             {
-                // 연결끊긴 플레이어는 따로처리함
-                if (player.Session.IsDisconnected == true)
+                // 연결끊긴 세션 확인
+                if (session.IsDisconnected == true)
                 {
-                    _disconnectedPlayers.Add(player);
+                    _disconnectedSessions.Add(session);
                     continue;
                 }
 
-                // 업데이트
-                player.Update();
+                // 로그인 안된 세션의 로그인 패킷 전송
+                if (session.Login == false)
+                {
+                    int tick = Environment.TickCount;
+                    if (tick - session.LastLoginRequestTime > 1000)
+                    {
+                        session.LastLoginRequestTime = tick;
 
+                        // 로그인 패킷 전송
+                        C_Login login = new C_Login();
+                        login.Name = session.Name;
+                        login.Password = session.Password;
+                        session.Send(login);
+                    }
+                }
             }
 
-            // 연결끊긴 플레이어 삭제
-            foreach (PlayerController player in _disconnectedPlayers)
+
+            // 연결끊긴 세션 제거
+            foreach (ServerSession session in _disconnectedSessions)
             {
-                _players.Remove(player.Id);
-                SessionManager.Instance.Remove(player.Session);
+                _sessions.Remove(session.SessionId);
+                if(session.MyPlayer != null)
+                    _players.Remove(session.MyPlayer.Id);
+                _accounts.Push(new Tuple<string, string>(session.Name, session.Password));
+                SessionManager.Instance.Remove(session);
             }
+
+
+
+            // 플레이어 업데이트
+            foreach (PlayerController player in _players.Values)
+            {
+                player.Update();
+            }
+
+
+
 
         }
 
@@ -164,6 +205,17 @@ namespace DummyClient.Game
             return sleepMilliseconds;
         }
 
+
+
+        // 서버에 연결성공
+        public void _onConnected(ServerSession session)
+        {
+            // session 등록
+            Tuple<string, string> account = _accounts.Pop();
+            session.Name = account.Item1;
+            session.Password = account.Item2;
+            _sessions.Add(session.SessionId, session);
+        }
 
 
         public void _enterGame(CreatureController gameObject, S_EnterGame packet)
@@ -199,6 +251,8 @@ namespace DummyClient.Game
                 Logger.WriteLog(LogLevel.Debug, $"GameManager.EnterGame. {newPlayer}");
             }
         }
+
+
     }
 
 }

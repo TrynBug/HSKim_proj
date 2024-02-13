@@ -35,7 +35,7 @@
     {
       "id": "SkillThunder",
       "name": "Thunder",
-      "cooldown": "1000",
+      "cooldown": "3000",
 	  "castingTime": "500",
 	  "skillTime": "600",
 	  "speedRate": "0.2",
@@ -57,7 +57,7 @@
     {
       "id": "SkillMagicExplosion",
       "name": "MagicExplosion",
-      "cooldown": "1000",
+      "cooldown": "3000",
 	  "castingTime": "500",
 	  "skillTime": "600",
 	  "speedRate": "0.2",

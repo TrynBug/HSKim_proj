@@ -375,8 +375,9 @@ class PacketHandler
             return;
         }
 
-
-        cc.SyncStop(stopPacket);
+        obj.Dir = stopPacket.Dir;
+        obj.LookDir = stopPacket.Look;
+        cc.SyncStop(new Vector2(stopPacket.PosX, stopPacket.PosY));
 
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"PacketHandler.S_StopHandler. id:{stopPacket.ObjectId}, pos:({stopPacket.PosX},{stopPacket.PosY})");
     }

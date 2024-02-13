@@ -199,7 +199,7 @@ public class LoginScene : BaseScene
     void InitObject()
     {
         {
-            GameObject go = Managers.Resource.Instantiate($"SPUM/SPUM000");
+            GameObject go = Managers.Resource.Instantiate($"SPUM/Unit000");
             PlayerController player = go.GetOrAddComponent<PlayerController>();
             ObjectInfo info = new ObjectInfo { PosInfo = new PositionInfo(), StatInfo = new StatInfo(), SPUMId = 0 };
             player.Init(info);
@@ -210,7 +210,7 @@ public class LoginScene : BaseScene
         }
 
         {
-            GameObject go = Managers.Resource.Instantiate($"SPUM/SPUM001");
+            GameObject go = Managers.Resource.Instantiate($"SPUM/Unit001");
             PlayerController player = go.GetOrAddComponent<PlayerController>();
             ObjectInfo info = new ObjectInfo { PosInfo = new PositionInfo(), StatInfo = new StatInfo(), SPUMId = 1 };
             player.Init(info);
@@ -221,9 +221,9 @@ public class LoginScene : BaseScene
         }
 
         {
-            GameObject go = Managers.Resource.Instantiate($"SPUM/SPUM020");
+            GameObject go = Managers.Resource.Instantiate($"SPUM/Unit002");
             PlayerController player = go.GetOrAddComponent<PlayerController>();
-            ObjectInfo info = new ObjectInfo { PosInfo = new PositionInfo(), StatInfo = new StatInfo(), SPUMId = 20 };
+            ObjectInfo info = new ObjectInfo { PosInfo = new PositionInfo(), StatInfo = new StatInfo(), SPUMId = 2 };
             player.Init(info);
             player.LookDir = LookDir.LookLeft;
             go.transform.position = new Vector3(1.846f, 0.228f, Config.ObjectDefaultZ);

@@ -80,6 +80,7 @@ public class Managers : MonoBehaviour
         Input.Clear();
         Sound.Clear();
         UI.Clear();
+        Map.Clear();
         Scene.Clear();
 
         // pool의 clear 순서는 마지막으로 한다.

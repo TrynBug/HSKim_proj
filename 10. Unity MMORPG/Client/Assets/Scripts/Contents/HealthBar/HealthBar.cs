@@ -13,10 +13,6 @@ public class Healthbar : MonoBehaviour
     [SerializeField]
     Image fillImage;
 
-    [SerializeField, Tooltip("Whether the healthbar should be hidden when health is empty")]
-    bool hideEmpty = false;
-
-
     public float MaxHealth { get; set; } = 100.0f;
     public float CurrentHealth { get; set; } = 100.0f;
 

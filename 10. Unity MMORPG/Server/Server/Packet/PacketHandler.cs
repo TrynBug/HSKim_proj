@@ -1,6 +1,7 @@
 using Google.Protobuf;
 using Google.Protobuf.Protocol;
 using Server;
+using Server.Data;
 using Server.Game;
 using ServerCore;
 using System;
@@ -147,12 +148,31 @@ internal class PacketHandler
             return;
         }
 
-
         string command = debugPacket.Command;
-        int mapId;
-        if (int.TryParse(command.Substring(1, command.Length - 1), out mapId) == false)
+        if (command.Length < 2)
             return;
-        clientSession.MyPlayer.Room.HandleMapMove(player, mapId);
+
+        string operation = command.Substring(1, 1);
+        string value = command.Substring(2, command.Length - 2);
+        switch (operation)
+        {
+            case "m":
+                {
+                    int mapId;
+                    if (int.TryParse(value, out mapId) == false)
+                        return;
+                    clientSession.MyPlayer.Room.HandleMapMove(player, mapId);
+                }
+                break;
+            case "s":
+                {
+                    int spumId;
+                    if (int.TryParse(value, out spumId) == false)
+                        return;
+                    clientSession.MyPlayer.Room.HandleChangeSPUM(player, spumId);
+                }
+                break;
+        }
     }
 
 
@@ -162,10 +182,19 @@ internal class PacketHandler
         C_Login loginPacket = packet as C_Login;
         ClientSession clientSession = session as ClientSession;
 
-        if (clientSession.Login == true)
+        if (clientSession.LoginRequested == true || clientSession.Login == true)
             return;
+        if (string.IsNullOrEmpty(loginPacket.Name) || string.IsNullOrEmpty(loginPacket.Password))
+            return;
+        int tick = Environment.TickCount;
+        if (tick - clientSession.LastLoginRequest < Config.LoginRequestInterval)
+            return;
+
+        clientSession.LastLoginRequest = tick;
         clientSession.Name = loginPacket.Name;
-        clientSession.Login = true;
+        clientSession.Password = loginPacket.Password;
+        clientSession.LoginRequested = true;
+        
 
 
         Logger.WriteLog(LogLevel.Debug, $"PacketHandler.C_LoginHandler. sessionId:{clientSession.SessionId}");

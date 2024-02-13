@@ -11,8 +11,6 @@ using UnityEngine.Tilemaps;
 using TMPro;
 using Data;
 using System.Data;
-using Unity.VisualScripting;
-using UnityEngine.UIElements;
 
 public struct Pos
 {
@@ -395,6 +393,7 @@ public class MapManager
         for (int y = 0; y < CellMaxY; y++)
             for (int x = 0; x < CellMaxX; x++)
                 _cells[y, x].Clear();
+        DestroyMap();
     }
 
     public void DestroyMap()
@@ -427,7 +426,9 @@ public class MapManager
     }
 
     // 맵에 오브젝트 추가
-    public bool Add(BaseController obj)
+    // forced = true 일 경우 반드시 현재 위치에 추가된다.
+    // forced = false 일 경우 현재 위치에 추가될 수 없다면 주변 위치에 추가된다.
+    public bool Add(BaseController obj, bool forced = false)
     {
         if (IsInvalidCell(obj.Cell))
         {
@@ -437,14 +438,37 @@ public class MapManager
 
         int x = obj.Cell.x;
         int y = obj.Cell.y;
-        if (IsEmptyCell(obj.Cell) == false)
-        {
-            ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Add. Cell already occupied " +
-                $"cell:{obj.Cell}, collider:{_cells[y, x].Collider}, occupied:[{_cells[y, x].Object}], me:[{obj}]");
-            return false;
-        }
+        //if (IsEmptyCell(obj.Cell) == false)
+        //{
+        //    ServerCore.Logger.WriteLog(LogLevel.Error, $"Map.Add. Cell already occupied " +
+        //        $"cell:{obj.Cell}, collider:{_cells[y, x].Collider}, occupied:[{_cells[y, x].Object}], me:[{obj}]");
+        //    return false;
+        //}
 
-        _cells[y, x].Object = obj;
+        if (_cells[y, x].Object == null)
+        {
+            _cells[y, x].Object = obj;
+        }
+        else
+        {
+            if(forced == true)
+            {
+                // 다른 오브젝트가 있다면 나를 해당 위치에 멈추고 다른 오브젝트는 근처에 위치시킨다.
+                BaseController objOther = _cells[y, x].Object;
+                TryMoving(objOther, objOther.Pos, checkCollider: false);
+                _cells[y, x].Object = obj;
+                Vector2 stopPos;
+                TryStop(objOther, objOther.Pos, out stopPos);
+                objOther.Pos = stopPos;
+            }
+            else
+            {
+                // 근처 빈 자리에 위치시킨다.
+                Vector2 stopPos;
+                TryStop(obj, obj.Pos, out stopPos);
+                obj.Pos = stopPos;
+            }
+        }
         ServerCore.Logger.WriteLog(LogLevel.Debug, $"Map.Add. {obj.ToString(InfoLevel.Position)}");
         return true;
     }

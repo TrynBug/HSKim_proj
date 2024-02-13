@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Numerics;
 using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using Google.Protobuf.Protocol;
 using ServerCore;
@@ -14,11 +15,13 @@ namespace Server.Game
 
         public static ObjectManager Instance { get; } = new ObjectManager();
 
-        public int PlayerCount { get { return _players.Count; } }
+        public int PlayerCount { get { return _playersObjectId.Count; } }
 
 
-        object _lock = new object();
-        Dictionary<int, Player> _players = new Dictionary<int, Player>();
+        ReaderWriterLockSlim _rwLock = new ReaderWriterLockSlim();
+        Dictionary<int, Player> _playersObjectId = new Dictionary<int, Player>();
+        Dictionary<int, Player> _playersAccountNo = new Dictionary<int, Player>();
+        Dictionary<string, Player> _playersName = new Dictionary<string, Player>();
 
 
 
@@ -30,51 +33,90 @@ namespace Server.Game
         }
 
 
-        // 오브젝트 추가
+        // 플레이어 추가
         public void AddPlayer(Player player)
         {
-            lock(_lock)
+            _rwLock.EnterWriteLock();
+            try
             {
-                _players.Add(player.Id, player);
+                _playersObjectId.Add(player.Id, player);
+                _playersAccountNo.Add(player.Session.AccountNo, player);
+                _playersName.Add(player.Session.Name, player);
+            }
+            finally
+            {
+                _rwLock.ExitWriteLock();
             }
         }
 
-        // 오브젝트 제거
-        public bool Remove(int objectId)
+        // 플레이어 제거
+        public void RemovePlayer(Player player)
         {
-            GameObjectType objectType = GetObjectTypeById(objectId);
+            if (player == null)
+                return;
 
-            lock(_lock)
+            _rwLock.EnterWriteLock();
+            try
             {
-                if (objectType == GameObjectType.Player)
+                if (_playersObjectId.Remove(player.Id) == false)
                 {
-                    if (_players.Remove(objectId) == false)
-                    {
-                        Logger.WriteLog(LogLevel.Error, $"PlayerManager.Remove. Can't find the player. objectId:{objectId}");
-                        return false;
-                    }
+                    Logger.WriteLog(LogLevel.Error, $"PlayerManager.Remove. Can't find the player by objectId. {player}");
+                }
+                if (_playersAccountNo.Remove(player.Session.AccountNo) == false)
+                {
+                    Logger.WriteLog(LogLevel.Error, $"PlayerManager.Remove. Can't find the player by accountNo. {player}");
+                }
+                if (_playersName.Remove(player.Session.Name) == false)
+                {
+                    Logger.WriteLog(LogLevel.Error, $"PlayerManager.Remove. Can't find the player by name. {player}");
                 }
             }
-
-            return true;
+            finally
+            {
+                _rwLock.ExitWriteLock();
+            }
         }
 
         // 플레이어 찾기
-        public Player Find(int objectId)
+        public Player FindByObjectId(int objectId)
         {
-            GameObjectType objectType = GetObjectTypeById(objectId);
-
-            lock (_lock)
+            _rwLock.EnterReadLock();
+            try
             {
-                if (objectType == GameObjectType.Player)
-                {
-                    Player player = null;
-                    if (_players.TryGetValue(objectId, out player))
-                        return player;
-                }
+                return _playersObjectId.GetValueOrDefault(objectId, null);
             }
-            return null;
+            finally
+            {
+                _rwLock.ExitReadLock();
+            }
         }
 
+        // 플레이어 찾기
+        public Player FindByAccountNo(int accountNo)
+        {
+            _rwLock.EnterReadLock();
+            try
+            {
+                return _playersAccountNo.GetValueOrDefault(accountNo, null);
+            }
+            finally
+            {
+                _rwLock.ExitReadLock();
+            }
+        }
+
+        // 플레이어 찾기
+        public Player FindByName(string name)
+        {
+            _rwLock.EnterReadLock();
+            try
+            {
+                return _playersName.GetValueOrDefault(name, null);
+            }
+            finally
+            {
+                _rwLock.ExitReadLock();
+            }
+        }
     }
 }

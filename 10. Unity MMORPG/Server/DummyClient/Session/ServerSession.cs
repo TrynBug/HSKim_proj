@@ -14,6 +14,12 @@ namespace DummyClient
         public int SessionId { get; set; }
         public PlayerController MyPlayer { get; set; } = null;
 
+        public string Name { get; set; }
+        public string Password { get; set; }
+
+        public int LastLoginRequestTime { get; set; } = 0;
+        public bool Login { get; set; } = false;
+
         public void Connect()
         {
             // DNS (Domain Name System)
@@ -49,11 +55,7 @@ namespace DummyClient
 
         public override void OnConnected(EndPoint endPoint)
         {
-            // 로그인 패킷 전송
-            C_Login login = new C_Login();
-            login.Name = "dummy_player";
-            Send(login);
-
+            GameManager.Instance.OnConnected(this);
 
             ServerCore.Logger.WriteLog(LogLevel.Debug, $"ServerSession.OnConnected. endPoint:{endPoint}");
         }

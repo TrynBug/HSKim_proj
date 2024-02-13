@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
+using Data;
 using static Define;
 
 public class UI_Debug : UI_Scene
@@ -27,6 +28,8 @@ public class UI_Debug : UI_Scene
             text.text += $"Cell : ({Managers.Object.MyPlayer.Cell.x}, {Managers.Object.MyPlayer.Cell.y})\n";
         }
 
+        if(Config.DebugOn)
+            text.text += "Debug On\n";
 
         text.text += _debugCommand;
 
@@ -37,6 +40,11 @@ public class UI_Debug : UI_Scene
     string _debugCommand = string.Empty;
     void AcceptDebugInput()
     {
+        if (Input.GetKeyDown(KeyCode.Period))
+        {
+            Config.DebugOn = Config.DebugOn == true ? false : true;
+        }
+
         if (Input.GetKeyDown(KeyCode.Slash))
         {
             if (_debugCommand == string.Empty)

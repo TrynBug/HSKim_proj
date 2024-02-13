@@ -140,7 +140,7 @@ public class ObjectManager
         _players.Add(info.ObjectId, player);
 
         // map에 추가
-        Managers.Map.Add(player);
+        Managers.Map.Add(player, forced:true);
 
         // 카메라 위치를 플레이어 위치로 지정
         Camera.main.transform.position = new Vector3(MyPlayer.transform.position.x, MyPlayer.transform.position.y, -10);
@@ -182,7 +182,7 @@ public class ObjectManager
             _players.Add(info.ObjectId, player);
 
             // map에 추가
-            Managers.Map.Add(player);
+            Managers.Map.Add(player, forced:true);
 
 
             // debug
@@ -259,6 +259,7 @@ public class ObjectManager
         ProjectileController projectile = ProjectileController.Generate(packet.SkillId);
         if (projectile == null)
             return null;
+        projectile.transform.SetParent(_rootProjectile.transform);
         projectile.Init(packet.ObjectId, skill, owner, packet.PosInfo);
                     
         _projectiles.Add(packet.ObjectId, projectile);

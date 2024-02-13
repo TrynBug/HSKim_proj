@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using ServerCore;
+using Server.Data;
 
 namespace Server.Game
 {
@@ -220,6 +221,22 @@ namespace Server.Game
             Vector2 randomPos = Owner.Room.Map.GetRandomEmptyPos();
             SetPath(randomPos);
         }
+
+        // 랜덤 경로 지정
+        public void SetPathAwayFromTarget()
+        {
+            if (Target == null)
+                return;
+
+            MoveDir moveDir = Util.GetDirectionToDest(Target.Pos, Pos);
+            Vector2 pos = Pos + Util.GetDirectionVector(moveDir) * Config.AutoRunAwayDistance;
+
+            Vector2Int destCell;
+            Owner.Room.Map.FindEmptyCell(Owner.Room.Map.PosToCell(pos), true, out destCell);
+            Vector2 destPos = Owner.Room.Map.CellToCenterPos(destCell);
+            SetPath(destPos);
+        }
+
 
 
         // 패킷 전송

@@ -7,6 +7,7 @@ using Data;
 using ServerCore;
 using System;
 using Unity.Mathematics;
+using Unity.VisualScripting;
 
 
 // 움직이고 HP가 있는 오브젝트에 대한 기본 컨트롤러
@@ -367,9 +368,24 @@ public abstract class CreatureController : BaseController
     { 
         // set data
         AutoInfo = autoInfo;
-        State = posInfo.State;      // 애니메이션 업데이트 때문에 Dir을 바꾸기전 State를 먼저바꿔야함
-        Dir = posInfo.MoveDir;
-        LookDir = posInfo.LookDir;
+
+        if (Auto.NextState == AutoState.AutoChasing)
+        {
+            // 상태가 Chasing일 경우에는 애니메이션을 업데이트 하지 않음. Update 함수내에서 애니메이션을 업데이트함
+            StopUpdateAnimation = true;
+            State = posInfo.State;      // 애니메이션 업데이트 때문에 Dir을 바꾸기전 State를 먼저바꿔야함
+            Dir = posInfo.MoveDir;
+            LookDir = posInfo.LookDir;
+            StopUpdateAnimation = false;
+        }
+        else
+        {
+            State = posInfo.State;      // 애니메이션 업데이트 때문에 Dir을 바꾸기전 State를 먼저바꿔야함
+            Dir = posInfo.MoveDir;
+            LookDir = posInfo.LookDir;
+        }
+
+
         
 
         // 타겟 찾기
@@ -571,6 +587,7 @@ public abstract class CreatureController : BaseController
     {
         State = CreatureState.Dead;
         Auto.State = AutoState.AutoDead;
+        SetHpBarActive(false);
     }
 
     /* compoment */
@@ -581,6 +598,7 @@ public abstract class CreatureController : BaseController
         go.transform.localPosition = new Vector3(0, 0.95f, 0);
         go.name = "HpBar";
         _healthBar = go.GetComponent<Healthbar>();
+        SetHpBarActive(true);
         _healthBar.SetHealthValue(Stat.MaxHp, Stat.Hp);
         UpdateHpBar();
     }
@@ -591,12 +609,6 @@ public abstract class CreatureController : BaseController
         if (_healthBar == null)
             return;
         _healthBar.SetHealth(Hp);
-
-        // 사망시 hp바 비활성화
-        if (IsDead)
-        {
-            _healthBar.gameObject.SetActive(false);
-        }
     }
 
     public void SetHpBarActive(bool active)

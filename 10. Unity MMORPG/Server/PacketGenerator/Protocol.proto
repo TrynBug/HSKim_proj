@@ -261,6 +261,7 @@ message C_DebugCommand
 message C_Login
 {
     string name = 1;
+    string password = 2;
 }
 
 message S_LoginResponse
