@@ -34,11 +34,14 @@ namespace Server.Game
             // 피격체크
             // FindObjectsInRect 함수를 사용하기 위해 스킬 위치를 왼쪽으로 rangeX / 2 만큼 옮긴다음, 현재 위치에서 오른쪽 방향의 사각형 범위를 조사한다.
             Vector2 checkPos = Pos + GetDirectionVector(MoveDir.Left) * SkillData.instant.rangeX / 2f;
-            List<GameObject> hits = Room.Map.FindObjectsInRect(checkPos, new Vector2(SkillData.instant.rangeX, SkillData.instant.rangeY), LookDir.LookRight, Owner);
-            foreach (GameObject obj in hits)
+            if (Room.Map.IsInvalidPos(checkPos) == false)
             {
-                int damage = obj.OnDamaged(Owner, Owner.GetSkillDamage(SkillData));
-                hitPacket.Hits.Add(new HitInfo { ObjectId = obj.Id, Damage = damage });
+                List<GameObject> hits = Room.Map.FindObjectsInRect(checkPos, new Vector2(SkillData.instant.rangeX, SkillData.instant.rangeY), LookDir.LookRight, Owner);
+                foreach (GameObject obj in hits)
+                {
+                    int damage = obj.OnDamaged(Owner, Owner.GetSkillDamage(SkillData));
+                    hitPacket.Hits.Add(new HitInfo { ObjectId = obj.Id, Damage = damage });
+                }
             }
 
 

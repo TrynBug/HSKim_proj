@@ -6,6 +6,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Net;
 using DummyClient.Game;
+using DummyClient.Data;
 
 namespace DummyClient
 {
@@ -22,11 +23,8 @@ namespace DummyClient
 
         public void Connect()
         {
-            // DNS (Domain Name System)
-            string host = Dns.GetHostName();
-            IPHostEntry ipHost = Dns.GetHostEntry(host);
-            IPAddress ipAddr = ipHost.AddressList[0];
-            IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+            IPAddress ipAddr = IPAddress.Parse(ConfigManager.Config.serverIP);
+            IPEndPoint endPoint = new IPEndPoint(ipAddr, ConfigManager.Config.serverPort);
 
             Connector connector = new Connector();
             connector.Connect(endPoint,

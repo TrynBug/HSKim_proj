@@ -23,12 +23,14 @@ public class Managers : MonoBehaviour
     NetworkManager _network = new NetworkManager();
     TimeManager _time = new TimeManager();
     NumberManager _number = new NumberManager();
+    ConfigManager _config = new ConfigManager();
 
     public static MapManager Map { get { return Instance._map; } }
     public static ObjectManager Object { get { return Instance._object; } }
     public static NetworkManager Network { get { return Instance._network; } }
     public static TimeManager Time { get { return Instance._time; } }
     public static NumberManager Number { get { return Instance._number; } }
+    public static ConfigManager Config { get { return Instance._config; } }
     #endregion
 
 
@@ -65,6 +67,7 @@ public class Managers : MonoBehaviour
             DontDestroyOnLoad(go);  // 씬을 넘어갈 때 이 오브젝트를 파괴하지 않도록 설정.
             s_instance = go.GetComponent<Managers>();      // Instance에 Managers 컴포넌트 할당
 
+            s_instance._config.Init();
             s_instance._data.Init();   // DataManager 초기화
             s_instance._sound.Init();  // SoundManager 초기화
             s_instance._object.Init();

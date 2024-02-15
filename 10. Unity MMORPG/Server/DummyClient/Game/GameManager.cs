@@ -64,7 +64,7 @@ namespace DummyClient.Game
             _calcFrame.Init();
 
             // name, password set 생성
-            for(int i= Config.MaxNumberOfClient * 2; i > 0; i--)
+            for(int i= ConfigManager.Config.MaxNumberOfClient * 2; i > 0; i--)
             {
                 _accounts.Push(new Tuple<string, string>($"dummy_{i}", $"password_{i}"));
             }
@@ -106,7 +106,7 @@ namespace DummyClient.Game
             // 클라이언트 접속
             if (StopConnection == false)
             {
-                int connectionCount = Math.Min(Config.MaxNumberOfClient - SessionManager.Instance.SessionCount, Config.MaxConnectionCountPerFrame);
+                int connectionCount = Math.Min(ConfigManager.Config.MaxNumberOfClient - SessionManager.Instance.SessionCount, ConfigManager.Config.MaxConnectionCountPerFrame);
                 if (connectionCount > 0)
                 {
                     for (int i = 0; i < connectionCount; i++)
@@ -127,7 +127,7 @@ namespace DummyClient.Game
                 else
                 {
                     float rand = _rand.NextSingle();
-                    if (rand < Config.DisconnectProb)
+                    if (rand < ConfigManager.Config.DisconnectProb)
                     {
                         session.Disconnect();
                     }
@@ -191,7 +191,7 @@ namespace DummyClient.Game
         // FPS를 유지하기 위해 sleep 해야하는 시간을 계산한다.
         private int _calcSleepTime()
         {
-            long oneFrameTime = TimeSpan.TicksPerSecond / Config.FPS;
+            long oneFrameTime = TimeSpan.TicksPerSecond / ConfigManager.Config.FPS;
             _calcFrame.logicEndTime = DateTime.Now.Ticks;
             long spentTime = Math.Max(0, _calcFrame.logicEndTime - _calcFrame.logicStartTime);
             long sleepTime = Math.Max(0, oneFrameTime - spentTime);
@@ -240,14 +240,13 @@ namespace DummyClient.Game
                 newPlayer.Session.Send(loadPacket);
 
                 // 오토패킷 전송
-                if (newPlayer.AutoMode == AutoMode.ModeNone)
+                if (newPlayer.MyAutoMode == AutoMode.ModeAuto && newPlayer.AutoMode == AutoMode.ModeNone)
                 {
                     newPlayer.AutoMode = AutoMode.ModeAuto;
                     C_SetAuto autoPacket = new C_SetAuto();
                     autoPacket.Mode = AutoMode.ModeAuto;
                     newPlayer.Session.Send(autoPacket);
                 }
-
                 Logger.WriteLog(LogLevel.Debug, $"GameManager.EnterGame. {newPlayer}");
             }
         }

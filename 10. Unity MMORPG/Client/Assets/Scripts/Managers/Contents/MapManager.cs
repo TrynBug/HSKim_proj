@@ -305,6 +305,8 @@ public class MapManager
         // search 알고리즘 초기화
         _search.Init(_cells, CellMaxX, CellMaxY);
 
+
+
         //DrawDebug();
     }
 
@@ -386,6 +388,7 @@ public class MapManager
     public void OnUpdate()
     {
     }
+
 
 
     public void Clear()

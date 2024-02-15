@@ -21,8 +21,6 @@ namespace Server
         static System.Timers.Timer _serverStatusTimer = new System.Timers.Timer();
         static void Main(string[] args)
         {
-            Logger.WriteLog(LogLevel.Debug, $"Run Server. FPS:{Config.FPS}");
-
             // clock resolution을 1ms로 설정
             WinApi.TimeBeginPeriod(1);
 
@@ -48,10 +46,22 @@ namespace Server
 
 
             // DNS로 내 IP를 알아낸다.
-            string host = Dns.GetHostName();                      // "DESKTOP-FLAO7VA"
+            string host = Dns.GetHostName();  
             IPHostEntry ipHost = Dns.GetHostEntry(host);          // host에 대한 정보를 알아내어 IPHostEntry 객체로 구성한다.
-            IPAddress ipAddr = ipHost.AddressList[0];             // 첫 번째 주소 정보를 가져옴
-            IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);   // port 번호를 7777번으로 설정
+            IPAddress ipAddr = null;
+            foreach(IPAddress ad in ipHost.AddressList)
+            {
+                if (ad.AddressFamily == AddressFamily.InterNetwork)
+                {
+                    ipAddr = ad.MapToIPv4();
+                    break;
+                }
+            }
+            if(ipAddr == null)
+                ipAddr = ipHost.AddressList[0];
+            IPEndPoint endPoint = new IPEndPoint(ipAddr, ConfigManager.Config.port);
+
+            Logger.WriteLog(LogLevel.System, $"Run Server. IP:{endPoint.Address}, port:{ConfigManager.Config.port}");
 
             // listen
             Func<Session> fSessionFactory = () => { return SessionManager.Instance.Generate(); };
@@ -61,28 +71,14 @@ namespace Server
 
             while (true)
             {
-                //RoomManager.Instance.Find(1).Update();
-
-                Thread.Sleep(10000);
-                //Logger.WriteLog(LogLevel.Debug, $"num thread:{ThreadPool.ThreadCount}, delta:{room.Time.DeltaTime}");
-                //Logger.WriteLog(LogLevel.System, $"object players:{ObjectManager.Instance.PlayerCount}");
-                //for (int i=0; i<RoomManager.Instance.RoomCount; i++)
-                //{
-                //    GameRoom room = RoomManager.Instance.Find(i);
-                //    if (room == null)
-                //        continue;
-                //    Logger.WriteLog(LogLevel.System, $"{room}, players:{room.PlayerCount}, proj:{room.ProjectileCount}, delta:{room.Time.DeltaTime}");
-                //}
-
-
-
-
+                Thread.Sleep(Timeout.Infinite);
             }
         }
 
 
 
-        
+
+
         static void PrintServerStatus()
         {
             _serverStatusTimer.Elapsed += ((s, e) => _printServerStatus());
@@ -104,7 +100,8 @@ namespace Server
                 $"DB [query remain:{loginRoom.DBJobCount}, query:{loginRoom.DBExecutedQueryCount1s}/s]");
 
             RoomState roomState = RoomManager.Instance.GetRoomState();
-            Logger.WriteLog(LogLevel.System, $"[field  ]  rooms:{RoomManager.Instance.RoomCount}(update:{RoomManager.Instance.UpdateRoomCount}), player: {roomState.Player.Sum}, " +
+            Logger.WriteLog(LogLevel.System, $"[field  ]  rooms:{RoomManager.Instance.RoomCount}, " +
+                $"player: {roomState.Player.Sum} (max:{roomState.Player.Max}({roomState.Player.MaxRoom})), " +
                 $"FPS [avg:{roomState.FPS.Avg:f1}, min:{roomState.FPS.Min:f1}(room {roomState.FPS.MinRoom}), max:{roomState.FPS.Max:f1}(room {roomState.FPS.MaxRoom})], " +
                 $"DB [total:{roomState.DBJob1s.Sum}/s, remain max:{roomState.DBJobQueue.Max}(room {roomState.DBJobQueue.MaxRoom}), max:{roomState.DBJob1s.Max}/s(room {roomState.DBJob1s.MaxRoom})]");
 
@@ -117,8 +114,8 @@ namespace Server
             ThreadPool.GetAvailableThreads(out workerThreadCount, out completionPortThreadCount);
             ThreadPool.GetMaxThreads(out maxWorkerThreadCount, out maxCompletionPortThreadCount);
             ThreadPool.GetMinThreads(out minWorkerThreadCount, out minCompletionPortThreadCount);
-            string logThread = $"[thread ]  thread [active:({maxWorkerThreadCount - workerThreadCount},{maxCompletionPortThreadCount - completionPortThreadCount}), " +
-                $"min:({minWorkerThreadCount},{minCompletionPortThreadCount})]";
+            string logThread = $"[thread ]  active:({maxWorkerThreadCount - workerThreadCount},{maxCompletionPortThreadCount - completionPortThreadCount}), " +
+                $"recv:{cm.CurrentRecvThread}, send:{cm.CurrentSendThread}, room:{RoomManager.Instance.UpdateRoomCount}, ";
 #if NET6_0
             GCMemoryInfo gcInfo = GC.GetGCMemoryInfo();
             logThread += $", GC({(System.Runtime.GCSettings.IsServerGC ? "server" :"works")}) [percentage:{gcInfo.PauseTimePercentage}, duration:(";

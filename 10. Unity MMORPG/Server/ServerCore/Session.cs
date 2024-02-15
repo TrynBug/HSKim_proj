@@ -179,54 +179,66 @@ namespace ServerCore
         // recv 완료루틴 함수. 이 함수는 스레드풀 내에서 실행될 수 있다.
         void OnRecvCompleted(object? sender, SocketAsyncEventArgs args)
         {
-            // recv한 byte가 0보다 크고 소켓 에러가 없으면 성공
-            if(args.BytesTransferred > 0 && args.SocketError == SocketError.Success)
+            CounterManager.Instance.AddCurrentRecvThread();
+
+            bool bError = false;
+            do
             {
-                try
+                // recv한 byte가 0보다 크고 소켓 에러가 없으면 성공
+                if (args.BytesTransferred > 0 && args.SocketError == SocketError.Success)
                 {
-                    // recvBuffer의 write 커서 이동
-                    if(_recvBuffer.OnWrite(args.BytesTransferred) == false)
+                    try
                     {
-                        Disconnect();
-                        return;
-                    }
+                        // recvBuffer의 write 커서 이동
+                        if (_recvBuffer.OnWrite(args.BytesTransferred) == false)
+                        {
+                            bError = true;
+                            break;
+                        }
 
-                    // OnRecv
-                    int processLen = OnRecv(_recvBuffer.ReadSegment);
-                    if (processLen < 0 || _recvBuffer.DataSize < processLen)
+                        // OnRecv
+                        int processLen = OnRecv(_recvBuffer.ReadSegment);
+                        if (processLen < 0 || _recvBuffer.DataSize < processLen)
+                        {
+                            bError = true;
+                            break;
+                        }
+
+                        // recvBuffer의 read 커서 이동
+                        if (_recvBuffer.OnRead(processLen) == false)
+                        {
+                            bError = true;
+                            break;
+                        }
+
+                        // 비동기 recv 재시작
+                        RegisterRecv();
+                    }
+                    catch (Exception ex)
                     {
-                        Disconnect();
-                        return;
+                        CounterManager.Instance.AddRecvError();
+                        Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Exception. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}, exception:{ex.ToString()}");
                     }
-
-                    // recvBuffer의 read 커서 이동
-                    if(_recvBuffer.OnRead(processLen) == false)
-                    {
-                        Disconnect();
-                        return;
-                    }
-
-                    // 비동기 recv 재시작
-                    RegisterRecv();
                 }
-                catch (Exception ex)
-                {
-                    CounterManager.Instance.AddRecvError();
-                    Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Exception. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}, exception:{ex.ToString()}");
-                }
-            }
-            else
-            {
-                if (args.BytesTransferred == 0 && args.SocketError == SocketError.Success) { }
-                else if (args.SocketError == SocketError.OperationAborted) { }
-                else if (args.SocketError == SocketError.ConnectionReset) { }
                 else
                 {
-                    CounterManager.Instance.AddRecvError();
-                    Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Error. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
+                    if (args.BytesTransferred == 0 && args.SocketError == SocketError.Success) { }
+                    else if (args.SocketError == SocketError.OperationAborted) { }
+                    else if (args.SocketError == SocketError.ConnectionReset) { }
+                    else
+                    {
+                        CounterManager.Instance.AddRecvError();
+                        Logger.WriteLog(LogLevel.Error, $"Session.OnRecvCompleted Error. remote:{_endPoint.ToString()}, byteTransfer:{args.BytesTransferred}, error:{args.SocketError}");
+                    }
+                    bError = true;
+                    break;
                 }
+            } while (false);
+
+            if (bError)
                 Disconnect();
-            }
+
+            CounterManager.Instance.SubCurrentRecvThread();
         }
 
         // 비동기 send 등록
@@ -275,6 +287,8 @@ namespace ServerCore
         // 비동기 send 완료루틴 함수
         void OnSendCompleted(object? sender, SocketAsyncEventArgs args)
         {
+            CounterManager.Instance.AddCurrentSendThread();
+
             lock (_lock)
             {
                 // send한 byte가 0보다 크고 소켓 에러가 없으면 성공
@@ -310,6 +324,8 @@ namespace ServerCore
                     Disconnect();
                 }
             }
+
+            CounterManager.Instance.SubCurrentSendThread();
         }
         #endregion
     }

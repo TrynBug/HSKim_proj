@@ -7,13 +7,32 @@ using System.Threading.Tasks;
 
 namespace DummyClient.Data
 {
-    // 서버 설정값들
     [Serializable]
     public class ServerConfig
     {
+        /* server */
         public string dataPath;  // 현재 값은 dataPath="../../../../../Client/Assets/Resources/Data" 이다.
         public string serverIP;
         public int serverPort;
+
+        /* room */
+        public int FPS;
+
+        /* map */
+        public int CellMultiple;
+
+        /* float */
+        public float DifferenceTolerance;
+
+        /* dummy client */
+        public int MaxNumberOfClient;
+        public int MaxConnectionCountPerFrame;
+        public float DisconnectProb;
+        public float AutoProb;
+
+        /* move */
+        public float MyPlayerMinimumMove;
+        public int MovePacketSendInterval;
     }
 
     // 서버 설정파일을 관리하는 매니저

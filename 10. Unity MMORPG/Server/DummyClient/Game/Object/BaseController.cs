@@ -219,6 +219,16 @@ namespace DummyClient.Game
         }
 
 
+
+        // dest 위치에 멈춤
+        public void StopAt()
+        {
+            // dest 위치에 멈춘다.
+            State = CreatureState.Idle;
+            Pos = Dest;
+        }
+
+
         /* ToString */
         public override string ToString()
         {

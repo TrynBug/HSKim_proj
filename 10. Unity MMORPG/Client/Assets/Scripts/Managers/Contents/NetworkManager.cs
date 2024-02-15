@@ -68,13 +68,10 @@ public class NetworkManager
         ServerCore.Logger.Level = LogLevel.Debug;
         ServerCore.Logger.OnLog = Util.OnNetworkLog;
 
-        // DNS (Domain Name System)
-        string host = Dns.GetHostName();
-		IPHostEntry ipHost = Dns.GetHostEntry(host);
-		IPAddress ipAddr = ipHost.AddressList[0];
-		IPEndPoint endPoint = new IPEndPoint(ipAddr, 7777);
+        IPAddress ipAddr = IPAddress.Parse(Managers.Config.ServerIP);
+        IPEndPoint endPoint = new IPEndPoint(ipAddr, Managers.Config.ServerPort);
 
-		Connector connector = new Connector();
+        Connector connector = new Connector();
 		connector.Connect(endPoint,
 			() => { return _session; });
     }

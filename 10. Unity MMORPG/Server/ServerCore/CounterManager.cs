@@ -65,6 +65,9 @@ namespace ServerCore
         public long RecvError1s { get { return _recvError.value1s; } }
         public long SendError1s { get { return _sendError.value1s; } }
 
+        public int CurrentRecvThread { get { return _currentRecvThread; } }
+        public int CurrentSendThread { get { return _currentSendThread; } }
+
         public float CPUTotal { get { return _pcCPUTotal.value; } }
         public float CPUUser { get { return _pcCPUUser.value; } }
         public float CPUKernel { get { return _pcCPUTotal.value - _pcCPUUser.value; } }
@@ -102,6 +105,10 @@ namespace ServerCore
         public void AddSendError() { Interlocked.Increment(ref _sendError.value); }
         public void AddSendError(long amount) { Interlocked.Add(ref _sendError.value, amount); }
 
+        public void AddCurrentRecvThread() { Interlocked.Increment(ref _currentRecvThread); }
+        public void SubCurrentRecvThread() { Interlocked.Decrement(ref _currentRecvThread); }
+        public void AddCurrentSendThread() { Interlocked.Increment(ref _currentSendThread); }
+        public void SubCurrentSendThread() { Interlocked.Decrement(ref _currentSendThread); }
 
         /* counter */
         CounterValue _accept;
@@ -116,6 +123,8 @@ namespace ServerCore
         CounterValue _recvError;
         CounterValue _sendError;
 
+        int _currentRecvThread = 0;
+        int _currentSendThread = 0;
 
         PerformanceCounterValue _pcCPUTotal = new PerformanceCounterValue();
         PerformanceCounterValue _pcCPUUser = new PerformanceCounterValue();

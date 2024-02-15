@@ -844,8 +844,8 @@ namespace Server.Game
             }
             targetPosMin = GetValidPos(targetPosMin);
             targetPosMax = GetValidPos(targetPosMax);
-            Vector2Int targetCellMin = PosToCell(targetPosMin);
-            Vector2Int targetCellMax = PosToCell(targetPosMax);
+            Vector2Int targetCellMin = GetValidCell(PosToCell(targetPosMin));
+            Vector2Int targetCellMax = GetValidCell(PosToCell(targetPosMax));
 
             // 범위 내의 object 찾기
             for (int y = targetCellMin.y; y <= targetCellMax.y; y++)

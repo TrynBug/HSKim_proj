@@ -95,6 +95,12 @@ namespace DummyClient
         {
             S_Die diePacket = packet as S_Die;
             ServerSession serverSession = session as ServerSession;
+
+            if (serverSession.MyPlayer != null)
+            {
+                serverSession.MyPlayer.State = CreatureState.Dead;
+                serverSession.MyPlayer.Auto.State = AutoState.AutoDead;
+            }
         }
 
 
@@ -131,6 +137,12 @@ namespace DummyClient
         {
             S_LoadFinished loadPacket = packet as S_LoadFinished;
             ServerSession serverSession = session as ServerSession;
+
+            if (serverSession.MyPlayer != null)
+            {
+                serverSession.MyPlayer.State = CreatureState.Idle;
+            }
+
         }
 
         // 로딩완료 요청 처리

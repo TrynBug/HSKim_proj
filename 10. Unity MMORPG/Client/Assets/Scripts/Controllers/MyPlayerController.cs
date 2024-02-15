@@ -12,6 +12,11 @@ using System.Linq;
 
 public class MyPlayerController : SPUMController
 {
+    /* name */
+    NameBar _nameBar = null;
+
+
+    /* move */
     C_Move _lastCMove = null;       // 마지막으로 보낸 C_Move 패킷
     int _lastCMoveSendTime = 0;     // 마지막으로 C_Move 패킷 보낸 시간 (단위:ms)
 
@@ -60,11 +65,10 @@ public class MyPlayerController : SPUMController
         for(int i=0; i< packet.SkillIds.Count; i++)
             KeySkillMap.Add(KeyInput.Attack + i, packet.SkillIds[i]);
 
+
+        // name bar 생성
+        AddNameBar();
     }
-
-
-
-
 
 
     GameObject goDebug = null;
@@ -570,5 +574,19 @@ public class MyPlayerController : SPUMController
         {
             gameUI.SetHealth(Hp);
         }
+    }
+
+
+    // name bar 추가
+    protected void AddNameBar()
+    {
+        GameObject go = Managers.Resource.Instantiate("UI/NameBar", transform);
+        go.transform.localPosition = new Vector3(0, 1.2f, 0);
+        go.name = "NameBar";
+        _nameBar = go.GetComponent<NameBar>();
+        _nameBar.Init(Info.Name.ToUpper());
+
+        if (SPUM.hasHorse == true)
+            _nameBar.transform.localPosition = new Vector3(0, 1.5f, 0);
     }
 }
