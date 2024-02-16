@@ -25,12 +25,9 @@ namespace ServerCore
                 return;
             if (Level == LogLevel.None)
                 return;
-            int error_break;
-            if (Level == LogLevel.Error)
-                error_break = 0;
 
             string outLog;
-            switch(level)
+            switch (level)
             {
                 // 여기서 문자열 보간($)을 사용하지 않은 이유는 log 자체에 { } 문자가 포함되어 있을 수 있기 때문이다.
                 case LogLevel.Debug:

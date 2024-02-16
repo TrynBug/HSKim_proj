@@ -44,21 +44,7 @@ namespace Server
             }
             RoomManager.Instance.RunAllRooms();
 
-
-            // DNS로 내 IP를 알아낸다.
-            string host = Dns.GetHostName();  
-            IPHostEntry ipHost = Dns.GetHostEntry(host);          // host에 대한 정보를 알아내어 IPHostEntry 객체로 구성한다.
-            IPAddress ipAddr = null;
-            foreach(IPAddress ad in ipHost.AddressList)
-            {
-                if (ad.AddressFamily == AddressFamily.InterNetwork)
-                {
-                    ipAddr = ad.MapToIPv4();
-                    break;
-                }
-            }
-            if(ipAddr == null)
-                ipAddr = ipHost.AddressList[0];
+            IPAddress ipAddr = IPAddress.Parse("0.0.0.0");
             IPEndPoint endPoint = new IPEndPoint(ipAddr, ConfigManager.Config.port);
 
             Logger.WriteLog(LogLevel.System, $"Run Server. IP:{endPoint.Address}, port:{ConfigManager.Config.port}");
@@ -93,7 +79,8 @@ namespace Server
             Logger.WriteLog(LogLevel.System, $"[network]  session:{SessionManager.Instance.SessionCount}, accept:{cm.Accept} ({cm.Accept1s}/s), " +
                 $"disconn:{cm.Disconnect} ({cm.Disconnect1s}/s), recv:{cm.Recv1s}/s, send:{cm.Send1s}/s");
             Logger.WriteLog(LogLevel.System, $"[system ]  CPU [total:{cm.CPUTotal:f1}%, user:{cm.CPUUser:f1}%, kernel:{cm.CPUKernel:f1}%], " +
-                $"Memory(MB) [commit:{cm.MemoryCommittedMB:f2}, paged:{cm.MemoryPagedMB:f2}, nonpaged:{cm.MemoryNonpagedMB:f2}]");
+                $"Memory(MB) [System C:{cm.MemoryCommittedMB:f2}, P:{cm.MemoryPagedMB:f2}, NP:{cm.MemoryNonpagedMB:f2}] " +
+                $"[Process C:{cm.ProcessMemoryPrivateMB:f2}, P:{cm.ProcessMemoryPagedMB:f2}, NP:{cm.ProcessMemoryNonpagedMB:f2}]");
 
             LoginRoom loginRoom = RoomManager.Instance.LoginRoom;
             Logger.WriteLog(LogLevel.System, $"[login  ]  session:{loginRoom.SessionCount}, login:{loginRoom.LoginCount1s}/s, FPS:{loginRoom.Time.AvgFPS1s:f1}, " +
@@ -101,7 +88,7 @@ namespace Server
 
             RoomState roomState = RoomManager.Instance.GetRoomState();
             Logger.WriteLog(LogLevel.System, $"[field  ]  rooms:{RoomManager.Instance.RoomCount}, " +
-                $"player: {roomState.Player.Sum} (max:{roomState.Player.Max}({roomState.Player.MaxRoom})), " +
+                $"player: {roomState.Player.Sum} (max:{roomState.Player.Max}(room:{roomState.Player.MaxRoom})), " +
                 $"FPS [avg:{roomState.FPS.Avg:f1}, min:{roomState.FPS.Min:f1}(room {roomState.FPS.MinRoom}), max:{roomState.FPS.Max:f1}(room {roomState.FPS.MaxRoom})], " +
                 $"DB [total:{roomState.DBJob1s.Sum}/s, remain max:{roomState.DBJobQueue.Max}(room {roomState.DBJobQueue.MaxRoom}), max:{roomState.DBJob1s.Max}/s(room {roomState.DBJob1s.MaxRoom})]");
 
@@ -115,7 +102,7 @@ namespace Server
             ThreadPool.GetMaxThreads(out maxWorkerThreadCount, out maxCompletionPortThreadCount);
             ThreadPool.GetMinThreads(out minWorkerThreadCount, out minCompletionPortThreadCount);
             string logThread = $"[thread ]  active:({maxWorkerThreadCount - workerThreadCount},{maxCompletionPortThreadCount - completionPortThreadCount}), " +
-                $"recv:{cm.CurrentRecvThread}, send:{cm.CurrentSendThread}, room:{RoomManager.Instance.UpdateRoomCount}, ";
+                $"recv:{cm.CurrentRecvThread}(max:{cm.MaxCurrentRecvThread}), send:{cm.CurrentSendThread}(max:{cm.MaxCurrentSendThread}), room:{RoomManager.Instance.UpdateRoomCount}, ";
 #if NET6_0
             GCMemoryInfo gcInfo = GC.GetGCMemoryInfo();
             logThread += $", GC({(System.Runtime.GCSettings.IsServerGC ? "server" :"works")}) [percentage:{gcInfo.PauseTimePercentage}, duration:(";

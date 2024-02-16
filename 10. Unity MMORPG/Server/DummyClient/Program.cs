@@ -73,7 +73,16 @@ namespace DummyClient
                 GameManager.Instance.DisconnectAll = true;
                 Logger.WriteLog(LogLevel.System, $"Disconnect all and stop sonnection");
             }
-
+            else if ((result.KeyChar == ','))
+            {
+                ConfigManager.Config.MaxNumberOfClient += 100;
+                Logger.WriteLog(LogLevel.System, $"MaxNumberOfClient : {ConfigManager.Config.MaxNumberOfClient}");
+            }
+            else if ((result.KeyChar == '.'))
+            {
+                ConfigManager.Config.MaxNumberOfClient -= 100;
+                Logger.WriteLog(LogLevel.System, $"MaxNumberOfClient : {ConfigManager.Config.MaxNumberOfClient}");
+            }
 
             _timer.Interval = 50;
             _timer.AutoReset = false;

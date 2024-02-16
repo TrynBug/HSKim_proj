@@ -21,7 +21,7 @@ public class MapEditor
 
     // 생성할 맵 수
     // 현재 map prefab 수가 _maxMapNumber 보다 작을 경우 _maxMapNumber 만큼 맵을 중복하여 생성한다.
-    static int _maxMapNumber = 30;
+    static int _maxMapNumber = 100;
 
 
 

@@ -66,7 +66,9 @@ namespace ServerCore
         public long SendError1s { get { return _sendError.value1s; } }
 
         public int CurrentRecvThread { get { return _currentRecvThread; } }
+        public int MaxCurrentRecvThread { get { return _maxCurrentRecvThread; } }
         public int CurrentSendThread { get { return _currentSendThread; } }
+        public int MaxCurrentSendThread { get { return _maxCurrentSendThread; } }
 
         public float CPUTotal { get { return _pcCPUTotal.value; } }
         public float CPUUser { get { return _pcCPUUser.value; } }
@@ -105,9 +107,19 @@ namespace ServerCore
         public void AddSendError() { Interlocked.Increment(ref _sendError.value); }
         public void AddSendError(long amount) { Interlocked.Add(ref _sendError.value, amount); }
 
-        public void AddCurrentRecvThread() { Interlocked.Increment(ref _currentRecvThread); }
+        public void AddCurrentRecvThread() 
+        { 
+            int val = Interlocked.Increment(ref _currentRecvThread);
+            if (val > _maxCurrentRecvThread)
+                _maxCurrentRecvThread = val;
+        }
         public void SubCurrentRecvThread() { Interlocked.Decrement(ref _currentRecvThread); }
-        public void AddCurrentSendThread() { Interlocked.Increment(ref _currentSendThread); }
+        public void AddCurrentSendThread() 
+        { 
+            int val = Interlocked.Increment(ref _currentSendThread);
+            if (val > _maxCurrentSendThread)
+                _maxCurrentSendThread = val;
+        }
         public void SubCurrentSendThread() { Interlocked.Decrement(ref _currentSendThread); }
 
         /* counter */
@@ -124,7 +136,9 @@ namespace ServerCore
         CounterValue _sendError;
 
         int _currentRecvThread = 0;
+        int _maxCurrentRecvThread = 0;
         int _currentSendThread = 0;
+        int _maxCurrentSendThread = 0;
 
         PerformanceCounterValue _pcCPUTotal = new PerformanceCounterValue();
         PerformanceCounterValue _pcCPUUser = new PerformanceCounterValue();

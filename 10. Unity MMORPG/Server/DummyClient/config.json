@@ -1,6 +1,6 @@
 {
 	"dataPath": "../../../../../Client/Assets/Resources/Data",
-	"serverIP": "192.168.0.5",
+	"serverIP": "43.201.27.179",
 	"serverPort": "22222",
 	
 	"FPS": "20",
@@ -9,7 +9,7 @@
 
 	"DifferenceTolerance": "0.001",
 
-	"MaxNumberOfClient": "1200",
+	"MaxNumberOfClient": "1000",
 	"MaxConnectionCountPerFrame": "5",
 	"DisconnectProb": "0.000",
 	"AutoProb": "1.0",
