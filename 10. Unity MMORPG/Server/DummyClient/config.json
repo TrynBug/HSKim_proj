@@ -1,6 +1,6 @@
 {
 	"dataPath": "../../../../../Client/Assets/Resources/Data",
-	"serverIP": "43.201.27.179",
+	"serverIP": "192.168.0.5",
 	"serverPort": "22222",
 	
 	"FPS": "20",
