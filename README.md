@@ -1,4 +1,4 @@
-![image](https://github.com/TrynBug/HSKim_proj/assets/66310375/f29e39fb-d2de-400d-a4e7-75a7ed641532)
+
 ### 김형섭 포트폴리오 프로젝트 소스코드
 
 #### 01-03. MMOServer (C++)
