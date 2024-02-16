@@ -17,7 +17,14 @@
 <!-- end of the list -->
 #### 04. MMO 게임 서버, 클라이언트 (C#, Unity)
 - Server
-  <br><sub>&nbsp;C# MMORPG 서버</sub>
+  - ServerCore
+    <br><sub>&nbsp;네트워크 라이브러리</sub>
+  - Server
+    <br><sub>&nbsp;C# MMORPG 서버</sub>
+  - DummyClient
+    <br><sub>&nbsp;더미 클라이언트</sub>
+  - PacketGenerator
+    <br><sub>&nbsp;Google Protobuf 패킷 핸들러 생성프로그램</sub>
 - Client
   <br><sub>&nbsp;Unity 클라이언트</sub>
 #### 05. Tool : 서버 모니터링 클라이언트 (C#)
