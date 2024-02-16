@@ -1,0 +1,19 @@
+{
+	"dataPath": "../../../../../Client/Assets/Resources/Data",
+	"serverIP": "43.201.27.179",
+	"serverPort": "22222",
+	
+	"FPS": "20",
+	
+	"CellMultiple": "2",
+
+	"DifferenceTolerance": "0.001",
+
+	"MaxNumberOfClient": "1000",
+	"MaxConnectionCountPerFrame": "5",
+	"DisconnectProb": "0.000",
+	"AutoProb": "1.0",
+
+	"MyPlayerMinimumMove": "0.075",
+	"MovePacketSendInterval": "200"
+}

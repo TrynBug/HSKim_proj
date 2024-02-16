@@ -1,0 +1,18 @@
+﻿DLL을 .NET 6.0, .NET standard 2.1 둘 다의 버전으로 컴파일하기 위해 .csproj 파일의 속성을 변경하였습니다.
+
+변경전(.NET 6.0 사용)
+  <PropertyGroup>
+    <TargetFramework>net6.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+변경후(.NET 6.0, .NET standard 2.1 사용)
+  <PropertyGroup>
+    <TargetFrameworks>net6.0;netstandard2.1</TargetFrameworks>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+ImplicitUsings 속성을 변경한 이유는 컴파일 시
+    '전역 using 지시문' 기능은 C# 9.0에서 사용할 수 없습니다. 10.0 이상의 언어 버전을 사용하세요.	ServerCore	\RookissMMOServer\ServerCore\obj\Debug\net5.0\ServerCore.GlobalUsings.g.cs
+오류가 발생하였기 때문입니다.

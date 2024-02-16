@@ -1,0 +1,328 @@
+syntax = "proto3";
+
+package Protocol;
+import "google/protobuf/timestamp.proto";
+option csharp_namespace = "Google.Protobuf.Protocol";
+
+enum MsgId {
+    S_ENTER_GAME = 0;
+    S_LEAVE_GAME = 1;
+    S_ENTER_ROOM = 2;
+    S_LEAVE_ROOM = 3;
+    S_SPAWN = 4;
+    S_DESPAWN = 5;
+    S_SPAWN_SKILL = 6;
+    C_MOVE = 7;
+    S_MOVE = 8;
+    C_SKILL = 9;
+    S_SKILL = 10;
+    S_SKILL_HIT = 12;
+    S_CHANGE_HP = 13;
+    S_DIE = 14;
+    C_SYNC_TIME = 15;
+    S_SYNC_TIME_RESPONSE = 16;
+    C_SET_AUTO = 17;
+    S_SET_AUTO_RESPONSE = 18;
+    S_STOP = 20;
+    S_AUTO_MOVE = 21;
+    C_LOAD_FINISHED = 22;
+    S_LOAD_FINISHED = 23;
+    C_RESPAWN = 24;
+    C_DEBUG_COMMAND = 25;
+    C_LOGIN = 26;
+    S_LOGIN_RESPONSE = 27;
+}
+
+enum CreatureState
+{
+    IDLE = 0;    
+    MOVING = 1;
+    DEAD = 2;
+    LOADING = 3;
+}
+
+enum MoveDir
+{
+    UP = 0;
+    DOWN = 1;
+    LEFT = 2;
+    RIGHT = 3;
+    LEFT_UP = 4;
+    LEFT_DOWN = 5;
+    RIGHT_UP = 6;
+    RIGHT_DOWN = 7;
+}
+
+enum LookDir
+{
+    LOOK_LEFT = 0;
+    LOOK_RIGHT = 1;
+}
+
+enum GameObjectType {
+    NONE = 0;
+    PLAYER = 1;
+    MONSTER = 2;
+    SKILL = 3;
+    PROJECTILE = 4;
+    EFFECT = 5;
+}
+
+enum SkillType {
+    SKILL_MELEE = 0;
+    SKILL_PROJECTILE = 1;
+    SKILL_INSTANT = 2;
+}
+
+enum SkillHitType {
+    SKILL_HIT_SINGLE = 0;
+    SKILL_HIT_CIRCLE = 1;
+    SKILL_HIT_RECTANGLE = 2;
+}
+
+enum SkillId {
+    SKILL_NONE = 0;
+    SKILL_ATTACK = 1;
+    SKILL_FIREBALL = 3;
+    SKILL_THUNDER = 4;
+    SKILL_HEAVY_ATTACK = 5;
+    SKILL_MAGIC_EXPLOSION = 6;
+    SKILL_RED_EXPLOSION = 7;
+    SKILL_LIGHTNING_EXPLOSION = 8;
+}
+
+enum StatChangeType {
+    CHANGE_NONE = 0;
+    CHANGE_POSITIVE = 1;
+    CHANGE_NEGATIVE = 2;
+}
+
+enum AutoMode {
+    MODE_NONE = 0;
+    MODE_AUTO = 1;
+}
+
+enum AutoState
+{
+    AUTO_IDLE = 0;
+    AUTO_CHASING = 1;
+    AUTO_MOVING = 2;
+    AUTO_SKILL = 3;
+    AUTO_DEAD = 4;
+    AUTO_WAIT = 5;
+}
+
+enum SPUMClass
+{
+    SPUM_KNIGHT = 0;
+    SPUM_WIZARD = 1;
+    SPUM_ARCHER = 2;
+}
+
+
+
+
+
+
+message S_EnterGame {
+  ObjectInfo object = 1;
+  repeated SkillId skillIds = 2;
+  int32 roomId = 3;
+}
+
+
+message S_LeaveGame {
+
+}
+
+message S_EnterRoom
+{
+}
+
+message S_LeaveRoom
+{
+}
+
+
+message S_Spawn {
+    repeated ObjectInfo objects = 1;
+}
+
+message S_Despawn {
+    repeated int32 objectIds = 1;
+}
+
+message S_SpawnSkill {
+    int32 objectId = 1;
+    int32 ownerId = 2;
+    int32 targetId = 3;
+    SkillId skillId = 4;
+    PositionInfo posInfo = 5;
+}
+
+message C_Move {
+    PositionInfo posInfo = 1;
+    int64 moveTime = 2;
+}
+
+message S_Move {
+    int32 objectId = 1;
+    PositionInfo posInfo = 2;
+    int64 moveTime = 3;
+}
+
+message C_Skill {
+    SkillId skillId = 1;
+    int32 targetId = 2;
+    repeated int32 hits = 3;
+}
+
+message S_Skill {
+    int32 objectId = 1;
+    SkillId skillId = 2;
+}
+
+message S_SkillHit {
+    int32 attackerId = 1;
+    int32 targetId = 2;
+    int32 skillObjectId = 3;
+    SkillId skillId = 4;
+    int32 skillPhase = 5;
+    float skillPosX = 6;
+    float skillPosY = 7;
+    repeated HitInfo hits = 8; 
+}
+
+message S_ChangeHp {
+    int32 objectId = 1;
+    int32 hp = 2;
+    int32 amount = 3;
+    StatChangeType changeType = 4;
+}
+
+message S_Die {
+    int32 objectId = 1;
+    int32 attackerId = 2;
+}
+
+message C_SyncTime {
+    int64 clientTime = 1;
+}
+
+message S_SyncTimeResponse {
+    int64 clientTime = 1;
+    int64 serverTime = 2;
+}
+
+message C_SetAuto {
+    AutoMode mode = 1;
+}
+
+message S_SetAutoResponse {
+    int32 objectId = 1;
+    AutoMode mode = 2;
+}
+
+message S_Stop {
+    int32 objectId = 1;
+    float posX = 2;
+    float posY = 3;
+    MoveDir dir = 4;
+    LookDir look = 5;
+}
+
+
+message S_AutoMove {
+    int32 objectId = 1;
+    PositionInfo posInfo = 2;
+    AutoInfo autoInfo = 3;
+}
+
+message C_LoadFinished
+{
+    bool bLoaded = 1;
+}
+
+message S_LoadFinished
+{
+    int32 objectId = 1;
+}
+
+message C_Respawn
+{
+    bool bRespawn = 1;
+}
+
+message C_DebugCommand
+{
+    string command = 1;
+}
+
+message C_Login
+{
+    string name = 1;
+    string password = 2;
+}
+
+message S_LoginResponse
+{
+    int32 result = 1;
+    string name = 2;
+}
+
+
+
+message ObjectInfo {
+    int32 objectId = 1;
+    string name = 2;
+    PositionInfo posInfo = 3;
+    StatInfo statInfo = 4;
+    AutoInfo autoInfo = 5;
+    int32 SPUMId = 6;
+    AutoMode autoMode = 7;
+}
+
+message PositionInfo {
+    CreatureState state = 1;
+    MoveDir moveDir = 2;
+    LookDir lookDir = 3;
+    float posX = 4;
+    float posY = 5;
+    float destX = 6;
+    float destY = 7;
+    bool moveKeyDown = 8;
+}
+
+message StatInfo {
+    optional int32 level = 1;
+    optional int32 hp = 2;
+    optional int32 maxHp = 3;
+    optional int32 damage = 4;
+    optional int32 defence = 5;
+    optional float rangeX = 6;
+    optional float rangeY = 7;
+    optional float attackSpeed = 8;
+    optional float speed = 9;
+    optional int32 exp = 10;
+    optional int32 totalExp = 11;
+}
+
+message AutoInfo {
+    optional AutoState autoState = 1;
+    optional float startPosX = 2;
+    optional float startPosY = 3;
+    optional int32 targetId = 4;
+    optional float targetPosX = 5;
+    optional float targetPosY = 6;
+    optional float targetDistX = 7;
+    optional float targetDistY = 8;
+    optional int64 waitUntil = 9;
+    optional AutoState nextState = 10;
+    optional SkillId skillId = 11;
+}
+
+message HitInfo {
+    int32 objectId = 1;
+    int32 damage = 2;
+}
+
