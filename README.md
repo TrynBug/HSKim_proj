@@ -1,7 +1,7 @@
-
+![image](https://github.com/TrynBug/HSKim_proj/assets/66310375/f29e39fb-d2de-400d-a4e7-75a7ed641532)
 ### 김형섭 포트폴리오 프로젝트 소스코드
 
-#### 01-03. MMOServer
+#### 01-03. MMOServer (C++)
 - ChatServer
   <br><sub>&nbsp;채팅 서버</sub>
 - LoginServer
@@ -15,11 +15,14 @@
 - GameNetLib
   <br><sub>&nbsp;게임 컨텐츠 전용 IOCP 네트워크 라이브러리. 게임서버에서 사용</sub>
 <!-- end of the list -->
-<sub>&nbsp;&nbsp;&nbsp;(주의: 서버를 실행하기 위해서는 Redis 서버, MySQL DB가 연동되어 있어야 하기 때문에 소스코드만으로는 정상적으로 실행되지 않습니다.)</sub>
-#### 04. Tool : 서버 모니터링 클라이언트
-#### 05. Lockfree Stack
-#### 06. Lockfree Queue
-#### 07. TLS 메모리풀
-#### 08-09. 길찾기 프로그램
+#### 04. MMO 게임 서버, 클라이언트 (C#, Unity)
+- Server
+  <br><sub>&nbsp;C# MMORPG 서버</sub>
+- Client
+  <br><sub>&nbsp;Unity 클라이언트</sub>
+#### 05. Tool : 서버 모니터링 클라이언트 (C#)
+#### 06. Lockfree Stack (C++)
+#### 07. TLS 메모리풀 (C++)
+#### 08-09. 길찾기 프로그램 (C++)
 - A* 알고리즘 길찾기 기능
 - Jump Point Search 알고리즘 길찾기 기능
